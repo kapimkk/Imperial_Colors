@@ -493,6 +493,8 @@ namespace ImperialColors.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CriadoEm");
+
                     b.HasIndex("ProdutoId");
 
                     b.HasIndex("VendaId");
@@ -587,7 +589,69 @@ namespace ImperialColors.Infrastructure.Migrations
 
                     b.HasIndex("MarcaId");
 
+                    b.HasIndex("Nome");
+
                     b.ToTable("produtos", (string)null);
+                });
+
+            modelBuilder.Entity("ImperialColors.Domain.Entities.Usuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("DataCadastro")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_cadastro");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("NomeCompleto")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_completo");
+
+                    b.Property<int>("Permissao")
+                        .HasColumnType("integer")
+                        .HasColumnName("permissao");
+
+                    b.Property<string>("Salt")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("salt");
+
+                    b.Property<string>("SenhaHash")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("senha_hash");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("username");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("usuarios", (string)null);
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Venda", b =>
@@ -624,6 +688,10 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("desconto");
 
+                    b.Property<int>("FormaPagamento")
+                        .HasColumnType("integer")
+                        .HasColumnName("forma_pagamento");
+
                     b.Property<string>("NumeroVenda")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -633,6 +701,12 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.Property<string>("Observacoes")
                         .HasColumnType("text")
                         .HasColumnName("observacoes");
+
+                    b.Property<int>("QuantidadeParcelas")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("quantidade_parcelas");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")
@@ -648,14 +722,26 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("total");
 
+                    b.Property<decimal>("Troco")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("troco");
+
                     b.Property<string>("Usuario")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("usuario");
 
+                    b.Property<decimal>("ValorPago")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("valor_pago");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
+
+                    b.HasIndex("DataVenda");
 
                     b.HasIndex("NumeroVenda")
                         .IsUnique();

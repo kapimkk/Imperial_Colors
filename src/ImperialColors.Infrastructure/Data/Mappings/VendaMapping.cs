@@ -17,6 +17,10 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
         builder.Property(v => v.Subtotal).HasColumnName("subtotal").HasPrecision(10, 2);
         builder.Property(v => v.Desconto).HasColumnName("desconto").HasPrecision(10, 2);
         builder.Property(v => v.Total).HasColumnName("total").HasPrecision(10, 2);
+        builder.Property(v => v.FormaPagamento).HasColumnName("forma_pagamento");
+        builder.Property(v => v.QuantidadeParcelas).HasColumnName("quantidade_parcelas").HasDefaultValue(1);
+        builder.Property(v => v.ValorPago).HasColumnName("valor_pago").HasPrecision(10, 2);
+        builder.Property(v => v.Troco).HasColumnName("troco").HasPrecision(10, 2);
         builder.Property(v => v.Observacoes).HasColumnName("observacoes");
         builder.Property(v => v.Usuario).HasColumnName("usuario").HasMaxLength(100);
         builder.Property(v => v.DataVenda).HasColumnName("data_venda");
@@ -25,6 +29,7 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
         builder.Property(v => v.Ativo).HasColumnName("ativo");
 
         builder.HasIndex(v => v.NumeroVenda).IsUnique();
+        builder.HasIndex(v => v.DataVenda);
         builder.HasOne(v => v.Cliente).WithMany(c => c.Vendas).HasForeignKey(v => v.ClienteId).OnDelete(DeleteBehavior.SetNull);
     }
 }

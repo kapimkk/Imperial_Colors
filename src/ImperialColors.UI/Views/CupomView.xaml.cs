@@ -1,4 +1,8 @@
 using ImperialColors.Application.DTOs;
+using ImperialColors.Application.Helpers;
+using ImperialColors.Application.Interfaces;
+using ImperialColors.Domain.Enums;
+using ImperialColors.UI.Helpers;
 using ImperialColors.UI.Services;
 using System.Windows;
 
@@ -7,31 +11,82 @@ namespace ImperialColors.UI.Views;
 public partial class CupomView : Window
 {
     private readonly IRelatorioService _relatorioService;
+    private readonly IAppConfigService _config;
+    private readonly ILocalConfigService _localConfig;
     private VendaDto? _venda;
 
-    public CupomView(IRelatorioService relatorioService)
+    public CupomView(IRelatorioService relatorioService, IAppConfigService config, ILocalConfigService localConfig)
     {
         InitializeComponent();
         _relatorioService = relatorioService;
+        _config = config;
+        _localConfig = localConfig;
+        LogoHelper.AplicarIconeJanela(this, _config.IconPath);
     }
 
     public void InicializarVenda(VendaDto venda)
     {
         _venda = venda;
+
+        var empresa = _config.Empresa;
+
+        TxtEmpresaNome.Text = empresa.NomeFantasia;
+        TxtRodape.Text = _config.CupomRodape;
+        LogoHelper.AplicarLogo(ImgLogo, _config.LogoSemFundoPath, 56, 56);
+
+        if (!string.IsNullOrWhiteSpace(empresa.RazaoSocial))
+            TxtEmpresaRazaoSocial.Text = empresa.RazaoSocial;
+        else
+            TxtEmpresaRazaoSocial.Visibility = Visibility.Collapsed;
+
+        if (!string.IsNullOrWhiteSpace(empresa.CNPJ))
+            TxtEmpresaCnpj.Text = $"CNPJ: {empresa.CNPJ}";
+        else
+            TxtEmpresaCnpj.Visibility = Visibility.Collapsed;
+
+        if (!string.IsNullOrWhiteSpace(empresa.Endereco))
+            TxtEmpresaEndereco.Text = empresa.Endereco;
+        else
+            TxtEmpresaEndereco.Visibility = Visibility.Collapsed;
+
+        if (!string.IsNullOrWhiteSpace(empresa.Telefone))
+            TxtEmpresaTelefone.Text = $"Tel: {empresa.Telefone}";
+        else
+            TxtEmpresaTelefone.Visibility = Visibility.Collapsed;
+
         TxtNumeroVenda.Text = venda.NumeroVenda;
-        TxtData.Text = venda.DataVenda.ToString("dd/MM/yyyy HH:mm");
+        TxtData.Text = FormattingHelper.FormatarDataHora(venda.DataVenda);
         TxtCliente.Text = venda.ClienteNome ?? "Consumidor Final";
-        TxtSubtotal.Text = venda.Subtotal.ToString("C2", new System.Globalization.CultureInfo("pt-BR"));
-        TxtDesconto.Text = venda.Desconto.ToString("C2", new System.Globalization.CultureInfo("pt-BR"));
-        TxtTotal.Text = venda.Total.ToString("C2", new System.Globalization.CultureInfo("pt-BR"));
+        TxtSubtotal.Text = FormattingHelper.FormatarMoeda(venda.Subtotal);
+        TxtDesconto.Text = FormattingHelper.FormatarMoeda(venda.Desconto);
+        TxtTotal.Text = FormattingHelper.FormatarMoeda(venda.Total);
+        TxtFormaPagamento.Text = venda.FormaPagamentoDescricao;
+
+        if (venda.FormaPagamento == FormaPagamento.Dinheiro)
+        {
+            PainelDinheiroCupom.Visibility = Visibility.Visible;
+            TxtValorPago.Text = FormattingHelper.FormatarMoeda(venda.ValorPago);
+            TxtTroco.Text = FormattingHelper.FormatarMoeda(venda.Troco);
+        }
+        else
+        {
+            PainelDinheiroCupom.Visibility = Visibility.Collapsed;
+        }
+
         LstItens.ItemsSource = venda.Itens;
     }
 
     private void BtnImprimir_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new System.Windows.Controls.PrintDialog();
-        if (dialog.ShowDialog() == true)
-            dialog.PrintVisual(BorderCupom, $"Cupom {_venda?.NumeroVenda}");
+        if (!CupomPrintHelper.ImprimirNaImpressoraConfigurada(
+                BorderCupom,
+                $"Cupom {_venda?.NumeroVenda}",
+                _localConfig.ImpressoraSelecionada,
+                out var erro))
+        {
+            MessageBox.Show(erro ?? "Não foi possível imprimir o cupom.",
+                "Impressão", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
     }
 
     private async void BtnSalvarPdf_Click(object sender, RoutedEventArgs e)

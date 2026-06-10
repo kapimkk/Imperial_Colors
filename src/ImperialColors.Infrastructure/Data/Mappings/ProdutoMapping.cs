@@ -28,6 +28,7 @@ public class ProdutoMapping : IEntityTypeConfiguration<Produto>
 
         builder.HasIndex(p => p.CodigoInterno).IsUnique();
         builder.HasIndex(p => p.CodigoBarras);
+        builder.HasIndex(p => p.Nome);
 
         builder.HasOne(p => p.Categoria).WithMany(c => c.Produtos).HasForeignKey(p => p.CategoriaId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(p => p.Marca).WithMany(m => m.Produtos).HasForeignKey(p => p.MarcaId).OnDelete(DeleteBehavior.SetNull);

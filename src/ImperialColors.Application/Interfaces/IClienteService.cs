@@ -11,4 +11,6 @@ public interface IClienteService
     Task<ClienteDto> AtualizarAsync(int id, ClienteDto dto);
     Task RemoverAsync(int id);
     Task<int> ContarAsync();
+    Task<PaginacaoResultadoDto<ClienteDto>> ObterPaginadoAsync(
+        int pagina, int itensPorPagina, string? termoBusca = null, CancellationToken cancellationToken = default);
 }

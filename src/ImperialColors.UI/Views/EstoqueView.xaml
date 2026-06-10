@@ -10,6 +10,8 @@
             </ResourceDictionary.MergedDictionaries>
             <conv:MoedaConverter x:Key="MoedaConverter"/>
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+            <conv:InvertBoolToVisibilityConverter x:Key="InvertBoolToVisibility"/>
+            <conv:InverseBoolConverter x:Key="InverseBool"/>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -46,11 +48,11 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <Grid Grid.Column="0">
-                    <TextBox Style="{StaticResource TextBoxModerno}"
-                             Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}"
-                             Padding="40,8,10,8"/>
+                    <TextBox Style="{StaticResource TextBoxFiltro}"
+                             Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}"/>
                     <TextBlock Text="🔍  Buscar por nome, código ou código de barras..."
                                Foreground="{StaticResource CinzaTextoBrush}" FontSize="13"
                                IsHitTestVisible="False" VerticalAlignment="Center" Margin="12,0,0,0">
@@ -67,28 +69,38 @@
                     </TextBlock>
                 </Grid>
                 <Button Grid.Column="1" Style="{StaticResource BotaoSecundario}" Margin="10,0,0,0"
+                        Command="{Binding AtualizarCommand}" Content="⟳  Atualizar"/>
+                <Button Grid.Column="2" Style="{StaticResource BotaoSecundario}" Margin="10,0,0,0"
                         Command="{Binding EditarProdutoCommand}" Content="✏  Editar"/>
-                <Button Grid.Column="2" Style="{StaticResource BotaoPerigo}" Margin="10,0,0,0"
+                <Button Grid.Column="3" Style="{StaticResource BotaoPerigo}" Margin="10,0,0,0"
                         Command="{Binding ExcluirProdutoCommand}" Content="🗑  Excluir"/>
             </Grid>
         </Border>
 
         <!-- DataGrid de produtos -->
-        <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0">
-            <DataGrid Style="{StaticResource DataGridModerno}"
-                      ItemsSource="{Binding Produtos}"
-                      SelectedItem="{Binding ProdutoSelecionado}"
-                      ColumnHeaderStyle="{StaticResource DataGridHeaderModerno}"
-                      MouseDoubleClick="DataGrid_MouseDoubleClick">
+        <Grid Grid.Row="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Style="{StaticResource Card}" Padding="0">
+                <Grid>
+                    <DataGrid Style="{StaticResource DataGridModerno}"
+                              ItemsSource="{Binding Produtos}"
+                              SelectedItem="{Binding ProdutoSelecionado}"
+                              ColumnHeaderStyle="{StaticResource DataGridHeaderModerno}"
+                              IsEnabled="{Binding Carregando, Converter={StaticResource InverseBool}}"
+                              MouseDoubleClick="DataGrid_MouseDoubleClick">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Código" Binding="{Binding CodigoInterno}" Width="100"/>
                     <DataGridTextColumn Header="Cód. Barras" Binding="{Binding CodigoBarras}" Width="120"/>
                     <DataGridTextColumn Header="Nome" Binding="{Binding Nome}" Width="*"/>
                     <DataGridTextColumn Header="Categoria" Binding="{Binding CategoriaNome}" Width="120"/>
                     <DataGridTextColumn Header="Marca" Binding="{Binding MarcaNome}" Width="100"/>
-                    <DataGridTextColumn Header="Estoque" Width="90">
+                    <DataGridTextColumn Header="Estoque" Width="130">
                         <DataGridTextColumn.Binding>
-                            <MultiBinding StringFormat="{}{0:G} {1}">
+                            <MultiBinding Converter="{StaticResource QuantidadeUnidadeConverter}">
                                 <Binding Path="QuantidadeEstoque"/>
                                 <Binding Path="Unidade"/>
                             </MultiBinding>
@@ -154,7 +166,29 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
                 </DataGrid.Columns>
-            </DataGrid>
-        </Border>
+                    </DataGrid>
+
+                    <Border Background="#80FFFFFF" Visibility="{Binding Carregando, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                            <TextBlock Text="Carregando..." FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{StaticResource PretoPrimarioBrush}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Grid.Row="1" Style="{StaticResource Card}" Padding="12,8" Margin="0,10,0,0">
+                <Grid>
+                    <TextBlock VerticalAlignment="Center" Foreground="{StaticResource CinzaTextoBrush}"
+                               Text="{Binding InfoPaginacao}"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource BotaoSecundario}" Content="◀ Anterior"
+                                Command="{Binding PaginaAnteriorCommand}" Margin="0,0,8,0"/>
+                        <Button Style="{StaticResource BotaoSecundario}" Content="Próxima ▶"
+                                Command="{Binding PaginaProximaCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </UserControl>

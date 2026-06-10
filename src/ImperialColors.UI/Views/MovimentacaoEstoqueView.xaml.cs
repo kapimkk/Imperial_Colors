@@ -1,7 +1,8 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Enums;
-using System.Globalization;
+using ImperialColors.UI.Helpers;
+using ImperialColors.UI.Services;
 using System.Windows;
 
 namespace ImperialColors.UI.Views;
@@ -9,19 +10,21 @@ namespace ImperialColors.UI.Views;
 public partial class MovimentacaoEstoqueView : Window
 {
     private readonly IProdutoService _produtoService;
+    private readonly ISessaoService _sessaoService;
     private ProdutoDto? _produto;
 
-    public MovimentacaoEstoqueView(IProdutoService produtoService)
+    public MovimentacaoEstoqueView(IProdutoService produtoService, ISessaoService sessaoService)
     {
         InitializeComponent();
         _produtoService = produtoService;
+        _sessaoService = sessaoService;
     }
 
     public void InicializarProduto(ProdutoDto produto)
     {
         _produto = produto;
         TxtNomeProduto.Text = $"{produto.CodigoInterno} - {produto.Nome}";
-        TxtEstoqueAtual.Text = $"{produto.QuantidadeEstoque:G} {produto.Unidade}";
+        TxtEstoqueAtual.Text = FormattingHelper.FormatarQuantidadeUnidade(produto.QuantidadeEstoque, produto.Unidade);
     }
 
     private async void BtnSalvar_Click(object sender, RoutedEventArgs e)
@@ -33,7 +36,7 @@ public partial class MovimentacaoEstoqueView : Window
             return;
         }
 
-        if (!decimal.TryParse(TxtQuantidade.Text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal quantidade) || quantidade <= 0)
+        if (!FormattingHelper.TryParseQuantidade(TxtQuantidade.Text, out decimal quantidade) || quantidade <= 0)
         {
             MessageBox.Show("Quantidade inválida.", "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
@@ -54,7 +57,7 @@ public partial class MovimentacaoEstoqueView : Window
                 Tipo = tipo,
                 Quantidade = quantidade,
                 Motivo = TxtMotivo.Text.Trim(),
-                Usuario = "Administrador"
+                Usuario = _sessaoService.ObterNomeUsuario()
             });
 
             MessageBox.Show("Movimentação registrada com sucesso!", "Sucesso", MessageBoxButton.OK, MessageBoxImage.Information);

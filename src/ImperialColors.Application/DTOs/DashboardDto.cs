@@ -10,6 +10,9 @@ public class DashboardDto
     public int TotalClientes { get; set; }
     public int TotalProdutos { get; set; }
     public List<ProdutoBaixoEstoqueDto> ProdutosBaixoEstoque { get; set; } = new();
+    public List<ProdutoMaisVendidoDto> TopProdutosMes { get; set; } = new();
+
+    public int AlertasEstoqueCritico => ProdutosEstoqueBaixo + ProdutosSemEstoque;
 }
 
 public class ProdutoBaixoEstoqueDto

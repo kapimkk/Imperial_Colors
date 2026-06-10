@@ -1,0 +1,40 @@
+<Window x:Class="ImperialColors.UI.Views.NomeRapidoDialogView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cadastro Rápido" Width="420" Height="220"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <ResourceDictionary Source="pack://application:,,,/ImperialColors;component/Resources/AppTheme.xaml"/>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource CinzaClaroBrush}" Margin="24,20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="12"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock x:Name="TxtTitulo" FontSize="16" FontWeight="Bold"
+                   Foreground="{StaticResource PretoPrimarioBrush}"/>
+        <TextBlock x:Name="TxtErro" Grid.Row="2" TextWrapping="Wrap" FontSize="12"
+                   Foreground="{StaticResource VermelhoErroBrush}" Visibility="Collapsed"/>
+
+        <StackPanel Grid.Row="3" VerticalAlignment="Center">
+            <TextBlock x:Name="TxtLabel" Style="{StaticResource LabelCampo}"/>
+            <TextBox x:Name="TxtNome" Style="{StaticResource TextBoxModerno}"
+                     KeyDown="TxtNome_KeyDown"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Cancelar" Style="{StaticResource BotaoSecundario}"
+                    Margin="0,0,10,0" Click="BtnCancelar_Click"/>
+            <Button x:Name="BtnSalvar" Content="Salvar" Style="{StaticResource BotaoPrimario}"
+                    Click="BtnSalvar_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

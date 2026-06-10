@@ -74,6 +74,21 @@ public class FornecedorService : IFornecedorService
         await _fornecedorRepository.RemoverAsync(id);
     }
 
+    public async Task<PaginacaoResultadoDto<FornecedorDto>> ObterPaginadoAsync(
+        int pagina, int itensPorPagina, string? termoBusca = null, CancellationToken cancellationToken = default)
+    {
+        var (itens, total) = await _fornecedorRepository.ObterPaginadoAsync(
+            pagina, itensPorPagina, termoBusca, cancellationToken);
+
+        return new PaginacaoResultadoDto<FornecedorDto>
+        {
+            Itens = itens.Select(MapParaDto).ToList(),
+            PaginaAtual = pagina,
+            ItensPorPagina = itensPorPagina,
+            TotalItens = total
+        };
+    }
+
     private static FornecedorDto MapParaDto(Fornecedor f) => new()
     {
         Id = f.Id, Nome = f.Nome, Telefone = f.Telefone, WhatsApp = f.WhatsApp,

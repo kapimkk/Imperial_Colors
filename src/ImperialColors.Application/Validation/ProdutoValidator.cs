@@ -1,0 +1,39 @@
+using ImperialColors.Application.DTOs;
+using ImperialColors.Domain.Exceptions;
+
+namespace ImperialColors.Application.Validation;
+
+public static class ProdutoValidator
+{
+    public static void Validar(CriarProdutoDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.CodigoInterno))
+            throw new DomainException("Código interno é obrigatório.");
+
+        if (string.IsNullOrWhiteSpace(dto.Nome))
+            throw new DomainException("Nome do produto é obrigatório.");
+
+        if (!dto.CategoriaId.HasValue || dto.CategoriaId.Value <= 0)
+            throw new DomainException("Selecione uma Categoria e uma Marca válidas.");
+
+        if (!dto.MarcaId.HasValue || dto.MarcaId.Value <= 0)
+            throw new DomainException("Selecione uma Categoria e uma Marca válidas.");
+
+        if (dto.Custo <= 0)
+            throw new DomainException("Preço de custo deve ser maior que zero.");
+
+        if (dto.PrecoVenda <= 0)
+            throw new DomainException("Preço de venda deve ser maior que zero.");
+
+        if (dto.QuantidadeEstoque < 0)
+            throw new DomainException("Quantidade em estoque não pode ser negativa.");
+
+        if (dto.EstoqueMinimo < 0)
+            throw new DomainException("Estoque mínimo não pode ser negativo.");
+
+        if (string.IsNullOrWhiteSpace(dto.Unidade))
+            throw new DomainException("Unidade de medida é obrigatória.");
+    }
+
+    public static void Validar(AtualizarProdutoDto dto) => Validar((CriarProdutoDto)dto);
+}

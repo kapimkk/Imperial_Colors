@@ -10,6 +10,10 @@ public class Venda : BaseEntity
     public decimal Subtotal { get; set; }
     public decimal Desconto { get; set; }
     public decimal Total { get; set; }
+    public FormaPagamento FormaPagamento { get; set; } = FormaPagamento.Dinheiro;
+    public int QuantidadeParcelas { get; set; } = 1;
+    public decimal ValorPago { get; set; }
+    public decimal Troco { get; set; }
     public string? Observacoes { get; set; }
     public string? Usuario { get; set; }
     public DateTime DataVenda { get; set; } = DateTime.Now;

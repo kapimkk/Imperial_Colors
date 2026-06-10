@@ -24,9 +24,9 @@
         <Grid Grid.Column="0" Margin="20,20,10,20">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="15"/>
+                <RowDefinition Height="12"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="15"/>
+                <RowDefinition Height="12"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
@@ -42,7 +42,7 @@
                         Click="BtnFechar_Click" Content="✕  Cancelar Venda"/>
             </Grid>
 
-            <!-- Busca de produto -->
+            <!-- Busca de produto (altura fixa — resultados em Popup flutuante) -->
             <Border Grid.Row="2" Style="{StaticResource Card}" Padding="15">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -61,43 +61,58 @@
                 </Grid>
             </Border>
 
-            <!-- Resultado da busca -->
-            <Border x:Name="PainelResultados" Grid.Row="2" Margin="0,60,0,0"
-                    Visibility="Collapsed" Panel.ZIndex="10"
-                    Background="White" CornerRadius="8" BorderBrush="{StaticResource CinzaMedioBrush}"
-                    BorderThickness="1" MaxHeight="200">
-                <Border.Effect>
-                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.15"/>
-                </Border.Effect>
-                <ListBox x:Name="LstResultados" BorderThickness="0"
-                         SelectionChanged="LstResultados_SelectionChanged"
-                         MouseDoubleClick="LstResultados_MouseDoubleClick">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Grid Margin="0,5">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <StackPanel>
-                                    <TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding Nome}"/>
+            <Popup x:Name="PopupResultados"
+                   PlacementTarget="{Binding ElementName=TxtBuscaProduto}"
+                   Placement="Bottom"
+                   StaysOpen="False"
+                   AllowsTransparency="True"
+                   PopupAnimation="Fade">
+                <Border Background="White" CornerRadius="8"
+                        BorderBrush="{StaticResource CinzaMedioBrush}" BorderThickness="1"
+                        MinWidth="{Binding ActualWidth, ElementName=TxtBuscaProduto}"
+                        MaxHeight="220" Margin="0,4,0,0">
+                    <Border.Effect>
+                        <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.15"/>
+                    </Border.Effect>
+                    <ListBox x:Name="LstResultados" BorderThickness="0"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.VirtualizationMode="Recycling"
+                             ScrollViewer.CanContentScroll="True"
+                             SelectionChanged="LstResultados_SelectionChanged"
+                             MouseDoubleClick="LstResultados_MouseDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="8,5">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding Nome}"/>
                                     <TextBlock FontSize="11" Foreground="{StaticResource CinzaTextoBrush}">
                                         <Run Text="{Binding CodigoInterno}"/>
                                         <Run Text=" | Estoque: "/>
-                                        <Run Text="{Binding QuantidadeEstoque}"/>
-                                        <Run Text="{Binding Unidade}"/>
+                                        <Run>
+                                            <Run.Text>
+                                                <MultiBinding Converter="{StaticResource QuantidadeUnidadeConverter}">
+                                                    <Binding Path="QuantidadeEstoque"/>
+                                                    <Binding Path="Unidade"/>
+                                                </MultiBinding>
+                                            </Run.Text>
+                                        </Run>
                                     </TextBlock>
-                                </StackPanel>
-                                <TextBlock Grid.Column="1" FontSize="15" FontWeight="Bold"
-                                           Foreground="{StaticResource AmareloPrimarioBrush}" VerticalAlignment="Center"
-                                           Text="{Binding PrecoVenda, Converter={StaticResource MoedaConverter}}"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </Border>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" FontSize="15" FontWeight="Bold"
+                                               Foreground="{StaticResource AmareloPrimarioBrush}" VerticalAlignment="Center"
+                                               Text="{Binding PrecoVenda, Converter={StaticResource MoedaConverter}}"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+            </Popup>
 
-            <!-- Lista de itens da venda -->
+            <!-- Lista de itens da venda (única área rolável) -->
             <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -112,55 +127,59 @@
                                     Content="Limpar" Click="BtnLimpar_Click" Padding="12,5"/>
                         </Grid>
                     </Border>
-                    <DataGrid Grid.Row="1" x:Name="DgItens" Style="{StaticResource DataGridModerno}"
-                              ColumnHeaderStyle="{StaticResource DataGridHeaderModerno}"
-                              ItemsSource="{Binding ItensVenda}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Produto" Binding="{Binding NomeProduto}" Width="*"/>
-                            <DataGridTextColumn Header="Cód" Binding="{Binding CodigoInterno}" Width="80"/>
-                            <DataGridTemplateColumn Header="Qtd" Width="90">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="22"/>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="22"/>
-                                            </Grid.ColumnDefinitions>
-                                            <Button Content="-" Background="{StaticResource CinzaMedioBrush}"
-                                                    BorderThickness="0" Cursor="Hand" FontSize="14" FontWeight="Bold"
-                                                    Tag="{Binding}" Click="BtnDiminuirQtd_Click"/>
-                                            <TextBox Grid.Column="1" Text="{Binding Quantidade, UpdateSourceTrigger=PropertyChanged}"
-                                                     TextAlignment="Center" BorderThickness="0" FontSize="13"
-                                                     LostFocus="TxtQtdItem_LostFocus" Tag="{Binding}"/>
-                                            <Button Grid.Column="2" Content="+" Background="{StaticResource CinzaMedioBrush}"
-                                                    BorderThickness="0" Cursor="Hand" FontSize="14" FontWeight="Bold"
-                                                    Tag="{Binding}" Click="BtnAumentarQtd_Click"/>
-                                        </Grid>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Preço Un." Width="100"
-                                Binding="{Binding PrecoUnitario, Converter={StaticResource MoedaConverter}}"/>
-                            <DataGridTextColumn Header="Subtotal" Width="110"
-                                Binding="{Binding Subtotal, Converter={StaticResource MoedaConverter}}"/>
-                            <DataGridTemplateColumn Header="" Width="40">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Content="✕" Background="Transparent" BorderThickness="0"
-                                                Foreground="{StaticResource VermelhoErroBrush}"
-                                                Cursor="Hand" FontSize="14" Tag="{Binding}"
-                                                Click="BtnRemoverItem_Click"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                  Style="{StaticResource ScrollViewerComMargem}" Margin="0">
+                        <DataGrid x:Name="DgItens" Style="{StaticResource DataGridModerno}"
+                                  ColumnHeaderStyle="{StaticResource DataGridHeaderModerno}"
+                                  ItemsSource="{Binding ItensVenda}"
+                                  MinHeight="200">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Produto" Binding="{Binding NomeProduto}" Width="*"/>
+                                <DataGridTextColumn Header="Cód" Binding="{Binding CodigoInterno}" Width="80"/>
+                                <DataGridTemplateColumn Header="Qtd" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="22"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="22"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Button Content="-" Background="{StaticResource CinzaMedioBrush}"
+                                                        BorderThickness="0" Cursor="Hand" FontSize="14" FontWeight="Bold"
+                                                        Tag="{Binding}" Click="BtnDiminuirQtd_Click"/>
+                                                <TextBox Grid.Column="1" Text="{Binding Quantidade, UpdateSourceTrigger=PropertyChanged}"
+                                                         TextAlignment="Center" BorderThickness="0" FontSize="13"
+                                                         LostFocus="TxtQtdItem_LostFocus" Tag="{Binding}"/>
+                                                <Button Grid.Column="2" Content="+" Background="{StaticResource CinzaMedioBrush}"
+                                                        BorderThickness="0" Cursor="Hand" FontSize="14" FontWeight="Bold"
+                                                        Tag="{Binding}" Click="BtnAumentarQtd_Click"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Preço Un." Width="100"
+                                    Binding="{Binding PrecoUnitario, Converter={StaticResource MoedaConverter}}"/>
+                                <DataGridTextColumn Header="Subtotal" Width="110"
+                                    Binding="{Binding Subtotal, Converter={StaticResource MoedaConverter}}"/>
+                                <DataGridTemplateColumn Header="" Width="40">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Content="✕" Background="Transparent" BorderThickness="0"
+                                                    Foreground="{StaticResource VermelhoErroBrush}"
+                                                    Cursor="Hand" FontSize="14" Tag="{Binding}"
+                                                    Click="BtnRemoverItem_Click"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
                 </Grid>
             </Border>
         </Grid>
 
-        <!-- Coluna direita: resumo e pagamento -->
+        <!-- Coluna direita: resumo fixo na base -->
         <Border Grid.Column="1" Background="White" Margin="0,20,20,20" CornerRadius="10">
             <Border.Effect>
                 <DropShadowEffect ShadowDepth="1" BlurRadius="10" Opacity="0.08"/>
@@ -172,38 +191,52 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
+                <!-- Cliente -->
                 <StackPanel Grid.Row="0">
                     <TextBlock Text="Resumo da Venda" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
-
-                    <!-- Cliente -->
                     <TextBlock Style="{StaticResource LabelCampo}" Text="Cliente (opcional)"/>
                     <ComboBox x:Name="CmbCliente" Style="{StaticResource ComboBoxModerno}"
-                              DisplayMemberPath="Nome" SelectedValuePath="Id" Margin="0,0,0,12"/>
-
-                    <!-- Separador -->
-                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,5,0,15"/>
+                              SelectedValuePath="Id" Margin="0,0,0,12"
+                              ItemTemplate="{StaticResource ComboBoxNomeTemplate}"/>
+                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
 
-                <!-- Totais -->
-                <StackPanel Grid.Row="1">
+                <!-- Observações (área central expansível) -->
+                <StackPanel Grid.Row="1" VerticalAlignment="Top" Margin="0,15,0,0">
+                    <TextBlock Style="{StaticResource LabelCampo}" Text="Observações"/>
+                    <TextBox x:Name="TxtObservacoes" Style="{StaticResource TextBoxModerno}"
+                             Height="80" TextWrapping="Wrap" AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"/>
+                </StackPanel>
+
+                <!-- Totais e ações fixos na base -->
+                <StackPanel Grid.Row="2" VerticalAlignment="Bottom">
                     <Grid Margin="0,0,0,8">
                         <TextBlock Text="Subtotal:" FontSize="13" Foreground="{StaticResource CinzaTextoBrush}"/>
                         <TextBlock HorizontalAlignment="Right" FontSize="13"
                                    Text="{Binding Subtotal, Converter={StaticResource MoedaConverter}}"/>
                     </Grid>
 
-                    <!-- Desconto -->
                     <Grid Margin="0,0,0,8">
-                        <TextBlock Text="Desconto (R$):" FontSize="13" Foreground="{StaticResource CinzaTextoBrush}"
+                        <TextBlock Text="Desconto:" FontSize="13" Foreground="{StaticResource CinzaTextoBrush}"
                                    VerticalAlignment="Center"/>
-                        <TextBox x:Name="TxtDesconto" HorizontalAlignment="Right" Width="100"
-                                 Style="{StaticResource TextBoxNumerico}" Text="0,00"
-                                 TextChanged="TxtDesconto_TextChanged"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <ComboBox x:Name="CmbTipoDesconto" Width="52" Margin="0,0,8,0"
+                                      Style="{StaticResource ComboBoxModerno}"
+                                      SelectionChanged="CmbTipoDesconto_SelectionChanged">
+                                <ComboBoxItem Content="R$" IsSelected="True"/>
+                                <ComboBoxItem Content="%"/>
+                            </ComboBox>
+                            <TextBox x:Name="TxtDesconto" Width="90"
+                                     Style="{StaticResource TextBoxNumerico}" Text="0"
+                                     TextChanged="TxtDesconto_TextChanged"/>
+                        </StackPanel>
                     </Grid>
+                    <TextBlock x:Name="TxtDescontoEquivalente" FontSize="11" HorizontalAlignment="Right"
+                               Foreground="{StaticResource CinzaTextoBrush}" Margin="0,0,0,8"/>
 
                     <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,10,0,10"/>
 
-                    <!-- Total -->
                     <Grid Margin="0,0,0,5">
                         <TextBlock Text="TOTAL:" FontSize="18" FontWeight="Bold"/>
                         <TextBlock HorizontalAlignment="Right" FontSize="22" FontWeight="Bold"
@@ -216,14 +249,6 @@
                         <Run Text=" iten(s) na venda"/>
                     </TextBlock>
 
-                    <!-- Observações -->
-                    <TextBlock Style="{StaticResource LabelCampo}" Text="Observações"/>
-                    <TextBox x:Name="TxtObservacoes" Style="{StaticResource TextBoxModerno}"
-                             Height="60" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,15"/>
-                </StackPanel>
-
-                <!-- Botão finalizar -->
-                <StackPanel Grid.Row="2">
                     <Button Style="{StaticResource BotaoSucesso}" Content="✓  FINALIZAR VENDA"
                             FontSize="16" Padding="20,15" Click="BtnFinalizarVenda_Click"/>
                     <Button Style="{StaticResource BotaoSecundario}" Content="Cancelar"

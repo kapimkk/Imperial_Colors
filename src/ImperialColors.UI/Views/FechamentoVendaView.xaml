@@ -1,0 +1,90 @@
+<Window x:Class="ImperialColors.UI.Views.FechamentoVendaView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Fechamento de Venda"
+        Width="520" Height="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="White">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/AppTheme.xaml"/>
+    </Window.Resources>
+
+    <Grid Margin="28,24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Fechamento de Venda" FontSize="22" FontWeight="Bold"
+                       Foreground="{StaticResource PretoPrimarioBrush}"/>
+            <TextBlock Text="Selecione a forma de pagamento e confirme o recebimento."
+                       FontSize="12" Foreground="{StaticResource CinzaTextoBrush}" Margin="0,6,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="{StaticResource PretoPrimarioBrush}" CornerRadius="10"
+                Padding="20" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="TOTAL A PAGAR" FontSize="12" Foreground="#CCFFFFFF" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="TxtTotal" FontSize="36" FontWeight="Bold" Foreground="White"
+                           HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="2" Style="{StaticResource ScrollViewerComMargem}" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Style="{StaticResource LabelCampo}" Text="Forma de Pagamento" Margin="0,0,0,10"/>
+
+                <UniformGrid x:Name="GridFormasPagamento" Columns="2" Margin="0,0,0,18">
+                    <ToggleButton x:Name="BtnDinheiro" Tag="Dinheiro" Style="{StaticResource TogglePagamento}"
+                                  Margin="0,0,8,8" Click="FormaPagamento_Click" Content="💵 Dinheiro"/>
+                    <ToggleButton x:Name="BtnDebito" Tag="CartaoDebito" Style="{StaticResource TogglePagamento}"
+                                  Margin="8,0,0,8" Click="FormaPagamento_Click" Content="💳 Débito"/>
+                    <ToggleButton x:Name="BtnCredito" Tag="CartaoCredito" Style="{StaticResource TogglePagamento}"
+                                  Margin="0,0,8,8" Click="FormaPagamento_Click" Content="💳 Crédito"/>
+                    <ToggleButton x:Name="BtnPix" Tag="Pix" Style="{StaticResource TogglePagamento}"
+                                  Margin="8,0,0,8" Click="FormaPagamento_Click" Content="📱 Pix"/>
+                    <ToggleButton x:Name="BtnBoleto" Tag="Boleto" Style="{StaticResource TogglePagamento}"
+                                  Margin="0,0,8,0" Click="FormaPagamento_Click" Content="📄 Boleto"/>
+                </UniformGrid>
+
+                <StackPanel x:Name="PainelDinheiro" Visibility="Collapsed" Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource LabelCampo}" Text="Valor Recebido"/>
+                    <TextBox x:Name="TxtValorRecebido" Style="{StaticResource TextBoxModerno}"
+                             TextChanged="TxtValorRecebido_TextChanged" Margin="0,0,0,10"/>
+                    <Border Background="#E8F5E9" CornerRadius="8" Padding="12">
+                        <Grid>
+                            <TextBlock Text="Troco:" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtTroco" HorizontalAlignment="Right" FontSize="18"
+                                       FontWeight="Bold" Foreground="#2E7D32"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel x:Name="PainelParcelas" Visibility="Collapsed" Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource LabelCampo}" Text="Parcelas"/>
+                    <ComboBox x:Name="CmbParcelas" Style="{StaticResource ComboBoxModerno}"
+                              SelectionChanged="CmbParcelas_SelectionChanged"/>
+                </StackPanel>
+
+                <StackPanel x:Name="PainelAutomatico" Visibility="Collapsed" Margin="0,0,0,12">
+                    <Border Background="#E3F2FD" CornerRadius="8" Padding="12">
+                        <TextBlock x:Name="TxtInfoAutomatico" TextWrapping="Wrap" FontSize="12"/>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Style="{StaticResource BotaoSecundario}" Content="Cancelar"
+                    Width="120" Margin="0,0,10,0" Click="BtnCancelar_Click"/>
+            <Button Style="{StaticResource BotaoPrimario}" Content="Confirmar Venda"
+                    Width="160" Click="BtnConfirmar_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

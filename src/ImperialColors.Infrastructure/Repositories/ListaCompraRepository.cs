@@ -7,19 +7,25 @@ namespace ImperialColors.Infrastructure.Repositories;
 
 public class ListaCompraRepository : RepositoryBase<ListaCompra>, IRepository<ListaCompra>
 {
-    public ListaCompraRepository(AppDbContext context) : base(context) { }
+    public ListaCompraRepository(IDbContextFactory<AppDbContext> contextFactory) : base(contextFactory) { }
 
     public override async Task<IEnumerable<ListaCompra>> ObterTodosAsync()
-        => await _dbSet
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<ListaCompra>()
+            .AsNoTracking()
             .Include(l => l.Fornecedor)
             .Include(l => l.Itens).ThenInclude(i => i.Produto)
-            .Where(l => l.Ativo)
             .OrderByDescending(l => l.CriadoEm)
             .ToListAsync();
+    }
 
     public override async Task<ListaCompra?> ObterPorIdAsync(int id)
-        => await _dbSet
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<ListaCompra>()
             .Include(l => l.Fornecedor)
             .Include(l => l.Itens).ThenInclude(i => i.Produto)
-            .FirstOrDefaultAsync(l => l.Id == id && l.Ativo);
+            .FirstOrDefaultAsync(l => l.Id == id);
+    }
 }

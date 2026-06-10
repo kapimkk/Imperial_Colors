@@ -1,5 +1,8 @@
 using ImperialColors.Application.DTOs;
+using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.UI.Helpers;
+using ImperialColors.UI.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
@@ -16,9 +19,12 @@ public partial class PDVView : Window, INotifyPropertyChanged
     private readonly IVendaService _vendaService;
     private readonly IClienteService _clienteService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly ISessaoService _sessaoService;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    private TipoDescontoVenda _tipoDesconto = TipoDescontoVenda.Valor;
+    private decimal _descontoEmReais;
     private ObservableCollection<ItemVendaDto> _itensVenda = new();
     public ObservableCollection<ItemVendaDto> ItensVenda
     {
@@ -39,7 +45,8 @@ public partial class PDVView : Window, INotifyPropertyChanged
     private string _numeroVenda = string.Empty;
 
     public PDVView(IProdutoService produtoService, IVendaService vendaService,
-                   IClienteService clienteService, IServiceProvider serviceProvider)
+                   IClienteService clienteService, IServiceProvider serviceProvider,
+                   ISessaoService sessaoService)
     {
         InitializeComponent();
         DataContext = this;
@@ -47,6 +54,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
         _vendaService = vendaService;
         _clienteService = clienteService;
         _serviceProvider = serviceProvider;
+        _sessaoService = sessaoService;
         _ = InicializarAsync();
     }
 
@@ -64,7 +72,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
         var termo = TxtBuscaProduto.Text.Trim();
         if (termo.Length < 2)
         {
-            PainelResultados.Visibility = Visibility.Collapsed;
+            PopupResultados.IsOpen = false;
             return;
         }
 
@@ -72,18 +80,18 @@ public partial class PDVView : Window, INotifyPropertyChanged
         if (_produtosEncontrados.Any())
         {
             LstResultados.ItemsSource = _produtosEncontrados;
-            PainelResultados.Visibility = Visibility.Visible;
+            PopupResultados.IsOpen = true;
         }
         else
         {
-            PainelResultados.Visibility = Visibility.Collapsed;
+            PopupResultados.IsOpen = false;
         }
     }
 
     private void TxtBuscaProduto_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Enter) AdicionarProdutoBuscado();
-        if (e.Key == Key.Escape) PainelResultados.Visibility = Visibility.Collapsed;
+        if (e.Key == Key.Escape) PopupResultados.IsOpen = false;
     }
 
     private void BtnAdicionarProduto_Click(object sender, RoutedEventArgs e) => AdicionarProdutoBuscado();
@@ -106,7 +114,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
         if (LstResultados.SelectedItem is ProdutoDto produto)
         {
             AdicionarItemVenda(produto);
-            PainelResultados.Visibility = Visibility.Collapsed;
+            PopupResultados.IsOpen = false;
         }
     }
 
@@ -146,7 +154,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
 
         TxtBuscaProduto.Clear();
-        PainelResultados.Visibility = Visibility.Collapsed;
+        PopupResultados.IsOpen = false;
         TxtBuscaProduto.Focus();
         AtualizarTotais();
     }
@@ -215,14 +223,47 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
     private void TxtDesconto_TextChanged(object sender, TextChangedEventArgs e) => AtualizarTotais();
 
+    private void CmbTipoDesconto_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (CmbTipoDesconto?.SelectedItem is not ComboBoxItem item) return;
+        _tipoDesconto = item.Content?.ToString() == "%" ? TipoDescontoVenda.Percentual : TipoDescontoVenda.Valor;
+        AtualizarTotais();
+    }
+
     private void AtualizarTotais()
     {
         Subtotal = ItensVenda.Sum(i => i.Subtotal);
-        decimal.TryParse(TxtDesconto?.Text?.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal desconto);
-        Total = Math.Max(0, Subtotal - desconto);
+
+        var valorInformado = ObterValorDescontoInformado();
+        if (_tipoDesconto == TipoDescontoVenda.Percentual && !DescontoHelper.PercentualValido(valorInformado))
+            valorInformado = Math.Clamp(valorInformado, 0m, DescontoHelper.PercentualMaximo);
+
+        _descontoEmReais = DescontoHelper.CalcularDescontoEmReais(Subtotal, valorInformado, _tipoDesconto);
+        Total = DescontoHelper.CalcularTotalLiquido(Subtotal, _descontoEmReais);
         TotalItens = ItensVenda.Count;
+
+        if (TxtDescontoEquivalente is null) return;
+
+        TxtDescontoEquivalente.Text = _tipoDesconto == TipoDescontoVenda.Percentual && Subtotal > 0
+            ? $"Equivale a {FormattingHelper.FormatarMoeda(_descontoEmReais)}"
+            : string.Empty;
     }
 
+    private decimal ObterValorDescontoInformado()
+    {
+        var texto = TxtDesconto?.Text?.Trim();
+        if (string.IsNullOrWhiteSpace(texto))
+            return 0m;
+
+        if (_tipoDesconto == TipoDescontoVenda.Valor &&
+            FormattingHelper.TryParseMoeda(texto, out var moeda))
+            return moeda;
+
+        if (decimal.TryParse(texto.Replace(',', '.'), NumberStyles.Number, CultureInfo.InvariantCulture, out var numero))
+            return numero;
+
+        return 0m;
+    }
     private async void BtnFinalizarVenda_Click(object sender, RoutedEventArgs e)
     {
         if (!ItensVenda.Any())
@@ -233,15 +274,23 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
         try
         {
-            decimal.TryParse(TxtDesconto.Text.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out decimal desconto);
+            AtualizarTotais();
+            var desconto = _descontoEmReais;
             var clienteId = CmbCliente.SelectedValue is int cid && cid > 0 ? (int?)cid : null;
+            var fechamento = new FechamentoVendaView(Total) { Owner = Owner };
+            if (fechamento.ShowDialog() != true || fechamento.Pagamento is null)
+                return;
 
             var dto = new CriarVendaDto
             {
                 ClienteId = clienteId,
                 Desconto = desconto,
                 Observacoes = TxtObservacoes.Text,
-                Usuario = "Administrador",
+                Usuario = _sessaoService.ObterNomeUsuario(),
+                FormaPagamento = fechamento.Pagamento.FormaPagamento,
+                QuantidadeParcelas = fechamento.Pagamento.QuantidadeParcelas,
+                ValorPago = fechamento.Pagamento.ValorPago,
+                Troco = fechamento.Pagamento.Troco,
                 Itens = ItensVenda.Select(i => new CriarItemVendaDto
                 {
                     ProdutoId = i.ProdutoId,
@@ -253,13 +302,11 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
             var venda = await _vendaService.CriarAsync(dto);
 
-            var cupom = (CupomView)_serviceProvider.GetService(typeof(CupomView))!;
-            cupom.Owner = this;
-            cupom.InicializarVenda(venda);
+            // Exibir cupom ANTES de fechar o PDV e usar Owner da janela principal (nunca a janela que será fechada)
+            WindowHelper.ExibirCupom(_serviceProvider, venda, Owner);
 
             DialogResult = true;
             Close();
-            cupom.ShowDialog();
         }
         catch (Exception ex)
         {

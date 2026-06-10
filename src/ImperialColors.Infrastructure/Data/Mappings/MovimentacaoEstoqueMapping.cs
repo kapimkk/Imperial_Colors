@@ -25,5 +25,8 @@ public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoE
 
         builder.HasOne(m => m.Produto).WithMany(p => p.Movimentacoes).HasForeignKey(m => m.ProdutoId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(m => m.Venda).WithMany(v => v.Movimentacoes).HasForeignKey(m => m.VendaId).OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(m => m.CriadoEm);
+        builder.HasIndex(m => m.ProdutoId);
     }
 }

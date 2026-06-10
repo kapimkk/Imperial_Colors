@@ -6,7 +6,7 @@
         <ResourceDictionary Source="/Resources/AppTheme.xaml"/>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer Style="{StaticResource ScrollViewerComMargem}" VerticalScrollBarVisibility="Auto">
         <Grid Margin="30,25">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>

@@ -11,6 +11,28 @@
                 <ResourceDictionary Source="/Resources/AppTheme.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <conv:MoedaConverter x:Key="MoedaConverter"/>
+            <conv:QuantidadeUnidadeConverter x:Key="QuantidadeUnidadeConverter"/>
+
+            <Style x:Key="CupomTexto" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="Black"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+                <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+            </Style>
+
+            <Style x:Key="CupomRotulo" TargetType="TextBlock" BasedOn="{StaticResource CupomTexto}">
+                <Setter Property="FontSize" Value="12"/>
+            </Style>
+
+            <Style x:Key="CupomValor" TargetType="TextBlock" BasedOn="{StaticResource CupomTexto}">
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Margin" Value="5,0,0,0"/>
+            </Style>
+
+            <Style x:Key="CupomLinha" TargetType="StackPanel">
+                <Setter Property="Orientation" Value="Horizontal"/>
+                <Setter Property="Margin" Value="0,0,0,5"/>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
@@ -20,48 +42,88 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto" Margin="20,20,20,10">
-            <!-- Área do cupom -->
-            <Border x:Name="BorderCupom" Background="White" Padding="25,20" CornerRadius="8">
-                <Border.Effect>
-                    <DropShadowEffect ShadowDepth="1" BlurRadius="8" Opacity="0.1"/>
-                </Border.Effect>
+        <ScrollViewer Grid.Row="0" Style="{StaticResource ScrollViewerComMargem}" VerticalScrollBarVisibility="Auto" Margin="12,12,12,10">
+            <Border x:Name="BorderCupom"
+                    Background="White"
+                    Padding="24,20"
+                    CornerRadius="8"
+                    RenderOptions.BitmapScalingMode="HighQuality"
+                    TextOptions.TextRenderingMode="ClearType"
+                    TextOptions.TextFormattingMode="Display">
                 <StackPanel x:Name="PainelCupom">
-                    <!-- Cabeçalho -->
-                    <StackPanel HorizontalAlignment="Center" Margin="0,0,0,15">
-                        <Border Background="{StaticResource AmareloPrimarioBrush}" CornerRadius="6"
-                                Width="44" Height="44" HorizontalAlignment="Center" Margin="0,0,0,8">
-                            <TextBlock Text="IC" FontSize="18" FontWeight="Bold"
-                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <TextBlock Text="Imperial Colors" FontSize="16" FontWeight="Bold"
-                                   HorizontalAlignment="Center"/>
-                        <TextBlock Text="Tintas e Revestimentos" FontSize="11"
-                                   Foreground="{StaticResource CinzaTextoBrush}" HorizontalAlignment="Center"/>
-                        <TextBlock Text="CUPOM NÃO FISCAL" FontSize="11" FontWeight="Bold"
-                                   HorizontalAlignment="Center" Margin="0,5,0,0"
-                                   Foreground="{StaticResource CinzaTextoBrush}"/>
+                    <!-- Cabeçalho: logo + identidade centralizados -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Margin="0,0,0,16">
+                        <Image x:Name="ImgLogo"
+                               Width="56"
+                               Height="56"
+                               VerticalAlignment="Center"
+                               Margin="0,0,14,0"
+                               Stretch="Uniform"
+                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="TxtEmpresaNome"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Foreground="Black"
+                                       TextOptions.TextRenderingMode="ClearType"
+                                       TextOptions.TextFormattingMode="Display"/>
+                            <TextBlock x:Name="TxtEmpresaRazaoSocial"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="Black"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="260"
+                                       Margin="0,2,0,0"
+                                       TextOptions.TextRenderingMode="ClearType"/>
+                            <TextBlock x:Name="TxtEmpresaCnpj"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="Black"
+                                       Margin="0,3,0,0"
+                                       TextOptions.TextRenderingMode="ClearType"/>
+                            <TextBlock x:Name="TxtEmpresaEndereco"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="Black"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="260"
+                                       Margin="0,2,0,0"
+                                       TextOptions.TextRenderingMode="ClearType"/>
+                            <TextBlock x:Name="TxtEmpresaTelefone"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="Black"
+                                       Margin="0,2,0,0"
+                                       TextOptions.TextRenderingMode="ClearType"/>
+                            <TextBlock Text="CUPOM NÃO FISCAL"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="Black"
+                                       Margin="0,6,0,0"
+                                       TextOptions.TextRenderingMode="ClearType"/>
+                        </StackPanel>
                     </StackPanel>
 
-                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,0,0,12"/>
+                    <Border Height="1" Background="Black" Opacity="0.15" Margin="0,0,0,12"/>
 
-                    <!-- Dados da venda -->
-                    <Grid Margin="0,0,0,5">
-                        <TextBlock Text="Venda Nº:" FontSize="12" Foreground="{StaticResource CinzaTextoBrush}"/>
-                        <TextBlock x:Name="TxtNumeroVenda" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,5">
-                        <TextBlock Text="Data:" FontSize="12" Foreground="{StaticResource CinzaTextoBrush}"/>
-                        <TextBlock x:Name="TxtData" HorizontalAlignment="Right" FontSize="12"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,12">
-                        <TextBlock Text="Cliente:" FontSize="12" Foreground="{StaticResource CinzaTextoBrush}"/>
-                        <TextBlock x:Name="TxtCliente" HorizontalAlignment="Right" FontSize="12"/>
-                    </Grid>
+                    <StackPanel Style="{StaticResource CupomLinha}">
+                        <TextBlock Text="Venda Nº:" Style="{StaticResource CupomRotulo}"/>
+                        <TextBlock x:Name="TxtNumeroVenda" Style="{StaticResource CupomValor}"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource CupomLinha}">
+                        <TextBlock Text="Data:" Style="{StaticResource CupomRotulo}"/>
+                        <TextBlock x:Name="TxtData" Style="{StaticResource CupomValor}"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource CupomLinha}" Margin="0,0,0,12">
+                        <TextBlock Text="Cliente:" Style="{StaticResource CupomRotulo}"/>
+                        <TextBlock x:Name="TxtCliente" Style="{StaticResource CupomValor}" TextWrapping="Wrap" MaxWidth="280"/>
+                    </StackPanel>
 
-                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,0,0,12"/>
+                    <Border Height="1" Background="Black" Opacity="0.15" Margin="0,0,0,12"/>
 
-                    <!-- Cabeçalho dos itens -->
                     <Grid Margin="0,0,0,5">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -69,17 +131,16 @@
                             <ColumnDefinition Width="80"/>
                             <ColumnDefinition Width="90"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Produto" FontSize="11" FontWeight="Bold" Foreground="{StaticResource CinzaTextoBrush}"/>
+                        <TextBlock Text="Produto" FontSize="11" FontWeight="Bold" Foreground="Black"/>
                         <TextBlock Grid.Column="1" Text="Qtd" FontSize="11" FontWeight="Bold"
-                                   Foreground="{StaticResource CinzaTextoBrush}" HorizontalAlignment="Right"/>
+                                   Foreground="Black" HorizontalAlignment="Right"/>
                         <TextBlock Grid.Column="2" Text="Preço" FontSize="11" FontWeight="Bold"
-                                   Foreground="{StaticResource CinzaTextoBrush}" HorizontalAlignment="Right"/>
+                                   Foreground="Black" HorizontalAlignment="Right"/>
                         <TextBlock Grid.Column="3" Text="Total" FontSize="11" FontWeight="Bold"
-                                   Foreground="{StaticResource CinzaTextoBrush}" HorizontalAlignment="Right"/>
+                                   Foreground="Black" HorizontalAlignment="Right"/>
                     </Grid>
-                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,0,0,8"/>
+                    <Border Height="1" Background="Black" Opacity="0.15" Margin="0,0,0,8"/>
 
-                    <!-- Itens -->
                     <ItemsControl x:Name="LstItens">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
@@ -90,50 +151,83 @@
                                         <ColumnDefinition Width="80"/>
                                         <ColumnDefinition Width="90"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding NomeProduto}" FontSize="12" TextWrapping="Wrap"/>
-                                    <TextBlock Grid.Column="1" FontSize="12" HorizontalAlignment="Right">
-                                        <Run Text="{Binding Quantidade}"/>
-                                        <Run Text="{Binding Unidade}"/>
+                                    <TextBlock Text="{Binding NomeProduto}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="Black"
+                                               TextWrapping="Wrap"
+                                               TextOptions.TextRenderingMode="ClearType"/>
+                                    <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="Black"
+                                               HorizontalAlignment="Right" TextWrapping="Wrap">
+                                        <TextBlock.Text>
+                                            <MultiBinding Converter="{StaticResource QuantidadeUnidadeConverter}">
+                                                <Binding Path="Quantidade"/>
+                                                <Binding Path="Unidade"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
                                     </TextBlock>
-                                    <TextBlock Grid.Column="2" FontSize="12" HorizontalAlignment="Right"
+                                    <TextBlock Grid.Column="2" FontSize="12" FontWeight="SemiBold" Foreground="Black"
+                                               HorizontalAlignment="Right"
                                                Text="{Binding PrecoUnitario, Converter={StaticResource MoedaConverter}}"/>
-                                    <TextBlock Grid.Column="3" FontSize="12" HorizontalAlignment="Right"
+                                    <TextBlock Grid.Column="3" FontSize="12" FontWeight="SemiBold" Foreground="Black"
+                                               HorizontalAlignment="Right"
                                                Text="{Binding Subtotal, Converter={StaticResource MoedaConverter}}"/>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,10,0,8"/>
+                    <Border Height="1" Background="Black" Opacity="0.15" Margin="0,10,0,8"/>
 
-                    <!-- Totais -->
-                    <Grid Margin="0,0,0,5">
-                        <TextBlock Text="Subtotal:" FontSize="12" Foreground="{StaticResource CinzaTextoBrush}"/>
-                        <TextBlock x:Name="TxtSubtotal" HorizontalAlignment="Right" FontSize="12"/>
-                    </Grid>
-                    <Grid Margin="0,0,0,5">
-                        <TextBlock Text="Desconto:" FontSize="12" Foreground="{StaticResource CinzaTextoBrush}"/>
-                        <TextBlock x:Name="TxtDesconto" HorizontalAlignment="Right" FontSize="12"/>
-                    </Grid>
+                    <StackPanel Style="{StaticResource CupomLinha}">
+                        <TextBlock Text="Subtotal:" Style="{StaticResource CupomRotulo}"/>
+                        <TextBlock x:Name="TxtSubtotal" Style="{StaticResource CupomValor}"/>
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource CupomLinha}" Margin="0,0,0,8">
+                        <TextBlock Text="Desconto:" Style="{StaticResource CupomRotulo}"/>
+                        <TextBlock x:Name="TxtDesconto" Style="{StaticResource CupomValor}"/>
+                    </StackPanel>
 
-                    <Border Height="2" Background="{StaticResource AmareloPrimarioBrush}" Margin="0,5,0,8"/>
+                    <Border Height="2" Background="{StaticResource AmareloPrimarioBrush}" Margin="0,4,0,8"/>
 
-                    <Grid>
-                        <TextBlock Text="TOTAL:" FontSize="15" FontWeight="Bold"/>
-                        <TextBlock x:Name="TxtTotal" HorizontalAlignment="Right" FontSize="18"
-                                   FontWeight="Bold" Foreground="{StaticResource PretoPrimarioBrush}"/>
-                    </Grid>
+                    <StackPanel Style="{StaticResource CupomLinha}" Margin="0,0,0,12">
+                        <TextBlock Text="TOTAL:" FontSize="15" FontWeight="Bold" Foreground="Black"/>
+                        <TextBlock x:Name="TxtTotal" FontSize="18" FontWeight="Bold" Foreground="Black" Margin="8,0,0,0"/>
+                    </StackPanel>
 
-                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,12,0,12"/>
+                    <Border Height="1" Background="Black" Opacity="0.15" Margin="0,0,0,12"/>
 
-                    <TextBlock Text="Obrigado pela preferência!" HorizontalAlignment="Center"
-                               FontSize="12" Foreground="{StaticResource CinzaTextoBrush}"
-                               FontStyle="Italic"/>
+                    <TextBlock Text="PAGAMENTO" FontSize="11" FontWeight="Bold" Foreground="Black" Margin="0,0,0,8"/>
+
+                    <StackPanel Style="{StaticResource CupomLinha}">
+                        <TextBlock Text="Forma:" Style="{StaticResource CupomRotulo}"/>
+                        <TextBlock x:Name="TxtFormaPagamento" Style="{StaticResource CupomValor}"/>
+                    </StackPanel>
+
+                    <StackPanel x:Name="PainelDinheiroCupom" Visibility="Collapsed">
+                        <StackPanel Style="{StaticResource CupomLinha}">
+                            <TextBlock Text="Valor Recebido:" Style="{StaticResource CupomRotulo}"/>
+                            <TextBlock x:Name="TxtValorPago" Style="{StaticResource CupomValor}"/>
+                        </StackPanel>
+                        <StackPanel Style="{StaticResource CupomLinha}">
+                            <TextBlock Text="Troco:" Style="{StaticResource CupomRotulo}"/>
+                            <TextBlock x:Name="TxtTroco" Style="{StaticResource CupomValor}"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Border Height="1" Background="Black" Opacity="0.15" Margin="0,12,0,12"/>
+
+                    <TextBlock x:Name="TxtRodape"
+                               HorizontalAlignment="Center"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               Foreground="Black"
+                               FontStyle="Italic"
+                               TextOptions.TextRenderingMode="ClearType"/>
                 </StackPanel>
             </Border>
         </ScrollViewer>
 
-        <!-- Botões de ação -->
         <Border Grid.Row="1" Background="White" Padding="20,12">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button Style="{StaticResource BotaoSecundario}" Content="Imprimir"

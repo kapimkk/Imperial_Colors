@@ -1,64 +1,106 @@
 using ImperialColors.Domain.Entities;
+using ImperialColors.Domain.Exceptions;
 using ImperialColors.Domain.Interfaces;
 using ImperialColors.Infrastructure.Data;
+using ImperialColors.Infrastructure.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System.Linq.Expressions;
 
 namespace ImperialColors.Infrastructure.Repositories;
 
 public class RepositoryBase<T> : IRepository<T> where T : BaseEntity
 {
-    protected readonly AppDbContext _context;
-    protected readonly DbSet<T> _dbSet;
+    protected readonly IDbContextFactory<AppDbContext> ContextFactory;
+    private readonly ILogger? _logger;
 
-    public RepositoryBase(AppDbContext context)
+    public RepositoryBase(IDbContextFactory<AppDbContext> contextFactory, ILogger? logger = null)
     {
-        _context = context;
-        _dbSet = context.Set<T>();
+        ContextFactory = contextFactory;
+        _logger = logger;
     }
 
     public virtual async Task<T?> ObterPorIdAsync(int id)
-        => await _dbSet.FirstOrDefaultAsync(e => e.Id == id && e.Ativo);
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<T>().FirstOrDefaultAsync(e => e.Id == id);
+    }
 
     public virtual async Task<IEnumerable<T>> ObterTodosAsync()
-        => await _dbSet.Where(e => e.Ativo).ToListAsync();
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<T>().AsNoTracking().ToListAsync();
+    }
 
     public virtual async Task<IEnumerable<T>> BuscarAsync(Expression<Func<T, bool>> predicate)
-        => await _dbSet.Where(predicate).ToListAsync();
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<T>().AsNoTracking().Where(predicate).ToListAsync();
+    }
 
     public virtual async Task<T> AdicionarAsync(T entity)
     {
-        await _dbSet.AddAsync(entity);
-        await _context.SaveChangesAsync();
+        await using var context = ContextFactory.CreateDbContext();
+        await context.Set<T>().AddAsync(entity);
+        await SalvarAlteracoesAsync(context);
         return entity;
     }
 
     public virtual async Task<T> AtualizarAsync(T entity)
     {
-        _dbSet.Update(entity);
-        await _context.SaveChangesAsync();
+        await using var context = ContextFactory.CreateDbContext();
+        context.Set<T>().Update(entity);
+        await SalvarAlteracoesAsync(context);
         return entity;
     }
 
     public virtual async Task RemoverAsync(int id)
     {
-        var entity = await ObterPorIdAsync(id);
-        if (entity is not null)
-        {
-            entity.Ativo = false;
-            entity.AtualizadoEm = DateTime.UtcNow;
-            _dbSet.Update(entity);
-            await _context.SaveChangesAsync();
-        }
+        await using var context = ContextFactory.CreateDbContext();
+        var entity = await context.Set<T>().IgnoreQueryFilters()
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (entity is null || !entity.Ativo)
+            return;
+
+        entity.Ativo = false;
+        entity.AtualizadoEm = DateTime.UtcNow;
+        await SalvarAlteracoesAsync(context);
     }
 
     public virtual async Task<bool> ExisteAsync(int id)
-        => await _dbSet.AnyAsync(e => e.Id == id && e.Ativo);
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<T>().AnyAsync(e => e.Id == id);
+    }
 
     public virtual async Task<int> ContarAsync(Expression<Func<T, bool>>? predicate = null)
     {
-        if (predicate is null)
-            return await _dbSet.CountAsync(e => e.Ativo);
-        return await _dbSet.CountAsync(predicate);
+        await using var context = ContextFactory.CreateDbContext();
+        var query = context.Set<T>().AsQueryable();
+        return predicate is null
+            ? await query.CountAsync()
+            : await query.CountAsync(predicate);
+    }
+
+    protected static void Desanexar(AppDbContext context, object entity)
+    {
+        var entry = context.Entry(entity);
+        if (entry.State != EntityState.Detached)
+            entry.State = EntityState.Detached;
+    }
+
+    protected async Task SalvarAlteracoesAsync(AppDbContext context)
+    {
+        try
+        {
+            await context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex)
+        {
+            var detalhe = DatabaseExceptionHelper.ObterMensagemDetalhada(ex);
+            _logger?.LogError(ex, "Erro ao persistir {Entidade}: {Detalhe}", typeof(T).Name, detalhe);
+            throw new DomainException($"Erro real do banco: {detalhe}", ex);
+        }
     }
 }

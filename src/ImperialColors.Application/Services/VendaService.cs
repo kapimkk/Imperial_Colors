@@ -1,4 +1,5 @@
 using ImperialColors.Application.DTOs;
+using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Enums;
@@ -51,6 +52,22 @@ public class VendaService : IVendaService
         return vendas.Select(MapParaDto);
     }
 
+    public async Task<PaginacaoResultadoDto<VendaDto>> ObterPaginadoPorPeriodoAsync(
+        DateTime inicio, DateTime fim, int pagina, int itensPorPagina, string? termoBusca = null,
+        CancellationToken cancellationToken = default)
+    {
+        var (itens, total) = await _vendaRepository.ObterPaginadoPorPeriodoAsync(
+            inicio, fim, pagina, itensPorPagina, termoBusca, cancellationToken);
+
+        return new PaginacaoResultadoDto<VendaDto>
+        {
+            Itens = itens.Select(MapParaDto).ToList(),
+            PaginaAtual = pagina,
+            ItensPorPagina = itensPorPagina,
+            TotalItens = total
+        };
+    }
+
     public async Task<IEnumerable<VendaDto>> ObterPorClienteAsync(int clienteId)
     {
         var vendas = await _vendaRepository.ObterPorClienteAsync(clienteId);
@@ -97,6 +114,15 @@ public class VendaService : IVendaService
         };
 
         venda.CalcularTotais();
+
+        PagamentoHelper.ValidarPagamento(dto.FormaPagamento, venda.Total, dto.ValorPago, dto.QuantidadeParcelas);
+        var (valorPago, troco, parcelas) = PagamentoHelper.CalcularPagamento(
+            dto.FormaPagamento, venda.Total, dto.ValorPago, dto.QuantidadeParcelas);
+
+        venda.FormaPagamento = dto.FormaPagamento;
+        venda.QuantidadeParcelas = parcelas;
+        venda.ValorPago = valorPago;
+        venda.Troco = troco;
 
         var vendaCriada = await _vendaRepository.AdicionarAsync(venda);
 
@@ -196,6 +222,10 @@ public class VendaService : IVendaService
         Subtotal = v.Subtotal,
         Desconto = v.Desconto,
         Total = v.Total,
+        FormaPagamento = v.FormaPagamento,
+        QuantidadeParcelas = v.QuantidadeParcelas,
+        ValorPago = v.ValorPago,
+        Troco = v.Troco,
         Observacoes = v.Observacoes,
         Usuario = v.Usuario,
         DataVenda = v.DataVenda,

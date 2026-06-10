@@ -13,23 +13,14 @@ public class DashboardViewModel : BaseViewModel
     private decimal _totalVendasMes;
     public decimal TotalVendasMes { get => _totalVendasMes; set => SetProperty(ref _totalVendasMes, value); }
 
-    private int _qtdVendasHoje;
-    public int QtdVendasHoje { get => _qtdVendasHoje; set => SetProperty(ref _qtdVendasHoje, value); }
-
-    private int _produtosEstoqueBaixo;
-    public int ProdutosEstoqueBaixo { get => _produtosEstoqueBaixo; set => SetProperty(ref _produtosEstoqueBaixo, value); }
-
-    private int _produtosSemEstoque;
-    public int ProdutosSemEstoque { get => _produtosSemEstoque; set => SetProperty(ref _produtosSemEstoque, value); }
+    private int _alertasEstoqueCritico;
+    public int AlertasEstoqueCritico { get => _alertasEstoqueCritico; set => SetProperty(ref _alertasEstoqueCritico, value); }
 
     private int _totalClientes;
     public int TotalClientes { get => _totalClientes; set => SetProperty(ref _totalClientes, value); }
 
-    private int _totalProdutos;
-    public int TotalProdutos { get => _totalProdutos; set => SetProperty(ref _totalProdutos, value); }
-
-    private List<ProdutoBaixoEstoqueDto> _produtosBaixoEstoque = new();
-    public List<ProdutoBaixoEstoqueDto> ProdutosBaixoEstoque { get => _produtosBaixoEstoque; set => SetProperty(ref _produtosBaixoEstoque, value); }
+    private List<ProdutoMaisVendidoDto> _topProdutosMes = new();
+    public List<ProdutoMaisVendidoDto> TopProdutosMes { get => _topProdutosMes; set => SetProperty(ref _topProdutosMes, value); }
 
     public string DataHoje => DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"));
 
@@ -49,12 +40,9 @@ public class DashboardViewModel : BaseViewModel
             var dados = await _dashboardService.ObterDadosDashboardAsync();
             TotalVendasHoje = dados.TotalVendasHoje;
             TotalVendasMes = dados.TotalVendasMes;
-            QtdVendasHoje = dados.QuantidadeVendasHoje;
-            ProdutosEstoqueBaixo = dados.ProdutosEstoqueBaixo;
-            ProdutosSemEstoque = dados.ProdutosSemEstoque;
+            AlertasEstoqueCritico = dados.AlertasEstoqueCritico;
             TotalClientes = dados.TotalClientes;
-            TotalProdutos = dados.TotalProdutos;
-            ProdutosBaixoEstoque = dados.ProdutosBaixoEstoque;
+            TopProdutosMes = dados.TopProdutosMes;
         }
         catch (Exception ex)
         {

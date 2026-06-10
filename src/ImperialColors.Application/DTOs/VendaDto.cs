@@ -1,3 +1,4 @@
+using ImperialColors.Application.Helpers;
 using ImperialColors.Domain.Enums;
 
 namespace ImperialColors.Application.DTOs;
@@ -19,6 +20,11 @@ public class VendaDto
     public decimal Subtotal { get; set; }
     public decimal Desconto { get; set; }
     public decimal Total { get; set; }
+    public FormaPagamento FormaPagamento { get; set; }
+    public int QuantidadeParcelas { get; set; } = 1;
+    public decimal ValorPago { get; set; }
+    public decimal Troco { get; set; }
+    public string FormaPagamentoDescricao => PagamentoHelper.ObterDescricao(FormaPagamento, QuantidadeParcelas);
     public string? Observacoes { get; set; }
     public string? Usuario { get; set; }
     public DateTime DataVenda { get; set; }
@@ -42,6 +48,10 @@ public class CriarVendaDto
 {
     public int? ClienteId { get; set; }
     public decimal Desconto { get; set; }
+    public FormaPagamento FormaPagamento { get; set; } = FormaPagamento.Dinheiro;
+    public int QuantidadeParcelas { get; set; } = 1;
+    public decimal ValorPago { get; set; }
+    public decimal Troco { get; set; }
     public string? Observacoes { get; set; }
     public string? Usuario { get; set; }
     public List<CriarItemVendaDto> Itens { get; set; } = new();

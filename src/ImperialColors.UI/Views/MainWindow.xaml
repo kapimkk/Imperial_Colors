@@ -7,7 +7,8 @@
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="CanResize"
-        Background="#1A1A2E">
+        Background="#1A1A2E"
+        x:Name="JanelaPrincipal">
 
     <Border ClipToBounds="True" Background="White">
         <Grid>
@@ -28,21 +29,17 @@
                     <!-- Logo e título -->
                     <Border Grid.Row="0" Padding="20,25,20,20" BorderBrush="#2D2D4E" BorderThickness="0,0,0,1">
                         <StackPanel>
-                            <Border Background="{StaticResource AmareloPrimarioBrush}" CornerRadius="8"
-                                    Width="44" Height="44" HorizontalAlignment="Left">
-                                <TextBlock Text="IC" FontSize="18" FontWeight="Bold"
-                                           Foreground="{StaticResource PretoPrimarioBrush}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                            </Border>
-                            <TextBlock Text="Imperial Colors" Foreground="White"
-                                       FontSize="15" FontWeight="Bold" Margin="0,10,0,2"/>
-                            <TextBlock Text="Tintas e Revestimentos" Foreground="#8B8BAD"
+                            <Image x:Name="ImgLogoMenu" Width="44" Height="44" HorizontalAlignment="Left"
+                                   Stretch="Uniform" Margin="0,0,0,10"/>
+                            <TextBlock x:Name="TxtEmpresaNome" Foreground="White"
+                                       FontSize="15" FontWeight="Bold" Margin="0,0,0,2"/>
+                            <TextBlock x:Name="TxtEmpresaSubtitulo" Foreground="#8B8BAD"
                                        FontSize="11"/>
                         </StackPanel>
                     </Border>
 
                     <!-- Navegação -->
-                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Style="{StaticResource ScrollViewerComMargem}" Margin="0">
                         <StackPanel Margin="10,15,10,0">
                             <TextBlock Text="MENU PRINCIPAL" Foreground="#6B6B8A" FontSize="10"
                                        FontWeight="Bold" Margin="10,0,0,8"/>
@@ -122,11 +119,17 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Text="Usuário" Foreground="White" FontSize="12" FontWeight="SemiBold"/>
-                                <TextBlock Text="Administrador" Foreground="#8B8BAD" FontSize="11"/>
+                                <TextBlock x:Name="TxtUsuarioLogado" Foreground="#8B8BAD" FontSize="11"/>
+                                <TextBlock x:Name="TxtPermissaoLogada" Foreground="#6B6B8A" FontSize="10"/>
                             </StackPanel>
-                            <Button Grid.Column="1" Content="✕" Background="Transparent" BorderThickness="0"
-                                    Foreground="#8B8BAD" FontSize="16" Cursor="Hand"
-                                    Click="BtnFechar_Click" ToolTip="Fechar"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Content="⎋" Background="Transparent" BorderThickness="0"
+                                        Foreground="#8B8BAD" FontSize="14" Cursor="Hand"
+                                        Click="BtnLogout_Click" ToolTip="Sair" Margin="0,0,8,0"/>
+                                <Button Content="✕" Background="Transparent" BorderThickness="0"
+                                        Foreground="#8B8BAD" FontSize="16" Cursor="Hand"
+                                        Click="BtnFechar_Click" ToolTip="Fechar"/>
+                            </StackPanel>
                         </Grid>
                     </Border>
                 </Grid>

@@ -8,6 +8,7 @@
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="DotNetEnv" Version="3.2.0" />
+    <PackageReference Include="itext.bouncy-castle-adapter" Version="9.6.0" />
     <PackageReference Include="itext7" Version="9.6.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -25,6 +26,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <AssemblyName>ImperialColors</AssemblyName>
+    <ApplicationIcon>..\..\icons\logoimperialcolors.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,10 +40,18 @@
     <PropertyGroup>
       <EnvFileSource>$(MSBuildProjectDirectory)\..\..\.env</EnvFileSource>
     </PropertyGroup>
-    <Copy SourceFiles="$(EnvFileSource)"
-          DestinationFolder="$(OutDir)"
-          Condition="Exists('$(EnvFileSource)')"
-          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(EnvFileSource)" DestinationFolder="$(OutDir)" Condition="Exists('$(EnvFileSource)')" SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Copia a pasta icons para a pasta de saída -->
+  <Target Name="CopyIconsFolder" AfterTargets="Build">
+    <PropertyGroup>
+      <IconsSource>$(MSBuildProjectDirectory)\..\..\icons</IconsSource>
+    </PropertyGroup>
+    <ItemGroup>
+      <IconFiles Include="$(IconsSource)\**\*.*" Condition="Exists('$(IconsSource)')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(IconFiles)" DestinationFiles="@(IconFiles->'$(OutDir)icons\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="Exists('$(IconsSource)')" />
   </Target>
 
 </Project>

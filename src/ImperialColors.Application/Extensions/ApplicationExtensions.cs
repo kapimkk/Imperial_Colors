@@ -8,11 +8,15 @@ public static class ApplicationExtensions
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IProdutoService, ProdutoService>();
-        services.AddScoped<IVendaService, VendaService>();
-        services.AddScoped<IClienteService, ClienteService>();
-        services.AddScoped<IFornecedorService, FornecedorService>();
-        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddSingleton<IProdutoService, ProdutoService>();
+        services.AddSingleton<ICategoriaService, CategoriaService>();
+        services.AddSingleton<IMarcaService, MarcaService>();
+        services.AddSingleton<IVendaService, VendaService>();
+        services.AddSingleton<IClienteService, ClienteService>();
+        services.AddSingleton<IFornecedorService, FornecedorService>();
+        services.AddSingleton<IDashboardService, DashboardService>();
+        services.AddSingleton<IAuthService, AuthService>();
+        services.AddSingleton<IUsuarioService, UsuarioService>();
         return services;
     }
 }

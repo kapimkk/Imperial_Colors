@@ -1,5 +1,6 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.Application.Security;
 using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Exceptions;
 using ImperialColors.Domain.Interfaces;
@@ -78,6 +79,21 @@ public class ClienteService : IClienteService
     public async Task<int> ContarAsync()
         => await _clienteRepository.ContarAsync();
 
+    public async Task<PaginacaoResultadoDto<ClienteDto>> ObterPaginadoAsync(
+        int pagina, int itensPorPagina, string? termoBusca = null, CancellationToken cancellationToken = default)
+    {
+        var (itens, total) = await _clienteRepository.ObterPaginadoAsync(
+            pagina, itensPorPagina, termoBusca, cancellationToken);
+
+        return new PaginacaoResultadoDto<ClienteDto>
+        {
+            Itens = itens.Select(MapParaDto).ToList(),
+            PaginaAtual = pagina,
+            ItensPorPagina = itensPorPagina,
+            TotalItens = total
+        };
+    }
+
     private static ClienteDto MapParaDto(Cliente c) => new()
     {
         Id = c.Id, Nome = c.Nome, Telefone = c.Telefone, WhatsApp = c.WhatsApp,
@@ -88,9 +104,17 @@ public class ClienteService : IClienteService
 
     private static Cliente MapParaEntidade(ClienteDto dto) => new()
     {
-        Nome = dto.Nome, Telefone = dto.Telefone, WhatsApp = dto.WhatsApp,
-        Email = dto.Email, Cep = dto.Cep, Logradouro = dto.Logradouro, Numero = dto.Numero,
-        Complemento = dto.Complemento, Bairro = dto.Bairro, Cidade = dto.Cidade,
-        Estado = dto.Estado, Observacoes = dto.Observacoes
+        Nome = InputSanitizer.SanitizarTexto(dto.Nome, 200),
+        Telefone = InputSanitizer.SanitizarTexto(dto.Telefone, 20),
+        WhatsApp = InputSanitizer.SanitizarTexto(dto.WhatsApp, 20),
+        Email = InputSanitizer.SanitizarEmail(dto.Email),
+        Cep = InputSanitizer.SanitizarTexto(dto.Cep, 10),
+        Logradouro = InputSanitizer.SanitizarTexto(dto.Logradouro, 200),
+        Numero = InputSanitizer.SanitizarTexto(dto.Numero, 20),
+        Complemento = InputSanitizer.SanitizarTexto(dto.Complemento, 100),
+        Bairro = InputSanitizer.SanitizarTexto(dto.Bairro, 100),
+        Cidade = InputSanitizer.SanitizarTexto(dto.Cidade, 100),
+        Estado = InputSanitizer.SanitizarTexto(dto.Estado, 2),
+        Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500)
     };
 }

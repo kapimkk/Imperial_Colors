@@ -28,6 +28,10 @@ ImperialColors/
 │   ├── ImperialColors.Application/     # Services, DTOs, Use Cases
 │   ├── ImperialColors.Infrastructure/  # EF Core, Repositórios, Migrations
 │   └── ImperialColors.UI/              # WPF, Views, ViewModels
+├── scripts/                            # Scripts SQL auxiliares
+├── docs/                               # Relatórios de testes
+├── icons/                              # Logos e ícones
+├── .env                                # Credenciais (não commitar)
 ├── .gitignore
 ├── ImperialColors.slnx
 └── README.md
@@ -63,27 +67,41 @@ CREATE USER imperial_user WITH ENCRYPTED PASSWORD 'SuaSenha123';
 GRANT ALL PRIVILEGES ON DATABASE imperial_colors TO imperial_user;
 ```
 
-### 3. Configurar a string de conexão
+### 3. Configurar credenciais (.env)
 
-Edite o arquivo `src/ImperialColors.UI/appsettings.json`:
+Copie o arquivo `.env` na raiz do projeto e ajuste os valores:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=imperial_colors
+DB_USER=postgres
+DB_PASSWORD=SuaSenha
+DB_SSL_MODE=Prefer
+
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=Admin@1234
+ADMIN_EMAIL=admin@imperialcolors.local
+```
+
+> O `.env` é copiado automaticamente para a pasta de saída no build. **Nunca** commite senhas no repositório.
+
+### 3.1 Dados da empresa (appsettings.json)
+
+Os dados exibidos no cupom e cabeçalhos vêm de `src/ImperialColors.UI/appsettings.json` (copiado para a pasta de saída). Edite **sem recompilar** — reinicie o app após alterar:
 
 ```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=imperial_colors;Username=postgres;Password=SuaSenha;"
-  }
+"DadosEmpresa": {
+  "NomeFantasia": "Imperial Colors",
+  "RazaoSocial": "Imperial Colors Tintas e Revestimentos LTDA",
+  "Subtitulo": "Tintas e Revestimentos",
+  "CNPJ": "00.000.000/0001-00",
+  "Endereco": "Rua das Tintas, nº 100 - Bairro Centro, Curitiba - PR",
+  "Telefone": "(41) 99999-9999"
 }
 ```
 
-**Parâmetros da string de conexão:**
-
-| Parâmetro | Descrição | Exemplo |
-|---|---|---|
-| `Host` | Endereço do servidor PostgreSQL | `localhost` ou `192.168.1.100` |
-| `Port` | Porta (padrão: 5432) | `5432` |
-| `Database` | Nome do banco | `imperial_colors` |
-| `Username` | Usuário do PostgreSQL | `postgres` |
-| `Password` | Senha do usuário | `SuaSenha123` |
+Variáveis de ambiente (`.env`) sobrescrevem o JSON: `EMPRESA_NOME`, `EMPRESA_CNPJ`, `EMPRESA_ENDERECO`, `EMPRESA_TELEFONE`, etc.
 
 ### 4. Executar as Migrations
 
@@ -101,7 +119,50 @@ dotnet ef database update --project src/ImperialColors.Infrastructure --startup-
 dotnet run --project src/ImperialColors.UI
 ```
 
-Ou abra `ImperialColors.sln` no Visual Studio e pressione **F5**.
+Ou abra `ImperialColors.slnx` no Visual Studio e pressione **F5**.
+
+---
+
+## Autenticação e Usuários
+
+### Login inicial (administrador)
+
+Na primeira execução, o sistema cria (ou garante) o usuário admin definido no `.env`:
+
+| Campo | Valor padrão |
+|---|---|
+| Usuário | `admin` |
+| Senha | `Admin@1234` |
+
+### Cadastro de novos usuários
+
+1. Na tela de login, aba **Cadastrar**
+2. Após o cadastro, a conta fica com status **Aguardando aprovação**
+3. Um administrador aprova em **Configurações → Gestão de Usuários**
+
+### Valores de status no banco (`usuarios.status`)
+
+| Valor | Significado |
+|---|---|
+| `1` | Aguardando aprovação (não pode entrar) |
+| `2` | Aprovado (pode entrar) |
+| `3` | Cancelado |
+
+Para aprovar manualmente via SQL, use `scripts/aprovar_usuario.sql`:
+
+```sql
+UPDATE usuarios SET status = 2 WHERE username = 'seu_usuario';
+```
+
+### Recuperar senha do admin
+
+No `.env`, defina temporariamente:
+
+```env
+ADMIN_RESET_PASSWORD=true
+```
+
+Reinicie o app. A senha do `ADMIN_USERNAME` será redefinida para `ADMIN_PASSWORD`. Remova ou comente a linha depois.
 
 ---
 
@@ -187,13 +248,17 @@ Se o resultado mostrar `TcpTestSucceeded: True`, a conexão está funcionando.
 - Busca de produtos por nome, código ou código de barras
 - Cálculo automático de totais
 - Aplicação de descontos
+- **Modal de fechamento** com formas de pagamento:
+  - Dinheiro (valor recebido + troco automático)
+  - Cartão Débito / Crédito (1x a 12x) / Pix / Boleto
 - Vinculação opcional de cliente
 - Atualização automática do estoque ao confirmar venda
 
 ### Cupom Não Fiscal
 - Gerado automaticamente após cada venda
+- Exibe forma de pagamento, parcelas e troco (quando aplicável)
+- Impressão direta na impressora configurada em Periféricos
 - Opções: imprimir, visualizar, salvar PDF
-- Disponível também no histórico de vendas
 
 ### Clientes
 - Cadastro completo (nome, contatos, endereço)
@@ -212,7 +277,44 @@ Se o resultado mostrar `TcpTestSucceeded: True`, a conexão está funcionando.
 
 ### Configurações
 - Teste de conexão com o banco
+- **Navegação por cards** para submódulos (Geral, Periféricos, Gestão de Usuários)
+- **Periféricos:** seleção de impressora para cupom + teste de leitor de código de barras
+- Gestão de usuários (Admin)
 - Informações do sistema
+
+---
+
+## Interface (WPF)
+
+O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
+
+- **Menu lateral:** indicador amarelo (3px) + fundo destacado na aba ativa
+- **Inputs:** altura mínima 36px, texto centralizado verticalmente
+- **Botões:** hover suave (amarelo escuro / borda amarela nos secundários), cursor `Hand`
+- **Scrollbars:** estilo fino minimalista com margem interna em modais
+- **Configurações:** cards clicáveis com ícone, título e descrição
+
+### Persistência e performance (EF Core)
+
+- **`IDbContextFactory<AppDbContext>`** — padrão correto para WPF assíncrono: cada operação de repositório cria um contexto curto e isolado, evitando `Cannot access a disposed context instance`
+- Repositórios e serviços registrados como **Singleton**; ViewModels permanecem Transient por escopo de página (apenas estado de UI)
+- Erros de banco exibem a mensagem detalhada do PostgreSQL (`DbUpdateException` + inner exception)
+- Busca de produtos com debounce (300 ms) e cancelamento de buscas anteriores
+- Paginação (50 itens/página), `AsNoTracking` e soft delete com Global Query Filter
+- Detalhes em `docs/RELATORIO_HOMOLOGACAO_DBCONTEXT.md`, `docs/RELATORIO_ESTOQUE_PERFORMANCE.md` e `docs/RELATORIO_ERRO_SALVAMENTO_PRODUTO.md`
+
+### Formatação visual (pt-BR)
+
+- Cultura `pt-BR` configurada globalmente em `App.xaml.cs`
+- `FormattingHelper` + conversores em `App.xaml`: moeda (`R$`), data (`dd/MM/yyyy`), data/hora, quantidade+unidade
+- Cadastro de produto: valores monetários exibidos como `R$ 45,50` na edição
+
+### Performance e paginação
+
+- Listagens (Estoque, Clientes, Fornecedores, Vendas): **50 registros/página** com `Skip/Take` no PostgreSQL e `AsNoTracking`
+- DataGrids com virtualização de linhas (`VirtualizingStackPanel.Recycling`)
+- Logos em cache (`BitmapCacheOption.OnLoad`) — não recarregados a cada navegação
+- PDV: desconto em **R$** ou **%** com cálculo automático do total líquido
 
 ---
 
@@ -222,8 +324,14 @@ Se o resultado mostrar `TcpTestSucceeded: True`, a conexão está funcionando.
 1. Acesse **Estoque** no menu lateral
 2. Clique em **+ Novo Produto**
 3. O código interno é gerado automaticamente (ou clique em "Gerar")
-4. Para usar código de barras: conecte o leitor USB e posicione o cursor no campo "Código de Barras"
-5. Preencha os demais campos e clique em **Salvar Produto**
+4. **Categoria** e **Marca** são obrigatórias — use os botões **+** ao lado dos ComboBoxes para cadastro rápido
+5. Preço de custo e venda devem ser maiores que zero; estoque inicial não pode ser negativo
+6. Para usar código de barras: conecte o leitor USB e posicione o cursor no campo "Código de Barras"
+7. Preencha os demais campos e clique em **Salvar Produto**
+8. A listagem carrega **50 produtos por página** — use **◀ Anterior / Próxima ▶** para navegar
+
+> **Exclusão:** o sistema usa soft delete (`ativo = false` no PostgreSQL). O registro permanece no banco para histórico, mas some de todas as telas.
+> Erros de banco são exibidos com a mensagem real do PostgreSQL. Detalhes em `docs/RELATORIO_ERRO_SALVAMENTO_PRODUTO.md` e `docs/RELATORIO_ESTOQUE_PERFORMANCE.md`.
 
 ### Realizando uma venda (PDV)
 1. Clique em **PDV - Nova Venda** no menu lateral
@@ -286,19 +394,45 @@ dotnet ef migrations remove --project src/ImperialColors.Infrastructure --startu
 | `marcas` | Marcas de produtos |
 | `movimentacoes_estoque` | Histórico de movimentações |
 | `clientes` | Cadastro de clientes |
-| `vendas` | Registro de vendas |
+| `vendas` | Registro de vendas (inclui forma de pagamento, parcelas, troco) |
 | `itens_venda` | Itens de cada venda |
 | `fornecedores` | Cadastro de fornecedores |
 | `listas_compra` | Listas de compras |
 | `itens_lista_compra` | Itens de cada lista |
+| `usuarios` | Usuários do sistema (login e permissões) |
 
 ---
 
 ## Troubleshooting
 
+### Não consigo entrar / "aguardando aprovação"
+
+1. Use o usuário **`admin`** com senha **`Admin@1234`** (conforme `.env`)
+2. O campo de login aceita **usuário ou e-mail**
+3. Se alterou o banco manualmente, confirme `status = 2` (número, não texto)
+4. Alterar só o status **não muda a senha** — use a senha definida no cadastro
+5. Recompile e execute: `dotnet run --project src/ImperialColors.UI`
+
+### App fecha sozinho após clicar em Entrar (sem mensagem)
+
+Esse comportamento foi corrigido. A causa era o `ShutdownMode` do WPF encerrando o app quando a tela de login fechava, **antes** de abrir a janela principal. Recompile com a versão mais recente:
+
+```bash
+dotnet build
+dotnet run --project src/ImperialColors.UI
+```
+
+Credenciais padrão: `admin` / `Admin@1234`
+
+### Executar testes de autenticação
+
+```bash
+dotnet test tests/ImperialColors.Application.Tests
+```
+
 ### Erro: "Não foi possível conectar ao banco"
 1. Verifique se o PostgreSQL está rodando
-2. Confirme as credenciais no `appsettings.json`
+2. Confirme as credenciais no `.env`
 3. Use a função "Testar Conexão" em **Configurações**
 
 ### Erro de migrations ao iniciar

@@ -6,4 +6,6 @@ public interface IClienteRepository : IRepository<Cliente>
 {
     Task<IEnumerable<Cliente>> BuscarPorNomeAsync(string nome);
     Task<Cliente?> ObterComVendasAsync(int id);
+    Task<(IReadOnlyList<Cliente> Itens, int Total)> ObterPaginadoAsync(
+        int pagina, int itensPorPagina, string? termoBusca = null, CancellationToken cancellationToken = default);
 }

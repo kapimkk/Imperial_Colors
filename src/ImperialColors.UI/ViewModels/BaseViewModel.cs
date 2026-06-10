@@ -1,3 +1,4 @@
+using ImperialColors.UI.Helpers;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -34,13 +35,22 @@ public abstract class BaseViewModel : INotifyPropertyChanged
 
     protected void MostrarErro(string mensagem)
     {
-        MensagemErro = mensagem;
-        MessageBox.Show(mensagem, "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+        UiDispatcher.ExecutarNaUi(() =>
+        {
+            MensagemErro = mensagem;
+            MessageBox.Show(mensagem, "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+        });
     }
 
     protected void MostrarSucesso(string mensagem)
-        => MessageBox.Show(mensagem, "Sucesso", MessageBoxButton.OK, MessageBoxImage.Information);
+        => UiDispatcher.ExecutarNaUi(() =>
+            MessageBox.Show(mensagem, "Sucesso", MessageBoxButton.OK, MessageBoxImage.Information));
 
     protected bool ConfirmarAcao(string mensagem)
-        => MessageBox.Show(mensagem, "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+    {
+        var confirmou = false;
+        UiDispatcher.ExecutarNaUi(() =>
+            confirmou = MessageBox.Show(mensagem, "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
+        return confirmou;
+    }
 }

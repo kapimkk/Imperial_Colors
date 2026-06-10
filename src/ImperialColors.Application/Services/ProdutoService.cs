@@ -1,5 +1,8 @@
 using ImperialColors.Application.DTOs;
+using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.Application.Security;
+using ImperialColors.Application.Validation;
 using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Enums;
 using ImperialColors.Domain.Exceptions;
@@ -12,15 +15,21 @@ public class ProdutoService : IProdutoService
 {
     private readonly IProdutoRepository _produtoRepository;
     private readonly IMovimentacaoEstoqueRepository _movimentacaoRepository;
+    private readonly IRepository<Categoria> _categoriaRepository;
+    private readonly IRepository<Marca> _marcaRepository;
     private readonly ILogger<ProdutoService> _logger;
 
     public ProdutoService(
         IProdutoRepository produtoRepository,
         IMovimentacaoEstoqueRepository movimentacaoRepository,
+        IRepository<Categoria> categoriaRepository,
+        IRepository<Marca> marcaRepository,
         ILogger<ProdutoService> logger)
     {
         _produtoRepository = produtoRepository;
         _movimentacaoRepository = movimentacaoRepository;
+        _categoriaRepository = categoriaRepository;
+        _marcaRepository = marcaRepository;
         _logger = logger;
     }
 
@@ -28,6 +37,24 @@ public class ProdutoService : IProdutoService
     {
         var produtos = await _produtoRepository.ObterComCategoriaEMarcaAsync();
         return produtos.Select(MapParaDto);
+    }
+
+    public async Task<PaginacaoResultadoDto<ProdutoDto>> ObterPaginadoAsync(
+        int pagina,
+        int itensPorPagina,
+        string? termoBusca = null,
+        CancellationToken cancellationToken = default)
+    {
+        var (itens, total) = await _produtoRepository.ObterPaginadoAsync(
+            pagina, itensPorPagina, termoBusca, cancellationToken);
+
+        return new PaginacaoResultadoDto<ProdutoDto>
+        {
+            Itens = itens.Select(MapParaDto).ToList(),
+            PaginaAtual = pagina,
+            ItensPorPagina = itensPorPagina,
+            TotalItens = total
+        };
     }
 
     public async Task<ProdutoDto?> ObterPorIdAsync(int id)
@@ -68,14 +95,25 @@ public class ProdutoService : IProdutoService
 
     public async Task<ProdutoDto> CriarAsync(CriarProdutoDto dto)
     {
-        if (await _produtoRepository.CodigoInternoExisteAsync(dto.CodigoInterno))
-            throw new DomainException($"Código interno '{dto.CodigoInterno}' já está em uso.");
+        ProdutoValidator.Validar(dto);
+        await ValidarReferenciasCatalogoAsync(dto.CategoriaId!.Value, dto.MarcaId!.Value);
+
+        var codigoInterno = InputSanitizer.SanitizarTexto(dto.CodigoInterno, 50);
+        var codigoManual = dto.CodigoInternoDefinidoManualmente;
+
+        if (await _produtoRepository.CodigoInternoExisteAsync(codigoInterno))
+        {
+            if (codigoManual)
+                throw new DomainException("Este código interno já está em uso por outro produto.");
+
+            codigoInterno = await GerarProximoCodigoInternoDisponivelAsync();
+        }
 
         var produto = new Produto
         {
-            CodigoInterno = dto.CodigoInterno,
-            CodigoBarras = dto.CodigoBarras,
-            Nome = dto.Nome,
+            CodigoInterno = codigoInterno,
+            CodigoBarras = InputSanitizer.SanitizarTexto(dto.CodigoBarras, 50),
+            Nome = InputSanitizer.SanitizarTexto(dto.Nome, 200),
             CategoriaId = dto.CategoriaId,
             MarcaId = dto.MarcaId,
             QuantidadeEstoque = dto.QuantidadeEstoque,
@@ -83,10 +121,13 @@ public class ProdutoService : IProdutoService
             Unidade = dto.Unidade,
             Custo = dto.Custo,
             PrecoVenda = dto.PrecoVenda,
-            Observacoes = dto.Observacoes
+            Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500)
         };
 
-        var criado = await _produtoRepository.AdicionarAsync(produto);
+        var criado = await _produtoRepository.InserirProdutoAsync(
+            produto,
+            permitirRegenerarCodigoInterno: !codigoManual,
+            obterProximoCodigoInternoAsync: GerarProximoCodigoInternoDisponivelAsync);
 
         if (dto.QuantidadeEstoque > 0)
         {
@@ -101,30 +142,51 @@ public class ProdutoService : IProdutoService
             });
         }
 
-        _logger.LogInformation("Produto criado: {Nome} ({CodigoInterno})", dto.Nome, dto.CodigoInterno);
+        _logger.LogInformation("Produto criado: {Nome} ({CodigoInterno})", dto.Nome, criado.CodigoInterno);
         return MapParaDto(criado);
     }
 
     public async Task<ProdutoDto> AtualizarAsync(int id, AtualizarProdutoDto dto)
     {
+        ProdutoValidator.Validar(dto);
+        await ValidarReferenciasCatalogoAsync(dto.CategoriaId!.Value, dto.MarcaId!.Value);
+
         var produto = await _produtoRepository.ObterPorIdAsync(id)
             ?? throw new DomainException($"Produto com Id {id} não encontrado.");
 
         if (await _produtoRepository.CodigoInternoExisteAsync(dto.CodigoInterno, id))
-            throw new DomainException($"Código interno '{dto.CodigoInterno}' já está em uso por outro produto.");
+            throw new DomainException("Este código interno já está em uso por outro produto.");
 
-        produto.CodigoInterno = dto.CodigoInterno;
-        produto.CodigoBarras = dto.CodigoBarras;
-        produto.Nome = dto.Nome;
+        produto.CodigoInterno = InputSanitizer.SanitizarTexto(dto.CodigoInterno, 50);
+        produto.CodigoBarras = InputSanitizer.SanitizarTexto(dto.CodigoBarras, 50);
+        produto.Nome = InputSanitizer.SanitizarTexto(dto.Nome, 200);
         produto.CategoriaId = dto.CategoriaId;
         produto.MarcaId = dto.MarcaId;
         produto.EstoqueMinimo = dto.EstoqueMinimo;
         produto.Unidade = dto.Unidade;
         produto.Custo = dto.Custo;
         produto.PrecoVenda = dto.PrecoVenda;
-        produto.Observacoes = dto.Observacoes;
+        produto.Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500);
+
+        var quantidadeAnterior = produto.QuantidadeEstoque;
+        produto.QuantidadeEstoque = dto.QuantidadeEstoque;
 
         var atualizado = await _produtoRepository.AtualizarAsync(produto);
+
+        if (quantidadeAnterior != dto.QuantidadeEstoque)
+        {
+            await _movimentacaoRepository.AdicionarAsync(new MovimentacaoEstoque
+            {
+                ProdutoId = id,
+                Tipo = TipoMovimentacao.Ajuste,
+                Quantidade = Math.Abs(dto.QuantidadeEstoque - quantidadeAnterior),
+                QuantidadeAnterior = quantidadeAnterior,
+                QuantidadeAtual = dto.QuantidadeEstoque,
+                Motivo = "Ajuste manual via edição de produto",
+                Usuario = "Administrador"
+            });
+        }
+
         _logger.LogInformation("Produto atualizado: {Nome} ({Id})", dto.Nome, id);
         return MapParaDto(atualizado);
     }
@@ -135,7 +197,12 @@ public class ProdutoService : IProdutoService
             ?? throw new DomainException($"Produto com Id {id} não encontrado.");
 
         await _produtoRepository.RemoverAsync(id);
-        _logger.LogInformation("Produto removido: {Nome} ({Id})", produto.Nome, id);
+
+        var aindaAtivo = await _produtoRepository.ObterPorIdAsync(id);
+        if (aindaAtivo is not null)
+            throw new DomainException("Não foi possível excluir o produto. Tente novamente.");
+
+        _logger.LogInformation("Produto excluído (soft delete): {Nome} ({Id})", produto.Nome, id);
     }
 
     public async Task<IEnumerable<ProdutoDto>> ObterComEstoqueBaixoAsync()
@@ -191,16 +258,28 @@ public class ProdutoService : IProdutoService
     }
 
     public async Task<string> GerarProximoCodigoInternoAsync()
-    {
-        var todos = await _produtoRepository.ObterTodosAsync();
-        var numericos = todos
-            .Select(p => p.CodigoInterno)
-            .Where(c => c.StartsWith("P") && int.TryParse(c[1..], out _))
-            .Select(c => int.Parse(c[1..]))
-            .ToList();
+        => await GerarProximoCodigoInternoDisponivelAsync();
 
-        int proximo = numericos.Any() ? numericos.Max() + 1 : 1;
-        return $"P{proximo:D5}";
+    private async Task<string> GerarProximoCodigoInternoDisponivelAsync()
+    {
+        var maiorSequencia = await _produtoRepository.ObterMaiorSequenciaCodigoInternoAsync();
+        return ProdutoCodigoInternoHelper.FormatarSequencia(maiorSequencia + 1);
+    }
+
+    private async Task ValidarReferenciasCatalogoAsync(int categoriaId, int marcaId)
+    {
+        if (categoriaId <= 0 || marcaId <= 0)
+            throw new DomainException("Selecione uma Categoria e uma Marca válidas.");
+
+        if (!await _categoriaRepository.ExisteAsync(categoriaId))
+            throw new DomainException(
+                $"A categoria selecionada (Id={categoriaId}) não existe no banco de dados. " +
+                "Selecione ou cadastre uma categoria válida.");
+
+        if (!await _marcaRepository.ExisteAsync(marcaId))
+            throw new DomainException(
+                $"A marca selecionada (Id={marcaId}) não existe no banco de dados. " +
+                "Selecione ou cadastre uma marca válida.");
     }
 
     private static ProdutoDto MapParaDto(Produto p) => new()

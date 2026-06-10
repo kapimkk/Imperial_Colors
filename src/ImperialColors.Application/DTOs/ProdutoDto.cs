@@ -33,6 +33,7 @@ public class CriarProdutoDto
     public decimal Custo { get; set; }
     public decimal PrecoVenda { get; set; }
     public string? Observacoes { get; set; }
+    public bool CodigoInternoDefinidoManualmente { get; set; }
 }
 
 public class AtualizarProdutoDto : CriarProdutoDto

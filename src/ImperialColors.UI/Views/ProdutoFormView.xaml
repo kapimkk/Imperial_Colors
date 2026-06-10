@@ -7,7 +7,14 @@
         ShowInTaskbar="False">
 
     <Window.Resources>
-        <ResourceDictionary Source="/Resources/AppTheme.xaml"/>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="pack://application:,,,/ImperialColors;component/Resources/AppTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <DataTemplate x:Key="ComboBoxNomeTemplate">
+                <TextBlock Text="{Binding Nome}" FontSize="13"/>
+            </DataTemplate>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Grid Background="{StaticResource CinzaClaroBrush}">
@@ -40,7 +47,8 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Código Interno *"/>
                         <Grid>
-                            <TextBox x:Name="TxtCodigoInterno" Style="{StaticResource TextBoxModerno}"/>
+                            <TextBox x:Name="TxtCodigoInterno" Style="{StaticResource TextBoxModerno}"
+                                     TextChanged="TxtCodigoInterno_TextChanged"/>
                             <Button Content="Gerar" HorizontalAlignment="Right" Width="55" Height="28"
                                     Margin="0,5,5,5" Style="{StaticResource BotaoSecundario}"
                                     Click="BtnGerarCodigo_Click" Padding="5,2"/>
@@ -59,6 +67,11 @@
                     <TextBox x:Name="TxtNome" Style="{StaticResource TextBoxModerno}"/>
                 </StackPanel>
 
+                <!-- Alerta de validação -->
+                <TextBlock x:Name="TxtErroValidacao" TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource VermelhoErroBrush}" Visibility="Collapsed"
+                           Margin="0,0,0,12"/>
+
                 <!-- Categoria e Marca -->
                 <Grid Margin="0,0,0,12">
                     <Grid.ColumnDefinitions>
@@ -67,14 +80,38 @@
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
-                        <TextBlock Style="{StaticResource LabelCampo}" Text="Categoria"/>
-                        <ComboBox x:Name="CmbCategoria" Style="{StaticResource ComboBoxModerno}"
-                                  DisplayMemberPath="Nome" SelectedValuePath="Id"/>
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Categoria *"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="36"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="CmbCategoria" Grid.Column="0"
+                                      Style="{StaticResource ComboBoxModerno}"
+                                      SelectedValuePath="Id"
+                                      ItemTemplate="{StaticResource ComboBoxNomeTemplate}"/>
+                            <Button Grid.Column="2" Content="+" ToolTip="Cadastrar nova categoria"
+                                    Style="{StaticResource BotaoPrimario}" FontSize="16" FontWeight="Bold"
+                                    Padding="0" Height="36" Click="BtnNovaCategoria_Click"/>
+                        </Grid>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
-                        <TextBlock Style="{StaticResource LabelCampo}" Text="Marca"/>
-                        <ComboBox x:Name="CmbMarca" Style="{StaticResource ComboBoxModerno}"
-                                  DisplayMemberPath="Nome" SelectedValuePath="Id"/>
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Marca *"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="8"/>
+                                <ColumnDefinition Width="36"/>
+                            </Grid.ColumnDefinitions>
+                            <ComboBox x:Name="CmbMarca" Grid.Column="0"
+                                      Style="{StaticResource ComboBoxModerno}"
+                                      SelectedValuePath="Id"
+                                      ItemTemplate="{StaticResource ComboBoxNomeTemplate}"/>
+                            <Button Grid.Column="2" Content="+" ToolTip="Cadastrar nova marca"
+                                    Style="{StaticResource BotaoPrimario}" FontSize="16" FontWeight="Bold"
+                                    Padding="0" Height="36" Click="BtnNovaMarca_Click"/>
+                        </Grid>
                     </StackPanel>
                 </Grid>
 
@@ -119,11 +156,11 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Custo (R$)"/>
-                        <TextBox x:Name="TxtCusto" Style="{StaticResource TextBoxNumerico}" Text="0,00"/>
+                        <TextBox x:Name="TxtCusto" Style="{StaticResource TextBoxNumerico}" Text="R$ 0,00"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Preço de Venda (R$) *"/>
-                        <TextBox x:Name="TxtPrecoVenda" Style="{StaticResource TextBoxNumerico}" Text="0,00"/>
+                        <TextBox x:Name="TxtPrecoVenda" Style="{StaticResource TextBoxNumerico}" Text="R$ 0,00"/>
                     </StackPanel>
                 </Grid>
 

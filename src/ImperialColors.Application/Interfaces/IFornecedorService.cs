@@ -10,4 +10,6 @@ public interface IFornecedorService
     Task<FornecedorDto> CriarAsync(FornecedorDto dto);
     Task<FornecedorDto> AtualizarAsync(int id, FornecedorDto dto);
     Task RemoverAsync(int id);
+    Task<PaginacaoResultadoDto<FornecedorDto>> ObterPaginadoAsync(
+        int pagina, int itensPorPagina, string? termoBusca = null, CancellationToken cancellationToken = default);
 }

@@ -1,62 +1,81 @@
 using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Enums;
 using ImperialColors.Domain.Interfaces;
+using ImperialColors.Domain.ReadModels;
 using ImperialColors.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
-
 namespace ImperialColors.Infrastructure.Repositories;
 
 public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
 {
-    public VendaRepository(AppDbContext context) : base(context) { }
+    public VendaRepository(IDbContextFactory<AppDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<Venda?> ObterComItensAsync(int id)
-        => await _dbSet
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
             .Include(v => v.Cliente)
             .Include(v => v.Itens).ThenInclude(i => i.Produto)
-            .FirstOrDefaultAsync(v => v.Id == id && v.Ativo);
+            .FirstOrDefaultAsync(v => v.Id == id);
+    }
 
     public async Task<IEnumerable<Venda>> ObterPorPeriodoAsync(DateTime inicio, DateTime fim)
-        => await _dbSet
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
+            .AsNoTracking()
             .Include(v => v.Cliente)
             .Include(v => v.Itens).ThenInclude(i => i.Produto)
-            .Where(v => v.Ativo && v.DataVenda >= inicio && v.DataVenda <= fim && v.Status == StatusVenda.Finalizada)
+            .Where(v => v.DataVenda >= inicio && v.DataVenda <= fim && v.Status == StatusVenda.Finalizada)
             .OrderByDescending(v => v.DataVenda)
             .ToListAsync();
+    }
 
     public async Task<IEnumerable<Venda>> ObterPorClienteAsync(int clienteId)
-        => await _dbSet
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
+            .AsNoTracking()
             .Include(v => v.Itens).ThenInclude(i => i.Produto)
-            .Where(v => v.Ativo && v.ClienteId == clienteId && v.Status == StatusVenda.Finalizada)
+            .Where(v => v.ClienteId == clienteId && v.Status == StatusVenda.Finalizada)
             .OrderByDescending(v => v.DataVenda)
             .ToListAsync();
+    }
 
     public async Task<decimal> ObterTotalVendasDiaAsync(DateTime data)
-        => await _dbSet
-            .Where(v => v.Ativo && v.Status == StatusVenda.Finalizada &&
-                   v.DataVenda.Date == data.Date)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
+            .AsNoTracking()
+            .Where(v => v.Status == StatusVenda.Finalizada && v.DataVenda.Date == data.Date)
             .SumAsync(v => v.Total);
+    }
 
     public async Task<decimal> ObterTotalVendasMesAsync(int ano, int mes)
-        => await _dbSet
-            .Where(v => v.Ativo && v.Status == StatusVenda.Finalizada &&
-                   v.DataVenda.Year == ano && v.DataVenda.Month == mes)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
+            .AsNoTracking()
+            .Where(v => v.Status == StatusVenda.Finalizada &&
+                        v.DataVenda.Year == ano && v.DataVenda.Month == mes)
             .SumAsync(v => v.Total);
+    }
 
     public async Task<string> GerarNumeroVendaAsync()
     {
+        await using var context = ContextFactory.CreateDbContext();
         var hoje = DateTime.Today;
         var prefixo = hoje.ToString("yyyyMMdd");
-        var ultimaVenda = await _dbSet
+        var ultimaVenda = await context.Set<Venda>()
             .Where(v => v.NumeroVenda.StartsWith(prefixo))
             .OrderByDescending(v => v.NumeroVenda)
             .FirstOrDefaultAsync();
 
-        int sequencial = 1;
+        var sequencial = 1;
         if (ultimaVenda is not null)
         {
             var partes = ultimaVenda.NumeroVenda.Split('-');
-            if (partes.Length == 2 && int.TryParse(partes[1], out int seq))
+            if (partes.Length == 2 && int.TryParse(partes[1], out var seq))
                 sequencial = seq + 1;
         }
 
@@ -65,11 +84,13 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
 
     public async Task<IEnumerable<object>> ObterProdutosMaisVendidosAsync(DateTime inicio, DateTime fim, int top = 10)
     {
-        var resultado = await _context.ItensVenda
+        await using var context = ContextFactory.CreateDbContext();
+        var resultado = await context.ItensVenda
+            .AsNoTracking()
             .Include(i => i.Produto)
             .Include(i => i.Venda)
-            .Where(i => i.Ativo && i.Venda.Status == StatusVenda.Finalizada &&
-                   i.Venda.DataVenda >= inicio && i.Venda.DataVenda <= fim)
+            .Where(i => i.Venda.Status == StatusVenda.Finalizada &&
+                        i.Venda.DataVenda >= inicio && i.Venda.DataVenda <= fim)
             .GroupBy(i => new { i.ProdutoId, i.Produto.Nome })
             .Select(g => new
             {
@@ -85,10 +106,66 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
         return resultado.Cast<object>();
     }
 
-    public override async Task<IEnumerable<Venda>> ObterTodosAsync()
-        => await _dbSet
+    public async Task<IReadOnlyList<ProdutoMaisVendidoResumo>> ObterTopProdutosVendidosAsync(
+        DateTime inicio, DateTime fim, int top = 3)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.ItensVenda
+            .AsNoTracking()
+            .Include(i => i.Produto)
+            .Include(i => i.Venda)
+            .Where(i => i.Venda.Status == StatusVenda.Finalizada &&
+                        i.Venda.DataVenda >= inicio && i.Venda.DataVenda <= fim)
+            .GroupBy(i => new { i.ProdutoId, i.Produto.Nome })
+            .Select(g => new ProdutoMaisVendidoResumo
+            {
+                NomeProduto = g.Key.Nome,
+                QuantidadeTotal = g.Sum(i => i.Quantidade),
+                TotalVendido = g.Sum(i => i.Subtotal)
+            })
+            .OrderByDescending(r => r.QuantidadeTotal)
+            .Take(top)
+            .ToListAsync();
+    }
+
+    public async Task<(IReadOnlyList<Venda> Itens, int Total)> ObterPaginadoPorPeriodoAsync(
+        DateTime inicio, DateTime fim, int pagina, int itensPorPagina, string? termoBusca = null,
+        CancellationToken cancellationToken = default)
+    {
+        pagina = Math.Max(1, pagina);
+        itensPorPagina = Math.Clamp(itensPorPagina, 1, 200);
+
+        await using var context = ContextFactory.CreateDbContext();
+        var query = context.Set<Venda>()
+            .AsNoTracking()
             .Include(v => v.Cliente)
-            .Where(v => v.Ativo)
+            .Where(v => v.DataVenda >= inicio && v.DataVenda <= fim && v.Status == StatusVenda.Finalizada);
+
+        if (!string.IsNullOrWhiteSpace(termoBusca))
+        {
+            var termo = termoBusca.Trim();
+            query = query.Where(v =>
+                EF.Functions.ILike(v.NumeroVenda, $"%{termo}%") ||
+                (v.Cliente != null && EF.Functions.ILike(v.Cliente.Nome, $"%{termo}%")));
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+        var itens = await query
+            .OrderByDescending(v => v.DataVenda)
+            .Skip((pagina - 1) * itensPorPagina)
+            .Take(itensPorPagina)
+            .ToListAsync(cancellationToken);
+
+        return (itens, total);
+    }
+
+    public override async Task<IEnumerable<Venda>> ObterTodosAsync()
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
+            .AsNoTracking()
+            .Include(v => v.Cliente)
             .OrderByDescending(v => v.DataVenda)
             .ToListAsync();
+    }
 }

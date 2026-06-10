@@ -7,19 +7,27 @@ namespace ImperialColors.Infrastructure.Repositories;
 
 public class MovimentacaoEstoqueRepository : RepositoryBase<MovimentacaoEstoque>, IMovimentacaoEstoqueRepository
 {
-    public MovimentacaoEstoqueRepository(AppDbContext context) : base(context) { }
+    public MovimentacaoEstoqueRepository(IDbContextFactory<AppDbContext> contextFactory) : base(contextFactory) { }
 
     public async Task<IEnumerable<MovimentacaoEstoque>> ObterPorProdutoAsync(int produtoId)
-        => await _dbSet
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<MovimentacaoEstoque>()
+            .AsNoTracking()
             .Include(m => m.Produto)
-            .Where(m => m.Ativo && m.ProdutoId == produtoId)
+            .Where(m => m.ProdutoId == produtoId)
             .OrderByDescending(m => m.CriadoEm)
             .ToListAsync();
+    }
 
     public async Task<IEnumerable<MovimentacaoEstoque>> ObterPorPeriodoAsync(DateTime inicio, DateTime fim)
-        => await _dbSet
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<MovimentacaoEstoque>()
+            .AsNoTracking()
             .Include(m => m.Produto)
-            .Where(m => m.Ativo && m.CriadoEm >= inicio && m.CriadoEm <= fim)
+            .Where(m => m.CriadoEm >= inicio && m.CriadoEm <= fim)
             .OrderByDescending(m => m.CriadoEm)
             .ToListAsync();
+    }
 }

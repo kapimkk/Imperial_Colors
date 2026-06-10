@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<Fornecedor> Fornecedores { get; set; }
     public DbSet<ListaCompra> ListasCompra { get; set; }
     public DbSet<ItemListaCompra> ItensListaCompra { get; set; }
+    public DbSet<Usuario> Usuarios { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,7 @@ public class AppDbContext : DbContext
         }
 
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        modelBuilder.AplicarFiltroSoftDelete();
     }
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

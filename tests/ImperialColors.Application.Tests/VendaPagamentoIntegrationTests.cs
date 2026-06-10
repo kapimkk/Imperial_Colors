@@ -1,0 +1,118 @@
+using DotNetEnv;
+using ImperialColors.Application.DTOs;
+using ImperialColors.Application.Extensions;
+using ImperialColors.Application.Interfaces;
+using ImperialColors.Domain.Enums;
+using ImperialColors.Domain.Interfaces;
+using ImperialColors.Infrastructure.Data;
+using ImperialColors.Infrastructure.Extensions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Xunit;
+
+namespace ImperialColors.Application.Tests;
+
+public class VendaPagamentoIntegrationTests
+{
+    private static bool TryCarregarConfig(out ServiceProvider provider, out IDbContextFactory<AppDbContext> contextFactory)
+    {
+        provider = null!;
+        contextFactory = null!;
+
+        var envPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env"));
+        if (!File.Exists(envPath))
+            return false;
+
+        Env.Load(envPath);
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_PASSWORD")))
+            return false;
+
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+        var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
+        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
+        var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "imperial_colors";
+        var user = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
+        var pass = Environment.GetEnvironmentVariable("DB_PASSWORD");
+        var ssl = Environment.GetEnvironmentVariable("DB_SSL_MODE") ?? "Prefer";
+        var cs = $"Host={host};Port={port};Database={dbName};Username={user};Password={pass};SSL Mode={ssl};Trust Server Certificate=true;";
+
+        var services = new ServiceCollection();
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
+        services.AddInfrastructure(cs);
+        services.AddApplication();
+
+        provider = services.BuildServiceProvider();
+        contextFactory = provider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        using var dbContext = contextFactory.CreateDbContext();
+        dbContext.Database.Migrate();
+        return true;
+    }
+
+    [Theory]
+    [InlineData(FormaPagamento.Dinheiro, 150, 50, 1)]
+    [InlineData(FormaPagamento.CartaoCredito, 100, 0, 4)]
+    [InlineData(FormaPagamento.Pix, 100, 0, 1)]
+    [InlineData(FormaPagamento.CartaoDebito, 100, 0, 1)]
+    [InlineData(FormaPagamento.Boleto, 100, 0, 1)]
+    public async Task CriarVenda_ComFormasPagamento_PersisteNoBanco(
+        FormaPagamento forma, decimal valorPago, decimal troco, int parcelas)
+    {
+        if (!TryCarregarConfig(out var provider, out var contextFactory))
+            return;
+
+        await using var scope = provider.CreateAsyncScope();
+        var vendaService = scope.ServiceProvider.GetRequiredService<IVendaService>();
+        var produtoRepository = scope.ServiceProvider.GetRequiredService<IProdutoRepository>();
+
+        var produto = (await produtoRepository.ObterTodosAsync()).FirstOrDefault();
+        if (produto is null)
+            return;
+
+        if (produto.QuantidadeEstoque < 1)
+        {
+            produto.QuantidadeEstoque = 10;
+            await produtoRepository.AtualizarAsync(produto);
+        }
+
+        var total = produto.PrecoVenda;
+
+        if (forma == FormaPagamento.Dinheiro)
+            valorPago = total + troco;
+
+        var venda = await vendaService.CriarAsync(new CriarVendaDto
+        {
+            Usuario = "teste_integracao",
+            FormaPagamento = forma,
+            QuantidadeParcelas = parcelas,
+            ValorPago = valorPago,
+            Troco = troco,
+            Itens =
+            [
+                new CriarItemVendaDto
+                {
+                    ProdutoId = produto.Id,
+                    Quantidade = 1,
+                    PrecoUnitario = produto.PrecoVenda
+                }
+            ]
+        });
+
+        try
+        {
+            await using var db = await contextFactory.CreateDbContextAsync();
+            var noBanco = await db.Vendas.AsNoTracking()
+                .FirstAsync(v => v.Id == venda.Id);
+
+            Assert.Equal(venda.FormaPagamento, noBanco.FormaPagamento);
+            Assert.Equal(venda.QuantidadeParcelas, noBanco.QuantidadeParcelas);
+            Assert.Equal(venda.ValorPago, noBanco.ValorPago);
+            Assert.Equal(venda.Troco, noBanco.Troco);
+        }
+        finally
+        {
+            await vendaService.CancelarAsync(venda.Id);
+        }
+    }
+}
