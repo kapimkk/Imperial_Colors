@@ -1,0 +1,18 @@
+using ImperialColors.Application.DTOs;
+
+namespace ImperialColors.Application.Interfaces;
+
+public interface IVendaService
+{
+    Task<IEnumerable<VendaDto>> ObterTodosAsync();
+    Task<VendaDto?> ObterPorIdAsync(int id);
+    Task<VendaDto?> ObterComItensAsync(int id);
+    Task<IEnumerable<VendaDto>> ObterPorPeriodoAsync(DateTime inicio, DateTime fim);
+    Task<IEnumerable<VendaDto>> ObterPorClienteAsync(int clienteId);
+    Task<VendaDto> CriarAsync(CriarVendaDto dto);
+    Task<VendaDto> FinalizarAsync(int id);
+    Task CancelarAsync(int id);
+    Task<decimal> ObterTotalVendasDiaAsync();
+    Task<decimal> ObterTotalVendasMesAsync();
+    Task<IEnumerable<object>> ObterProdutosMaisVendidosAsync(DateTime inicio, DateTime fim, int top = 10);
+}

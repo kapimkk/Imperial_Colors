@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ImperialColors.Application/ImperialColors.Application.csproj" />
+    <Project Path="src/ImperialColors.Domain/ImperialColors.Domain.csproj" />
+    <Project Path="src/ImperialColors.Infrastructure/ImperialColors.Infrastructure.csproj" />
+    <Project Path="src/ImperialColors.UI/ImperialColors.UI.csproj" />
+  </Folder>
+</Solution>

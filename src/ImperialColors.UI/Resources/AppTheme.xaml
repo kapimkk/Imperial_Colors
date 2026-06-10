@@ -1,0 +1,296 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Cores principais -->
+    <Color x:Key="AmareloPrimario">#F5C200</Color>
+    <Color x:Key="AmareloClaro">#FFF0A0</Color>
+    <Color x:Key="AmareloEscuro">#D4A800</Color>
+    <Color x:Key="BrancoFundo">#FFFFFF</Color>
+    <Color x:Key="CinzaClaro">#F8F9FA</Color>
+    <Color x:Key="CinzaMedio">#E9ECEF</Color>
+    <Color x:Key="CinzaTexto">#6C757D</Color>
+    <Color x:Key="PretoPrimario">#212529</Color>
+    <Color x:Key="VerdeSucesso">#28A745</Color>
+    <Color x:Key="VermelhoErro">#DC3545</Color>
+    <Color x:Key="AzulInfo">#17A2B8</Color>
+    <Color x:Key="LaranjaAviso">#FD7E14</Color>
+    <Color x:Key="MenuLateral">#1A1A2E</Color>
+    <Color x:Key="MenuLateralHover">#2D2D4E</Color>
+    <Color x:Key="MenuItemAtivo">#F5C200</Color>
+
+    <!-- Brushes -->
+    <SolidColorBrush x:Key="AmareloPrimarioBrush" Color="{StaticResource AmareloPrimario}"/>
+    <SolidColorBrush x:Key="AmareloEscuroBrush" Color="{StaticResource AmareloEscuro}"/>
+    <SolidColorBrush x:Key="AmareloClaroBrush" Color="{StaticResource AmareloClaro}"/>
+    <SolidColorBrush x:Key="BrancoFundoBrush" Color="{StaticResource BrancoFundo}"/>
+    <SolidColorBrush x:Key="CinzaClaroBrush" Color="{StaticResource CinzaClaro}"/>
+    <SolidColorBrush x:Key="CinzaMedioBrush" Color="{StaticResource CinzaMedio}"/>
+    <SolidColorBrush x:Key="CinzaTextoBrush" Color="{StaticResource CinzaTexto}"/>
+    <SolidColorBrush x:Key="PretoPrimarioBrush" Color="{StaticResource PretoPrimario}"/>
+    <SolidColorBrush x:Key="VerdeSucessoBrush" Color="{StaticResource VerdeSucesso}"/>
+    <SolidColorBrush x:Key="VermelhoErroBrush" Color="{StaticResource VermelhoErro}"/>
+    <SolidColorBrush x:Key="AzulInfoBrush" Color="{StaticResource AzulInfo}"/>
+    <SolidColorBrush x:Key="LaranjaAvisoBrush" Color="{StaticResource LaranjaAviso}"/>
+    <SolidColorBrush x:Key="MenuLateralBrush" Color="{StaticResource MenuLateral}"/>
+    <SolidColorBrush x:Key="MenuLateralHoverBrush" Color="{StaticResource MenuLateralHover}"/>
+
+    <!-- Fontes -->
+    <FontFamily x:Key="FontePrimaria">Segoe UI</FontFamily>
+
+    <!-- Estilo base para TextBox -->
+    <Style x:Key="TextBoxModerno" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6">
+                        <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource AmareloPrimarioBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="BorderBrush" Value="{StaticResource AmareloEscuroBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Estilo para ComboBox -->
+    <Style x:Key="ComboBoxModerno" TargetType="ComboBox">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
+        <Setter Property="Height" Value="38"/>
+    </Style>
+
+    <!-- Botão primário (amarelo) -->
+    <Style x:Key="BotaoPrimario" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="Background" Value="{StaticResource AmareloPrimarioBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource AmareloEscuroBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="{StaticResource AmareloEscuroBrush}"/>
+                            <Setter Property="Opacity" Value="0.9"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Botão secundário (outline) -->
+    <Style x:Key="BotaoSecundario" TargetType="Button">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource CinzaTextoBrush}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="20,10"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource CinzaClaroBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Botão perigo (vermelho) -->
+    <Style x:Key="BotaoPerigo" TargetType="Button" BasedOn="{StaticResource BotaoPrimario}">
+        <Setter Property="Background" Value="{StaticResource VermelhoErroBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#C82333"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Botão sucesso (verde) -->
+    <Style x:Key="BotaoSucesso" TargetType="Button" BasedOn="{StaticResource BotaoPrimario}">
+        <Setter Property="Background" Value="{StaticResource VerdeSucessoBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#218838"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- Card style -->
+    <Style x:Key="Card" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="20"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect ShadowDepth="1" BlurRadius="10" Opacity="0.08" Color="#000000"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- DataGrid style -->
+    <Style x:Key="DataGridModerno" TargetType="DataGrid">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Background" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="AlternatingRowBackground" Value="{StaticResource CinzaClaroBrush}"/>
+        <Setter Property="RowBackground" Value="White"/>
+        <Setter Property="HeadersVisibility" Value="Column"/>
+        <Setter Property="CanUserAddRows" Value="False"/>
+        <Setter Property="CanUserDeleteRows" Value="False"/>
+        <Setter Property="SelectionMode" Value="Single"/>
+        <Setter Property="AutoGenerateColumns" Value="False"/>
+    </Style>
+
+    <Style x:Key="DataGridHeaderModerno" TargetType="DataGridColumnHeader">
+        <Setter Property="Background" Value="{StaticResource CinzaClaroBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource CinzaTextoBrush}"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="BorderThickness" Value="0,0,0,2"/>
+    </Style>
+
+    <!-- Label estilo -->
+    <Style x:Key="LabelCampo" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource CinzaTextoBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+
+    <!-- Título de módulo -->
+    <Style x:Key="TituloModulo" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="22"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+    </Style>
+
+    <!-- Badge de status -->
+    <Style x:Key="BadgeVerde" TargetType="Border">
+        <Setter Property="Background" Value="#D4EDDA"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,3"/>
+    </Style>
+    <Style x:Key="BadgeAmarelo" TargetType="Border">
+        <Setter Property="Background" Value="#FFF3CD"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,3"/>
+    </Style>
+    <Style x:Key="BadgeVermelho" TargetType="Border">
+        <Setter Property="Background" Value="#F8D7DA"/>
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,3"/>
+    </Style>
+
+    <!-- CheckBox moderno -->
+    <Style x:Key="CheckBoxModerno" TargetType="CheckBox">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+    </Style>
+
+    <!-- NumericUpDown-like TextBox -->
+    <Style x:Key="TextBoxNumerico" TargetType="TextBox" BasedOn="{StaticResource TextBoxModerno}">
+        <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+
+    <!-- Botão do menu lateral -->
+    <Style x:Key="MenuButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="10,10"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontFamily" Value="Segoe UI"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Margin" Value="0,2,0,2"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border Background="{TemplateBinding Background}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="#2D2D4E"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter Property="Background" Value="#3A3A5C"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Botão do menu destaque (PDV) -->
+    <Style x:Key="MenuButtonDestaque" TargetType="Button" BasedOn="{StaticResource MenuButton}">
+        <Setter Property="Background" Value="#28284A"/>
+        <Setter Property="Foreground">
+            <Setter.Value>
+                <SolidColorBrush Color="#F5C200"/>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+</ResourceDictionary>

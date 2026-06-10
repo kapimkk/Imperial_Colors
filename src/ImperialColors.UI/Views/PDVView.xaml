@@ -1,0 +1,235 @@
+<Window x:Class="ImperialColors.UI.Views.PDVView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:ImperialColors.UI.Converters"
+        Title="PDV - Ponto de Venda" Width="1100" Height="720"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/AppTheme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <conv:MoedaConverter x:Key="MoedaConverter"/>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource CinzaClaroBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="320"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Coluna esquerda: busca + itens -->
+        <Grid Grid.Column="0" Margin="20,20,10,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="15"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Título -->
+            <Grid Grid.Row="0">
+                <StackPanel>
+                    <TextBlock Text="PDV - Nova Venda" FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource PretoPrimarioBrush}"/>
+                    <TextBlock x:Name="TxtNumeroVenda" FontSize="12"
+                               Foreground="{StaticResource CinzaTextoBrush}" Margin="0,3,0,0"/>
+                </StackPanel>
+                <Button HorizontalAlignment="Right" Style="{StaticResource BotaoPerigo}"
+                        Click="BtnFechar_Click" Content="✕  Cancelar Venda"/>
+            </Grid>
+
+            <!-- Busca de produto -->
+            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="15">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Buscar produto (nome, código ou código de barras)"/>
+                        <TextBox x:Name="TxtBuscaProduto" Style="{StaticResource TextBoxModerno}"
+                                 KeyDown="TxtBuscaProduto_KeyDown"
+                                 TextChanged="TxtBuscaProduto_TextChanged"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource BotaoPrimario}" Content="Adicionar"
+                            Click="BtnAdicionarProduto_Click" VerticalAlignment="Bottom"/>
+                </Grid>
+            </Border>
+
+            <!-- Resultado da busca -->
+            <Border x:Name="PainelResultados" Grid.Row="2" Margin="0,60,0,0"
+                    Visibility="Collapsed" Panel.ZIndex="10"
+                    Background="White" CornerRadius="8" BorderBrush="{StaticResource CinzaMedioBrush}"
+                    BorderThickness="1" MaxHeight="200">
+                <Border.Effect>
+                    <DropShadowEffect ShadowDepth="2" BlurRadius="8" Opacity="0.15"/>
+                </Border.Effect>
+                <ListBox x:Name="LstResultados" BorderThickness="0"
+                         SelectionChanged="LstResultados_SelectionChanged"
+                         MouseDoubleClick="LstResultados_MouseDoubleClick">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Margin="0,5">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold" Text="{Binding Nome}"/>
+                                    <TextBlock FontSize="11" Foreground="{StaticResource CinzaTextoBrush}">
+                                        <Run Text="{Binding CodigoInterno}"/>
+                                        <Run Text=" | Estoque: "/>
+                                        <Run Text="{Binding QuantidadeEstoque}"/>
+                                        <Run Text="{Binding Unidade}"/>
+                                    </TextBlock>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" FontSize="15" FontWeight="Bold"
+                                           Foreground="{StaticResource AmareloPrimarioBrush}" VerticalAlignment="Center"
+                                           Text="{Binding PrecoVenda, Converter={StaticResource MoedaConverter}}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+
+            <!-- Lista de itens da venda -->
+            <Border Grid.Row="4" Style="{StaticResource Card}" Padding="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Padding="15,12" Background="{StaticResource CinzaClaroBrush}"
+                            CornerRadius="10,10,0,0">
+                        <Grid>
+                            <TextBlock Text="Itens da Venda" FontSize="14" FontWeight="SemiBold"/>
+                            <Button HorizontalAlignment="Right" Style="{StaticResource BotaoPerigo}"
+                                    Content="Limpar" Click="BtnLimpar_Click" Padding="12,5"/>
+                        </Grid>
+                    </Border>
+                    <DataGrid Grid.Row="1" x:Name="DgItens" Style="{StaticResource DataGridModerno}"
+                              ColumnHeaderStyle="{StaticResource DataGridHeaderModerno}"
+                              ItemsSource="{Binding ItensVenda}">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Produto" Binding="{Binding NomeProduto}" Width="*"/>
+                            <DataGridTextColumn Header="Cód" Binding="{Binding CodigoInterno}" Width="80"/>
+                            <DataGridTemplateColumn Header="Qtd" Width="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="22"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="22"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Content="-" Background="{StaticResource CinzaMedioBrush}"
+                                                    BorderThickness="0" Cursor="Hand" FontSize="14" FontWeight="Bold"
+                                                    Tag="{Binding}" Click="BtnDiminuirQtd_Click"/>
+                                            <TextBox Grid.Column="1" Text="{Binding Quantidade, UpdateSourceTrigger=PropertyChanged}"
+                                                     TextAlignment="Center" BorderThickness="0" FontSize="13"
+                                                     LostFocus="TxtQtdItem_LostFocus" Tag="{Binding}"/>
+                                            <Button Grid.Column="2" Content="+" Background="{StaticResource CinzaMedioBrush}"
+                                                    BorderThickness="0" Cursor="Hand" FontSize="14" FontWeight="Bold"
+                                                    Tag="{Binding}" Click="BtnAumentarQtd_Click"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Preço Un." Width="100"
+                                Binding="{Binding PrecoUnitario, Converter={StaticResource MoedaConverter}}"/>
+                            <DataGridTextColumn Header="Subtotal" Width="110"
+                                Binding="{Binding Subtotal, Converter={StaticResource MoedaConverter}}"/>
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="✕" Background="Transparent" BorderThickness="0"
+                                                Foreground="{StaticResource VermelhoErroBrush}"
+                                                Cursor="Hand" FontSize="14" Tag="{Binding}"
+                                                Click="BtnRemoverItem_Click"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Coluna direita: resumo e pagamento -->
+        <Border Grid.Column="1" Background="White" Margin="0,20,20,20" CornerRadius="10">
+            <Border.Effect>
+                <DropShadowEffect ShadowDepth="1" BlurRadius="10" Opacity="0.08"/>
+            </Border.Effect>
+            <Grid Margin="20">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="Resumo da Venda" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
+
+                    <!-- Cliente -->
+                    <TextBlock Style="{StaticResource LabelCampo}" Text="Cliente (opcional)"/>
+                    <ComboBox x:Name="CmbCliente" Style="{StaticResource ComboBoxModerno}"
+                              DisplayMemberPath="Nome" SelectedValuePath="Id" Margin="0,0,0,12"/>
+
+                    <!-- Separador -->
+                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,5,0,15"/>
+                </StackPanel>
+
+                <!-- Totais -->
+                <StackPanel Grid.Row="1">
+                    <Grid Margin="0,0,0,8">
+                        <TextBlock Text="Subtotal:" FontSize="13" Foreground="{StaticResource CinzaTextoBrush}"/>
+                        <TextBlock HorizontalAlignment="Right" FontSize="13"
+                                   Text="{Binding Subtotal, Converter={StaticResource MoedaConverter}}"/>
+                    </Grid>
+
+                    <!-- Desconto -->
+                    <Grid Margin="0,0,0,8">
+                        <TextBlock Text="Desconto (R$):" FontSize="13" Foreground="{StaticResource CinzaTextoBrush}"
+                                   VerticalAlignment="Center"/>
+                        <TextBox x:Name="TxtDesconto" HorizontalAlignment="Right" Width="100"
+                                 Style="{StaticResource TextBoxNumerico}" Text="0,00"
+                                 TextChanged="TxtDesconto_TextChanged"/>
+                    </Grid>
+
+                    <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,10,0,10"/>
+
+                    <!-- Total -->
+                    <Grid Margin="0,0,0,5">
+                        <TextBlock Text="TOTAL:" FontSize="18" FontWeight="Bold"/>
+                        <TextBlock HorizontalAlignment="Right" FontSize="22" FontWeight="Bold"
+                                   Foreground="{StaticResource AmareloPrimarioBrush}"
+                                   Text="{Binding Total, Converter={StaticResource MoedaConverter}}"/>
+                    </Grid>
+
+                    <TextBlock Margin="0,5,0,15" FontSize="12" Foreground="{StaticResource CinzaTextoBrush}">
+                        <Run Text="{Binding TotalItens}"/>
+                        <Run Text=" iten(s) na venda"/>
+                    </TextBlock>
+
+                    <!-- Observações -->
+                    <TextBlock Style="{StaticResource LabelCampo}" Text="Observações"/>
+                    <TextBox x:Name="TxtObservacoes" Style="{StaticResource TextBoxModerno}"
+                             Height="60" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,15"/>
+                </StackPanel>
+
+                <!-- Botão finalizar -->
+                <StackPanel Grid.Row="2">
+                    <Button Style="{StaticResource BotaoSucesso}" Content="✓  FINALIZAR VENDA"
+                            FontSize="16" Padding="20,15" Click="BtnFinalizarVenda_Click"/>
+                    <Button Style="{StaticResource BotaoSecundario}" Content="Cancelar"
+                            Margin="0,10,0,0" Click="BtnFechar_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

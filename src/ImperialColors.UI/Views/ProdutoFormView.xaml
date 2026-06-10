@@ -1,0 +1,150 @@
+<Window x:Class="ImperialColors.UI.Views.ProdutoFormView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Produto" Width="680" Height="620"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/AppTheme.xaml"/>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource CinzaClaroBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="White" Padding="25,18">
+            <StackPanel>
+                <TextBlock x:Name="TxtTitulo" Text="Novo Produto"
+                           FontSize="18" FontWeight="Bold" Foreground="{StaticResource PretoPrimarioBrush}"/>
+                <TextBlock Text="Preencha os dados do produto" FontSize="12"
+                           Foreground="{StaticResource CinzaTextoBrush}" Margin="0,3,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Formulário -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="20,15">
+            <StackPanel>
+                <!-- Linha 1: Código Interno e Código de Barras -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Código Interno *"/>
+                        <Grid>
+                            <TextBox x:Name="TxtCodigoInterno" Style="{StaticResource TextBoxModerno}"/>
+                            <Button Content="Gerar" HorizontalAlignment="Right" Width="55" Height="28"
+                                    Margin="0,5,5,5" Style="{StaticResource BotaoSecundario}"
+                                    Click="BtnGerarCodigo_Click" Padding="5,2"/>
+                        </Grid>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Código de Barras"/>
+                        <TextBox x:Name="TxtCodigoBarras" Style="{StaticResource TextBoxModerno}"
+                                 ToolTip="Use um leitor de código de barras ou digite manualmente"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Nome -->
+                <StackPanel Margin="0,0,0,12">
+                    <TextBlock Style="{StaticResource LabelCampo}" Text="Nome do Produto *"/>
+                    <TextBox x:Name="TxtNome" Style="{StaticResource TextBoxModerno}"/>
+                </StackPanel>
+
+                <!-- Categoria e Marca -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Categoria"/>
+                        <ComboBox x:Name="CmbCategoria" Style="{StaticResource ComboBoxModerno}"
+                                  DisplayMemberPath="Nome" SelectedValuePath="Id"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Marca"/>
+                        <ComboBox x:Name="CmbMarca" Style="{StaticResource ComboBoxModerno}"
+                                  DisplayMemberPath="Nome" SelectedValuePath="Id"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Quantidade, Estoque Mínimo e Unidade -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="100"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Quantidade em Estoque"/>
+                        <TextBox x:Name="TxtQuantidade" Style="{StaticResource TextBoxNumerico}" Text="0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Estoque Mínimo"/>
+                        <TextBox x:Name="TxtEstoqueMinimo" Style="{StaticResource TextBoxNumerico}" Text="0"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Unidade"/>
+                        <ComboBox x:Name="CmbUnidade" Style="{StaticResource ComboBoxModerno}">
+                            <ComboBoxItem Content="UN" IsSelected="True"/>
+                            <ComboBoxItem Content="KG"/>
+                            <ComboBoxItem Content="LT"/>
+                            <ComboBoxItem Content="MT"/>
+                            <ComboBoxItem Content="CX"/>
+                            <ComboBoxItem Content="PC"/>
+                            <ComboBoxItem Content="GL"/>
+                            <ComboBoxItem Content="RL"/>
+                        </ComboBox>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Custo e Preço de Venda -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Custo (R$)"/>
+                        <TextBox x:Name="TxtCusto" Style="{StaticResource TextBoxNumerico}" Text="0,00"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Preço de Venda (R$) *"/>
+                        <TextBox x:Name="TxtPrecoVenda" Style="{StaticResource TextBoxNumerico}" Text="0,00"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Observações -->
+                <StackPanel>
+                    <TextBlock Style="{StaticResource LabelCampo}" Text="Observações"/>
+                    <TextBox x:Name="TxtObservacoes" Style="{StaticResource TextBoxModerno}"
+                             Height="70" TextWrapping="Wrap" AcceptsReturn="True"
+                             VerticalScrollBarVisibility="Auto"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Rodapé com botões -->
+        <Border Grid.Row="2" Background="White" Padding="20,15">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancelar" Style="{StaticResource BotaoSecundario}"
+                        Margin="0,0,10,0" Click="BtnCancelar_Click"/>
+                <Button x:Name="BtnSalvar" Content="Salvar Produto" Style="{StaticResource BotaoPrimario}"
+                        Click="BtnSalvar_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
