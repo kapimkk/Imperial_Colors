@@ -6,6 +6,16 @@ namespace ImperialColors.UI.Helpers;
 
 public static class CupomPrintHelper
 {
+    public static void PrepararVisualParaImpressao(FrameworkElement visual)
+    {
+        visual.UpdateLayout();
+
+        var largura = visual.ActualWidth > 0 ? visual.ActualWidth : 392;
+        visual.Measure(new Size(largura, double.PositiveInfinity));
+        visual.Arrange(new Rect(0, 0, largura, visual.DesiredSize.Height));
+        visual.UpdateLayout();
+    }
+
     public static bool ImprimirNaImpressoraConfigurada(
         FrameworkElement visual,
         string nomeDocumento,
@@ -16,6 +26,8 @@ public static class CupomPrintHelper
 
         try
         {
+            PrepararVisualParaImpressao(visual);
+
             var dialog = new PrintDialog();
 
             if (!string.IsNullOrWhiteSpace(nomeImpressora))

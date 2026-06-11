@@ -110,9 +110,9 @@ public class RelatorioService : IRelatorioService
 
 
 
-            var tabela = new ITextTable(new float[] { 3, 1, 1.5f, 1.5f }).UseAllAvailableWidth();
+            var tabela = new ITextTable(new float[] { 3f, 1f, 1.6f }).UseAllAvailableWidth();
 
-            AdicionarCabecalhoTabela(tabela, "Produto", "Qtd", "Preco", "Total");
+            AdicionarCabecalhoTabela(tabela, "Produto", "Qtd", "Preco");
 
 
 
@@ -125,8 +125,6 @@ public class RelatorioService : IRelatorioService
                 tabela.AddCell(CelulaCupom($"{item.Quantidade} {item.Unidade}", TextAlignment.RIGHT));
 
                 tabela.AddCell(CelulaCupom(item.PrecoUnitario.ToString("C2", new System.Globalization.CultureInfo("pt-BR")), TextAlignment.RIGHT));
-
-                tabela.AddCell(CelulaCupom(item.Subtotal.ToString("C2", new System.Globalization.CultureInfo("pt-BR")), TextAlignment.RIGHT));
 
             }
 
@@ -320,7 +318,7 @@ public class RelatorioService : IRelatorioService
 
             .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
 
-            .SetPadding(2);
+            .SetPaddingTop(2).SetPaddingBottom(2).SetPaddingLeft(2).SetPaddingRight(alignment == TextAlignment.RIGHT ? 4 : 2);
 
 
 

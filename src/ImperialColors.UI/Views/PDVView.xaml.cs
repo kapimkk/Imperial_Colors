@@ -303,7 +303,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
             var venda = await _vendaService.CriarAsync(dto);
 
             // Exibir cupom ANTES de fechar o PDV e usar Owner da janela principal (nunca a janela que será fechada)
-            WindowHelper.ExibirCupom(_serviceProvider, venda, Owner);
+            await WindowHelper.ExibirCupomAsync(_serviceProvider, venda, Owner);
 
             DialogResult = true;
             Close();

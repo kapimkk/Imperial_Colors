@@ -14,6 +14,7 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
     {
         await using var context = ContextFactory.CreateDbContext();
         return await context.Set<Venda>()
+            .AsNoTracking()
             .Include(v => v.Cliente)
             .Include(v => v.Itens).ThenInclude(i => i.Produto)
             .FirstOrDefaultAsync(v => v.Id == id);

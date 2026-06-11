@@ -182,12 +182,11 @@ public class VendaViewModel : BaseViewModel
         catch (Exception ex) { MostrarErro($"Erro ao abrir PDV: {ex.Message}"); }
     }
 
-    private Task VisualizarVenda()
+    private async Task VisualizarVenda()
     {
-        if (VendaSelecionada is null) return Task.CompletedTask;
+        if (VendaSelecionada is null) return;
         using var escopo = _scopeFactory.CreateScope();
-        WindowHelper.ExibirCupom(escopo.ServiceProvider, VendaSelecionada);
-        return Task.CompletedTask;
+        await WindowHelper.ExibirCupomAsync(escopo.ServiceProvider, VendaSelecionada);
     }
 
     private async Task CancelarVenda()
@@ -203,12 +202,11 @@ public class VendaViewModel : BaseViewModel
         catch (Exception ex) { MostrarErro($"Erro ao cancelar: {ex.Message}"); }
     }
 
-    private Task ImprimirCupom()
+    private async Task ImprimirCupom()
     {
-        if (VendaSelecionada is null) return Task.CompletedTask;
+        if (VendaSelecionada is null) return;
         using var escopo = _scopeFactory.CreateScope();
-        WindowHelper.ExibirCupom(escopo.ServiceProvider, VendaSelecionada);
-        return Task.CompletedTask;
+        await WindowHelper.ExibirCupomAsync(escopo.ServiceProvider, VendaSelecionada);
     }
 
     private bool SetPropertyIfChanged<T>(ref T field, T value, [System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")

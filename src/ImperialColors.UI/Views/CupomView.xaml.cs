@@ -74,6 +74,14 @@ public partial class CupomView : Window
         }
 
         LstItens.ItemsSource = venda.Itens;
+        AjustarAlturaJanela();
+    }
+
+    private void AjustarAlturaJanela()
+    {
+        MaxHeight = SystemParameters.WorkArea.Height * 0.92;
+        ScrollCupom.MaxHeight = MaxHeight - 90;
+        UpdateLayout();
     }
 
     private void BtnImprimir_Click(object sender, RoutedEventArgs e)

@@ -2,7 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:conv="clr-namespace:ImperialColors.UI.Converters"
-        Title="Cupom da Venda" Width="440" Height="650"
+        Title="Cupom da Venda" Width="440"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="CanResize" ShowInTaskbar="False">
 
     <Window.Resources>
@@ -33,75 +34,118 @@
                 <Setter Property="Orientation" Value="Horizontal"/>
                 <Setter Property="Margin" Value="0,0,0,5"/>
             </Style>
+
+            <Style x:Key="CupomColunaHeader" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Foreground" Value="Black"/>
+            </Style>
+
+            <Style x:Key="CupomItemProduto" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="Black"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+            </Style>
+
+            <Style x:Key="CupomItemNumero" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="10"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="Black"/>
+                <Setter Property="TextWrapping" Value="NoWrap"/>
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="VerticalAlignment" Value="Top"/>
+                <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+            </Style>
         </ResourceDictionary>
     </Window.Resources>
 
     <Grid Background="{StaticResource CinzaClaroBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" Style="{StaticResource ScrollViewerComMargem}" VerticalScrollBarVisibility="Auto" Margin="12,12,12,10">
+        <ScrollViewer x:Name="ScrollCupom"
+                      Grid.Row="0"
+                      Style="{StaticResource ScrollViewerComMargem}"
+                      VerticalScrollBarVisibility="Auto"
+                      HorizontalScrollBarVisibility="Disabled"
+                      Margin="12,12,12,10">
             <Border x:Name="BorderCupom"
                     Background="White"
-                    Padding="24,20"
+                    Padding="22,16,22,20"
                     CornerRadius="8"
                     RenderOptions.BitmapScalingMode="HighQuality"
                     TextOptions.TextRenderingMode="ClearType"
                     TextOptions.TextFormattingMode="Display">
                 <StackPanel x:Name="PainelCupom">
-                    <!-- Cabeçalho: logo + identidade centralizados -->
+                    <!-- Cabeçalho: logo + identidade (layout original, centralizado na nota) -->
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
-                                Margin="0,0,0,16">
+                                Margin="0,-2,0,14">
                         <Image x:Name="ImgLogo"
                                Width="56"
                                Height="56"
                                VerticalAlignment="Center"
-                               Margin="0,0,14,0"
+                               Margin="-68,0,12,0"
                                Stretch="Uniform"
                                RenderOptions.BitmapScalingMode="HighQuality"/>
-                        <StackPanel VerticalAlignment="Center">
+                        <StackPanel VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Width="270"
+                                    Margin="-40,0,0,0">
                             <TextBlock x:Name="TxtEmpresaNome"
                                        FontSize="16"
                                        FontWeight="Bold"
                                        Foreground="Black"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
                                        TextOptions.TextRenderingMode="ClearType"
                                        TextOptions.TextFormattingMode="Display"/>
                             <TextBlock x:Name="TxtEmpresaRazaoSocial"
                                        FontSize="10"
                                        FontWeight="SemiBold"
                                        Foreground="Black"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
                                        TextWrapping="Wrap"
-                                       MaxWidth="260"
                                        Margin="0,2,0,0"
                                        TextOptions.TextRenderingMode="ClearType"/>
                             <TextBlock x:Name="TxtEmpresaCnpj"
                                        FontSize="10"
                                        FontWeight="SemiBold"
                                        Foreground="Black"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
                                        Margin="0,3,0,0"
                                        TextOptions.TextRenderingMode="ClearType"/>
                             <TextBlock x:Name="TxtEmpresaEndereco"
                                        FontSize="10"
                                        FontWeight="SemiBold"
                                        Foreground="Black"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
                                        TextWrapping="Wrap"
-                                       MaxWidth="260"
                                        Margin="0,2,0,0"
                                        TextOptions.TextRenderingMode="ClearType"/>
                             <TextBlock x:Name="TxtEmpresaTelefone"
                                        FontSize="10"
                                        FontWeight="SemiBold"
                                        Foreground="Black"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
                                        Margin="0,2,0,0"
                                        TextOptions.TextRenderingMode="ClearType"/>
                             <TextBlock Text="CUPOM NÃO FISCAL"
                                        FontSize="11"
                                        FontWeight="Bold"
                                        Foreground="Black"
+                                       HorizontalAlignment="Center"
+                                       TextAlignment="Center"
                                        Margin="0,6,0,0"
                                        TextOptions.TextRenderingMode="ClearType"/>
                         </StackPanel>
@@ -126,39 +170,35 @@
 
                     <Grid Margin="0,0,0,5">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="50"/>
-                            <ColumnDefinition Width="80"/>
-                            <ColumnDefinition Width="90"/>
+                            <ColumnDefinition Width="92"/>
+                            <ColumnDefinition Width="58"/>
+                            <ColumnDefinition Width="94"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock Text="Produto" FontSize="11" FontWeight="Bold" Foreground="Black"/>
-                        <TextBlock Grid.Column="1" Text="Qtd" FontSize="11" FontWeight="Bold"
-                                   Foreground="Black" HorizontalAlignment="Right"/>
-                        <TextBlock Grid.Column="2" Text="Preço" FontSize="11" FontWeight="Bold"
-                                   Foreground="Black" HorizontalAlignment="Right"/>
-                        <TextBlock Grid.Column="3" Text="Total" FontSize="11" FontWeight="Bold"
-                                   Foreground="Black" HorizontalAlignment="Right"/>
+                        <TextBlock Text="Produto" Style="{StaticResource CupomColunaHeader}"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="1" Text="Qtd" Style="{StaticResource CupomColunaHeader}"
+                                   HorizontalAlignment="Right"/>
+                        <TextBlock Grid.Column="2" Text="Preço" Style="{StaticResource CupomColunaHeader}"
+                                   HorizontalAlignment="Right"/>
                     </Grid>
                     <Border Height="1" Background="Black" Opacity="0.15" Margin="0,0,0,8"/>
 
-                    <ItemsControl x:Name="LstItens">
+                    <ItemsControl x:Name="LstItens"
+                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Grid Margin="0,3">
+                                <Grid Margin="0,4">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="50"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="90"/>
+                                        <ColumnDefinition Width="88"/>
+                                        <ColumnDefinition Width="58"/>
+                                        <ColumnDefinition Width="94"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding NomeProduto}"
-                                               FontSize="12"
-                                               FontWeight="SemiBold"
-                                               Foreground="Black"
-                                               TextWrapping="Wrap"
-                                               TextOptions.TextRenderingMode="ClearType"/>
-                                    <TextBlock Grid.Column="1" FontSize="12" FontWeight="SemiBold" Foreground="Black"
-                                               HorizontalAlignment="Right" TextWrapping="Wrap">
+                                    <Border Grid.Column="0" ClipToBounds="True" Margin="0,0,8,0">
+                                        <TextBlock Text="{Binding NomeProduto}"
+                                                   Style="{StaticResource CupomItemProduto}"/>
+                                    </Border>
+                                    <TextBlock Grid.Column="1" Style="{StaticResource CupomItemNumero}">
                                         <TextBlock.Text>
                                             <MultiBinding Converter="{StaticResource QuantidadeUnidadeConverter}">
                                                 <Binding Path="Quantidade"/>
@@ -166,12 +206,8 @@
                                             </MultiBinding>
                                         </TextBlock.Text>
                                     </TextBlock>
-                                    <TextBlock Grid.Column="2" FontSize="12" FontWeight="SemiBold" Foreground="Black"
-                                               HorizontalAlignment="Right"
+                                    <TextBlock Grid.Column="2" Style="{StaticResource CupomItemNumero}"
                                                Text="{Binding PrecoUnitario, Converter={StaticResource MoedaConverter}}"/>
-                                    <TextBlock Grid.Column="3" FontSize="12" FontWeight="SemiBold" Foreground="Black"
-                                               HorizontalAlignment="Right"
-                                               Text="{Binding Subtotal, Converter={StaticResource MoedaConverter}}"/>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -219,6 +255,8 @@
 
                     <TextBlock x:Name="TxtRodape"
                                HorizontalAlignment="Center"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
                                FontSize="12"
                                FontWeight="SemiBold"
                                Foreground="Black"
