@@ -43,6 +43,10 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
     private List<ProdutoDto> _produtosEncontrados = new();
     private string _numeroVenda = string.Empty;
+    private CancellationTokenSource? _leitorBarrasCts;
+    private bool _suprimirBuscaTextChanged;
+
+    private const int AtrasoLeitorBarrasMs = 150;
 
     public PDVView(IProdutoService produtoService, IVendaService vendaService,
                    IClienteService clienteService, IServiceProvider serviceProvider,
@@ -69,10 +73,20 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
     private async void TxtBuscaProduto_TextChanged(object sender, TextChangedEventArgs e)
     {
+        if (_suprimirBuscaTextChanged)
+            return;
+
         var termo = TxtBuscaProduto.Text.Trim();
         if (termo.Length < 2)
         {
             PopupResultados.IsOpen = false;
+            return;
+        }
+
+        if (PareceCodigoBarras(termo))
+        {
+            PopupResultados.IsOpen = false;
+            await TentarAutoAdicionarPorCodigoBarrasAsync(termo);
             return;
         }
 
@@ -88,25 +102,111 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
     }
 
-    private void TxtBuscaProduto_KeyDown(object sender, KeyEventArgs e)
+    private async void TxtBuscaProduto_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter) AdicionarProdutoBuscado();
-        if (e.Key == Key.Escape) PopupResultados.IsOpen = false;
+        if (e.Key == Key.Enter)
+        {
+            e.Handled = true;
+            await ProcessarEntradaBuscaAsync();
+        }
+
+        if (e.Key == Key.Escape)
+            PopupResultados.IsOpen = false;
     }
 
-    private void BtnAdicionarProduto_Click(object sender, RoutedEventArgs e) => AdicionarProdutoBuscado();
+    private async void BtnAdicionarProduto_Click(object sender, RoutedEventArgs e)
+        => await ProcessarEntradaBuscaAsync();
 
-    private void AdicionarProdutoBuscado()
+    /// <summary>
+    /// Leitores USB digitam o código rapidamente e enviam Enter; busca exata evita popup e confirmação.
+    /// </summary>
+    private async Task ProcessarEntradaBuscaAsync()
     {
+        CancelarLeituraBarrasPendente();
+
+        var termo = TxtBuscaProduto.Text.Trim();
+        if (string.IsNullOrWhiteSpace(termo))
+            return;
+
+        var porBarras = await _produtoService.ObterPorCodigoBarrasAsync(termo);
+        if (porBarras is not null)
+        {
+            AdicionarItemVenda(porBarras);
+            return;
+        }
+
+        var porCodigoInterno = await _produtoService.ObterPorCodigoInternoAsync(termo);
+        if (porCodigoInterno is not null)
+        {
+            AdicionarItemVenda(porCodigoInterno);
+            return;
+        }
+
+        _produtosEncontrados = (await _produtoService.BuscarAsync(termo)).ToList();
+
         if (_produtosEncontrados.Count == 1)
         {
             AdicionarItemVenda(_produtosEncontrados[0]);
+            return;
         }
-        else if (LstResultados.SelectedItem is ProdutoDto selecionado)
+
+        if (_produtosEncontrados.Count > 1)
         {
-            AdicionarItemVenda(selecionado);
+            if (LstResultados.SelectedItem is ProdutoDto selecionado)
+            {
+                AdicionarItemVenda(selecionado);
+                return;
+            }
+
+            LstResultados.ItemsSource = _produtosEncontrados;
+            PopupResultados.IsOpen = true;
+            return;
+        }
+
+        PopupResultados.IsOpen = false;
+        MessageBox.Show(
+            $"Nenhum produto encontrado para \"{termo}\".",
+            "Produto não encontrado",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private async Task TentarAutoAdicionarPorCodigoBarrasAsync(string termo)
+    {
+        CancelarLeituraBarrasPendente();
+        _leitorBarrasCts = new CancellationTokenSource();
+        var token = _leitorBarrasCts.Token;
+
+        try
+        {
+            await Task.Delay(AtrasoLeitorBarrasMs, token);
+
+            if (token.IsCancellationRequested)
+                return;
+
+            var termoAtual = TxtBuscaProduto.Text.Trim();
+            if (!string.Equals(termoAtual, termo, StringComparison.Ordinal))
+                return;
+
+            var produto = await _produtoService.ObterPorCodigoBarrasAsync(termoAtual);
+            if (produto is not null)
+                AdicionarItemVenda(produto);
+        }
+        catch (OperationCanceledException)
+        {
+            // Nova digitação ou Enter cancelou a leitura pendente.
         }
     }
+
+    private void CancelarLeituraBarrasPendente()
+    {
+        _leitorBarrasCts?.Cancel();
+        _leitorBarrasCts?.Dispose();
+        _leitorBarrasCts = null;
+    }
+
+    private static bool PareceCodigoBarras(string termo)
+        => termo.Length >= 4 && termo.All(char.IsDigit);
 
     private void LstResultados_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
     private void LstResultados_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -153,8 +253,11 @@ public partial class PDVView : Window, INotifyPropertyChanged
             });
         }
 
-        TxtBuscaProduto.Clear();
+        CancelarLeituraBarrasPendente();
         PopupResultados.IsOpen = false;
+        _suprimirBuscaTextChanged = true;
+        TxtBuscaProduto.Clear();
+        _suprimirBuscaTextChanged = false;
         TxtBuscaProduto.Focus();
         AtualizarTotais();
     }
