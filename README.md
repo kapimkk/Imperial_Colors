@@ -166,69 +166,432 @@ Reinicie o app. A senha do `ADMIN_USERNAME` será redefinida para `ADMIN_PASSWOR
 
 ---
 
-## Configuração para Dois Computadores (Rede Local)
+## Configuração em Dois ou Mais Computadores (Rede Local)
 
-O sistema suporta acesso simultâneo de múltiplos computadores. Siga os passos abaixo:
+O Imperial Colors foi projetado para que **vários computadores** (balcões, PDV, escritório) acessem o **mesmo banco de dados** ao mesmo tempo. Todos enxergam produtos, estoque e vendas em tempo real.
 
-### No computador SERVIDOR (onde o PostgreSQL está instalado)
+### Como funciona (visão geral)
 
-#### 1. Configurar o PostgreSQL para aceitar conexões remotas
-
-Edite o arquivo `postgresql.conf` (geralmente em `C:\Program Files\PostgreSQL\15\data\`):
-
-```conf
-# Altere ou descomente esta linha:
-listen_addresses = '*'
+```
+┌─────────────────────────────┐         ┌─────────────────────────────┐
+│   PC SERVIDOR               │         │   PC CLIENTE (PDV 2, etc.)  │
+│                             │         │                             │
+│  PostgreSQL  ◄── banco ──►  │  rede   │  ImperialColors.exe         │
+│  ImperialColors.exe         │ ◄─────► │  (sem PostgreSQL)           │
+│  (opcional: PDV 1 aqui)     │  local  │                             │
+└─────────────────────────────┘         └─────────────────────────────┘
+         ▲                                         │
+         │                                         │
+         └─────────── mesmo Wi‑Fi / cabo ─────────┘
 ```
 
-Edite o arquivo `pg_hba.conf` (mesmo diretório):
+| Papel | O que instalar | O que configurar |
+|-------|----------------|------------------|
+| **PC Servidor** | PostgreSQL + Imperial Colors | Banco de dados + `.env` com `DB_HOST=localhost` |
+| **Demais PCs** | Somente Imperial Colors | `.env` com `DB_HOST=<IP do servidor>` |
 
-```conf
-# Adicione esta linha no final para permitir a rede local:
-host    imperial_colors    postgres    192.168.1.0/24    md5
-# Ajuste a faixa de IP conforme sua rede (ex: 192.168.0.0/24)
-```
-
-#### 2. Reiniciar o serviço PostgreSQL
-
-```powershell
-# No PowerShell como Administrador:
-Restart-Service postgresql-x64-15
-```
-
-#### 3. Configurar o Firewall do Windows
-
-```powershell
-# No PowerShell como Administrador:
-New-NetFirewallRule -DisplayName "PostgreSQL" -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Allow
-```
-
-### Nos computadores CLIENTES
-
-#### Edite o `appsettings.json` de cada computador:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=192.168.1.100;Port=5432;Database=imperial_colors;Username=postgres;Password=SuaSenha;"
-  }
-}
-```
-
-> Substitua `192.168.1.100` pelo IP do computador servidor.
-
-#### Testar conectividade:
-
-```powershell
-# Testar se a porta está acessível:
-Test-NetConnection -ComputerName 192.168.1.100 -Port 5432
-```
-
-Se o resultado mostrar `TcpTestSucceeded: True`, a conexão está funcionando.
+> **Importante:** a conexão com o banco é feita pelo arquivo **`.env`** (na pasta do `ImperialColors.exe`), **não** pelo `appsettings.json`. O `appsettings.json` serve para dados da empresa no cupom (nome, CNPJ, endereço).
 
 ---
 
-## Módulos do Sistema
+### Passo 0 — Descobrir o IP do computador SERVIDOR
+
+Os outros PCs precisam do **IPv4 da rede local** do servidor — **não** use `localhost` nem `127.0.0.1` neles.
+
+#### Método 1 — PowerShell ou Prompt (recomendado)
+
+No **PC onde o PostgreSQL ficará instalado**, abra o PowerShell e execute:
+
+```powershell
+ipconfig
+```
+
+Procure o adaptador que está **em uso**:
+
+| Adaptador | Quando usar |
+|-----------|-------------|
+| **Ethernet** / **Cabo** | PC conectado por cabo de rede |
+| **Wi‑Fi** / **Wireless** | PC conectado sem fio |
+
+Anote o valor **Endereço IPv4**, por exemplo:
+
+```
+Adaptador de Rede sem Fio Wi-Fi:
+   Endereço IPv4. . . . . . . . : 192.168.1.100
+```
+
+Neste exemplo, **`192.168.1.100`** é o IP que os outros computadores devem usar em `DB_HOST`.
+
+#### Método 2 — Interface gráfica do Windows
+
+1. **Configurações** → **Rede e Internet**
+2. Clique na rede ativa (**Wi‑Fi** ou **Ethernet**)
+3. Role até **Propriedades** → anote o **Endereço IPv4**
+
+#### Método 3 — Comando direto (PowerShell)
+
+```powershell
+Get-NetIPAddress -AddressFamily IPv4 |
+  Where-Object { $_.InterfaceAlias -notmatch 'Loopback' -and $_.IPAddress -notlike '169.254.*' } |
+  Select-Object InterfaceAlias, IPAddress
+```
+
+Ignore endereços `169.254.x.x` (link local — indica problema de rede/DHCP).
+
+#### Qual IP **não** usar
+
+| Valor | Por quê |
+|-------|---------|
+| `127.0.0.1` / `localhost` | Só funciona **no próprio PC**; nos clientes causa erro de conexão |
+| IP público do roteador | Não serve para rede interna da loja |
+| IPv6 (ex.: `fe80::...`) | Use sempre o **IPv4** (ex.: `192.168.x.x`) |
+
+> O IP local pode **mudar** se o roteador reatribuir endereços (DHCP). Para produção, configure **IP fixo** no servidor ou **reserva de DHCP** no roteador (sempre o mesmo MAC → mesmo IP).
+
+---
+
+### Passo 1 — Preparar o PC SERVIDOR (PostgreSQL)
+
+#### 1.1 Instalar PostgreSQL
+
+Instale o [PostgreSQL 15+](https://www.postgresql.org/download/windows/) neste computador e crie o banco:
+
+```sql
+CREATE DATABASE imperial_colors;
+```
+
+Anote o usuário e a senha definidos na instalação (ex.: usuário `postgres`).
+
+#### 1.2 Permitir conexões de outros PCs na rede
+
+Edite `postgresql.conf` (geralmente em `C:\Program Files\PostgreSQL\16\data\`):
+
+```conf
+listen_addresses = '*'
+```
+
+Edite `pg_hba.conf` (mesmo diretório). Adicione **no final** uma linha para a faixa da sua rede:
+
+```conf
+# Formato: host  BANCO  USUARIO  FAIXA_DE_IP/MASCARA  METODO
+
+host    imperial_colors    postgres    192.168.1.0/24    scram-sha-256
+```
+
+**Como saber a faixa (`/24`)?**
+
+| Se o IP do servidor for… | Use no `pg_hba.conf` |
+|--------------------------|----------------------|
+| `192.168.1.100` | `192.168.1.0/24` |
+| `192.168.0.50` | `192.168.0.0/24` |
+| `10.0.0.15` | `10.0.0.0/24` |
+
+O `/24` libera todos os IPs da mesma sub-rede (ex.: `192.168.1.1` até `192.168.1.254`).
+
+#### 1.3 Reiniciar o PostgreSQL
+
+```powershell
+# PowerShell como Administrador — ajuste o número da versão se necessário:
+Restart-Service postgresql-x64-16
+```
+
+Para listar o nome exato do serviço:
+
+```powershell
+Get-Service *postgres*
+```
+
+#### 1.4 Liberar a porta 5432 no Firewall do Windows
+
+```powershell
+# PowerShell como Administrador:
+New-NetFirewallRule -DisplayName "PostgreSQL Imperial Colors" `
+  -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Allow
+```
+
+#### 1.5 Configurar o `.env` no SERVIDOR
+
+Na pasta do executável (`ImperialColors.exe`), edite o `.env`:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=imperial_colors
+DB_USER=postgres
+DB_PASSWORD=SuaSenhaDoPostgreSQL
+DB_SSL_MODE=Prefer
+
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=SenhaSegura@2026
+ADMIN_EMAIL=admin@imperialcolors.local
+```
+
+#### 1.6 Primeira execução (somente no servidor)
+
+Execute `ImperialColors.exe` **uma vez** neste PC. O sistema:
+
+- Cria/atualiza as tabelas (migrations automáticas)
+- Cria o usuário administrador definido no `.env`
+
+Depois disso, os demais PCs podem conectar ao mesmo banco.
+
+---
+
+### Passo 2 — Configurar os PCs CLIENTES (2º, 3º, 4º…)
+
+Instale **apenas** o Imperial Colors (mesmo pacote ZIP/publicação). **Não** instale PostgreSQL nestes PCs.
+
+#### 2.1 Editar o `.env` de cada cliente
+
+Copie o `.env` do servidor e altere **apenas** `DB_HOST`:
+
+```env
+# Troque 192.168.1.100 pelo IPv4 REAL do servidor (Passo 0)
+DB_HOST=192.168.1.100
+DB_PORT=5432
+DB_NAME=imperial_colors
+DB_USER=postgres
+DB_PASSWORD=SuaSenhaDoPostgreSQL
+DB_SSL_MODE=Prefer
+```
+
+| Campo | Servidor | Clientes |
+|-------|----------|----------|
+| `DB_HOST` | `localhost` | **IP do servidor** (ex.: `192.168.1.100`) |
+| `DB_PORT` | `5432` | `5432` (igual) |
+| `DB_NAME` | `imperial_colors` | `imperial_colors` (igual) |
+| `DB_USER` / `DB_PASSWORD` | credenciais do PostgreSQL | **as mesmas** do servidor |
+
+> Cada PDV pode ter impressora diferente (configure em **Configurações → Periféricos**). O banco é compartilhado; periféricos são locais de cada máquina.
+
+#### 2.2 Testar se o cliente alcança o servidor
+
+No **PC cliente**, abra o PowerShell (substitua pelo IP anotado no Passo 0):
+
+```powershell
+Test-NetConnection -ComputerName 192.168.1.100 -Port 5432
+```
+
+| Resultado | Significado |
+|-----------|-------------|
+| `TcpTestSucceeded : True` | Rede OK — pode abrir o Imperial Colors |
+| `TcpTestSucceeded : False` | Firewall, IP errado ou PostgreSQL parado — veja [Troubleshooting](#erro-em-rede-local-connection-refused) |
+
+#### 2.3 Abrir o sistema e validar
+
+1. Execute `ImperialColors.exe`
+2. Faça login (ex.: `admin` / senha do `.env`)
+3. Em **Configurações**, use **Testar Conexão** para confirmar o banco
+4. Cadastre um produto no servidor e verifique se aparece no cliente (e vice-versa)
+
+---
+
+### Exemplo completo — Loja com 2 PDVs
+
+| Máquina | IP local | PostgreSQL | `DB_HOST` no `.env` |
+|---------|----------|------------|---------------------|
+| Caixa 1 (servidor) | `192.168.1.100` | Sim | `localhost` |
+| Caixa 2 | `192.168.1.101` | Não | `192.168.1.100` |
+
+Ambos na **mesma rede** (mesmo roteador/switch). Caixa 2 aponta para o IP do Caixa 1.
+
+---
+
+### Exemplo — Loja com 3 ou mais computadores
+
+| Máquina | Função | `DB_HOST` |
+|---------|--------|-----------|
+| PC A (`192.168.1.100`) | Servidor + PDV | `localhost` |
+| PC B (`192.168.1.101`) | PDV | `192.168.1.100` |
+| PC C (`192.168.1.102`) | Escritório / estoque | `192.168.1.100` |
+
+Regra única: **todos os clientes** usam o IP do PC onde o PostgreSQL está instalado.
+
+---
+
+### Checklist rápido (antes de ir para produção)
+
+- [ ] PostgreSQL instalado e rodando **apenas no servidor**
+- [ ] IP IPv4 do servidor anotado (`ipconfig`)
+- [ ] `listen_addresses = '*'` no `postgresql.conf`
+- [ ] Regra no `pg_hba.conf` com a faixa correta (`192.168.x.0/24`)
+- [ ] Firewall liberou a porta **5432** no servidor
+- [ ] `Test-NetConnection` retorna `True` em **cada** PC cliente
+- [ ] `.env` do servidor: `DB_HOST=localhost`
+- [ ] `.env` dos clientes: `DB_HOST=<IP do servidor>`
+- [ ] Imperial Colors aberto **primeiro no servidor** (migrations + admin)
+- [ ] Teste de conexão OK em **Configurações** em cada máquina
+- [ ] **IP fixo ou reserva DHCP** no servidor (evita quebra quando a rede reinicia)
+
+---
+
+### Segurança: liberar a porta TCP 5432 é vulnerável?
+
+**Resposta curta:** abrir a porta **no firewall do PC servidor** para a **rede local da loja** é **necessário** para os PDVs funcionarem, mas **não deve** ser exposta à **internet pública**.
+
+| Cenário | Risco | Recomendação |
+|---------|-------|--------------|
+| Porta 5432 aberta **só na LAN** (`192.168.x.x`) | **Baixo a moderado** — qualquer dispositivo na mesma Wi‑Fi/cabo pode *tentar* conectar | Aceitável em loja **se** PostgreSQL exige senha forte + `pg_hba.conf` restrito |
+| Porta 5432 **encaminhada no roteador** (port forwarding) para a internet | **Alto** — bots varrem PostgreSQL exposto 24h | **Nunca faça isso** |
+| PostgreSQL sem senha ou senha fraca | **Crítico** | Senha longa; usuário dedicado (não `postgres` genérico em produção, se possível) |
+| `pg_hba.conf` com `0.0.0.0/0` | **Alto** — aceita qualquer origem | Use apenas a faixa da loja (`192.168.1.0/24`) |
+
+**O que a regra de firewall faz**
+
+```
+Internet ──X──► Roteador ──X──► Porta 5432   (ideal: NÃO expor)
+                         │
+                         └──► LAN 192.168.1.0/24 ──► PC Servidor:5432  (PDVs da loja)
+```
+
+A regra `New-NetFirewallRule ... -LocalPort 5432` no **Windows do servidor** libera entrada **naquele PC**, em geral para **qualquer origem que alcance a máquina** (incluindo a LAN). Ela **não** publica o banco na internet por si só — isso só ocorre se o **roteador** fizer redirecionamento de porta.
+
+**Camadas de proteção recomendadas (do mais importante ao complementar)**
+
+1. **PostgreSQL escuta apenas a rede local** — `listen_addresses = '*'` escuta todas as interfaces *do PC*; combine com firewall do Windows limitando origem (regra avançada por subnet) ou garanta que o roteador **não** faça NAT da 5432.
+2. **`pg_hba.conf` restrito** — permita só `192.168.1.0/24` (ou a faixa real da loja), banco `imperial_colors`, usuário específico, `scram-sha-256`.
+3. **Senha forte** no `.env` (`DB_PASSWORD`) — trate como credencial de produção.
+4. **Rede Wi‑Fi da loja com senha (WPA2/WPA3)** — evita que visitantes na mesma rede tentem acessar o banco.
+5. **Separar rede de visitantes** (SSID convidado isolado) — ideal se o roteador suportar VLAN/convidado.
+6. **Backups** — se alguém na LAN comprometer credenciais, backup recente limita o dano.
+
+> **Conclusão:** na prática de uma loja com 2+ PDVs, abrir **5432/TCP no servidor para a LAN** é o procedimento padrão. O risco relevante aparece quando a porta fica **acessível de fora** ou quando **autenticação/rede** são fracas — não pelo fato de existir regra de firewall interna.
+
+**Firewall mais restrito (opcional — PowerShell como Administrador)**
+
+Libera 5432 **apenas** da sub-rede local (ajuste o IP):
+
+```powershell
+New-NetFirewallRule -DisplayName "PostgreSQL Imperial Colors (LAN)" `
+  -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Allow `
+  -RemoteAddress 192.168.1.0/24
+```
+
+---
+
+### Fluxograma da conexão (protocolos e camadas)
+
+```mermaid
+sequenceDiagram
+    participant PDV as PC Cliente<br/>ImperialColors.exe
+    participant TCP as TCP/IP<br/>porta 5432
+    participant FW as Firewall Windows<br/>(servidor)
+    participant PG as PostgreSQL<br/>(servidor)
+    participant DB as Banco<br/>imperial_colors
+
+    PDV->>PDV: Lê .env (DB_HOST, DB_USER, DB_PASSWORD)
+    PDV->>TCP: Resolve DB_HOST → IPv4 do servidor<br/>(ex.: 192.168.1.100)
+    TCP->>FW: SYN → servidor:5432
+    FW->>PG: Permite se regra LAN ativa
+    PG->>PDV: Aceita conexão TCP
+    PDV->>PG: Handshake PostgreSQL (protocolo wire)
+    PG->>PG: pg_hba.conf valida IP origem + usuário
+    PDV->>PG: Autenticação SCRAM-SHA-256<br/>(usuário + senha do .env)
+    alt Credenciais OK
+        PG->>DB: Sessão SQL aberta
+        PDV->>DB: EF Core / Npgsql — SELECT, INSERT, UPDATE…
+        DB->>PDV: Dados (produtos, vendas, estoque)
+    else Falha auth / rede
+        PG-->>PDV: Erro conexão recusada / timeout
+    end
+```
+
+**Resumo dos protocolos**
+
+| Camada | Tecnologia | Função |
+|--------|------------|--------|
+| Aplicação | Imperial Colors (WPF) + EF Core | Telas, regras de negócio |
+| Driver | **Npgsql** | Traduz operações .NET → protocolo PostgreSQL |
+| Sessão / auth | **PostgreSQL wire protocol** + **SCRAM-SHA-256** | Login seguro com senha |
+| Transporte | **TCP** | Conexão confiável ponto a ponto |
+| Rede | **IPv4** (ex.: `192.168.1.x`) | Endereçamento na LAN |
+| Enlace | Ethernet ou **Wi‑Fi (802.11)** | Cabo ou sem fio até o roteador |
+
+**Fluxo simplificado (visão operacional)**
+
+```
+[ PDV Cliente ]                    [ PC Servidor ]
+ImperialColors.exe                      PostgreSQL :5432
+       │                                       ▲
+       │  .env → DB_HOST=192.168.1.100         │
+       └──────── TCP 5432 ── LAN ──────────────┘
+              (Npgsql + senha SCRAM)
+```
+
+---
+
+### IP que muda após reinício ou queda de rede (DHCP)
+
+**Sim, isso acontece em cabo e Wi‑Fi.** Se o roteador usa **DHCP** (padrão em quase toda rede doméstica/comercial), o IPv4 é **emprestado** por um tempo (lease). Ao reiniciar o PC, trocar de cabo/Wi‑Fi ou o roteador reiniciar, o servidor pode receber **outro IP** (ex.: era `.100`, virou `.105`). Os PDVs com `.env` fixo em `.100` **param de conectar**.
+
+| Causa comum | Cabo | Wi‑Fi |
+|-------------|------|-------|
+| Reinício do PC | Pode mudar IP | Pode mudar IP |
+| Reinício do roteador | Pode mudar IP | Pode mudar IP |
+| Queda prolongada de energia/rede | Pode mudar IP | Pode mudar IP |
+| Trocar de roteador | Quase sempre muda faixa/IP | Idem |
+
+#### Soluções recomendadas (ordem de preferência)
+
+**1. Reserva DHCP no roteador (melhor custo/benefício)**
+
+No painel do roteador (geralmente `192.168.1.1` ou `192.168.0.1`):
+
+1. Identifique o **MAC Address** da placa de rede do **PC servidor** (`ipconfig /all` → Endereço Físico).
+2. Crie **Reserva DHCP / IP fixo por MAC**: sempre `192.168.1.100` → MAC do servidor.
+3. Os clientes mantêm `DB_HOST=192.168.1.100` **para sempre** (enquanto o roteador não mudar).
+
+**2. IP estático no Windows (servidor)**
+
+Configurações → Rede → Ethernet/Wi‑Fi → Editar IP → **Manual**:
+
+- IP: `192.168.1.100`
+- Máscara: `255.255.255.0`
+- Gateway: IP do roteador (ex.: `192.168.1.1`)
+- DNS: gateway ou `8.8.8.8`
+
+Use um IP **fora** do pool DHCP do roteador ou combine com reserva DHCP para evitar conflito.
+
+**3. Nome do host em vez de IP (alternativa)**
+
+No `.env` dos clientes, o Npgsql aceita hostname:
+
+```env
+DB_HOST=IMPERIAL-SERVIDOR
+```
+
+Para funcionar na LAN:
+
+- **Opção A:** arquivo `C:\Windows\System32\drivers\etc\hosts` em **cada cliente**:
+
+  ```
+  192.168.1.100    IMPERIAL-SERVIDOR
+  ```
+
+- **Opção B:** nome NetBIOS do Windows do servidor (menos confiável em todas as redes).
+
+Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reserva DHCP) — o `.env` dos PDVs permanece `DB_HOST=IMPERIAL-SERVIDOR`.
+
+#### Atualizar o IP “automaticamente” a cada boot — por que **não** é a melhor ideia
+
+| Abordagem automática | Problema |
+|---------------------|----------|
+| App escaneia a rede e “adivinha” o servidor | Pode apontar para o PC errado; lento; falha com firewalls |
+| App reescreve `.env` sozinho | Risco de corromper config; difícil auditar; comportamento imprevisível |
+| Depender do IP que “aparecer” no Wi‑Fi | Vários dispositivos PostgreSQL ou IPs temporários geram caos |
+
+**Recomendação profissional:** estabilize o IP na **infraestrutura** (reserva DHCP ou IP estático no **servidor**), não no aplicativo. É o padrão em ERP, PDV e sistemas corporativos.
+
+> O Imperial Colors **não** altera o `.env` automaticamente hoje — isso é intencional para previsibilidade e segurança. A correção correta é **fixar o endereço do servidor na rede**, não reconfigurar todos os PDVs quando o DHCP mudar.
+
+#### Se o IP mudou e os PDVs pararam (procedimento de emergência)
+
+1. No **servidor**, rode `ipconfig` e anote o **novo** IPv4.
+2. Em **cada cliente**, edite `.env`: `DB_HOST=<novo_ip>`.
+3. Reinicie o Imperial Colors.
+4. Depois, aplique **reserva DHCP** ou **IP estático** para não repetir o problema.
+
+---
 
 ### Dashboard
 - Total de vendas do dia e do mês
@@ -431,9 +794,10 @@ dotnet test tests/ImperialColors.Application.Tests
 ```
 
 ### Erro: "Não foi possível conectar ao banco"
-1. Verifique se o PostgreSQL está rodando
-2. Confirme as credenciais no `.env`
-3. Use a função "Testar Conexão" em **Configurações**
+1. Verifique se o PostgreSQL está rodando (no **servidor**, se estiver em rede)
+2. Confirme as credenciais no `.env` (`DB_HOST`, `DB_USER`, `DB_PASSWORD`)
+3. Em rede local: no cliente, `DB_HOST` deve ser o **IPv4 do servidor**, não `localhost`
+4. Use a função **Testar Conexão** em **Configurações**
 
 ### Erro de migrations ao iniciar
 ```bash
@@ -441,9 +805,13 @@ dotnet ef database update --project src/ImperialColors.Infrastructure --startup-
 ```
 
 ### Erro em rede local: "Connection refused"
-1. Verifique se `listen_addresses = '*'` está no `postgresql.conf`
-2. Verifique se a regra de firewall está ativa
-3. Confirme que o IP do servidor está correto no `appsettings.json` do cliente
+
+1. Confirme o **IP correto** do servidor com `ipconfig` (Passo 0 da seção [Configuração em Dois ou Mais Computadores](#configuração-em-dois-ou-mais-computadores-rede-local))
+2. No PC cliente, o `.env` deve ter `DB_HOST=192.168.x.x` (IP do servidor) — **não** `localhost`
+3. Verifique se `listen_addresses = '*'` está no `postgresql.conf` e se há regra correspondente no `pg_hba.conf`
+4. Confirme que o serviço PostgreSQL está rodando no servidor: `Get-Service *postgres*`
+5. Verifique a regra de firewall na porta **5432** no servidor
+6. Teste do cliente: `Test-NetConnection -ComputerName <IP_DO_SERVIDOR> -Port 5432`
 
 ---
 
