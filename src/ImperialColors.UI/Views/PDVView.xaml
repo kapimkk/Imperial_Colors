@@ -55,6 +55,8 @@
                         <TextBox x:Name="TxtBuscaProduto" Style="{StaticResource TextBoxModerno}"
                                  KeyDown="TxtBuscaProduto_KeyDown"
                                  TextChanged="TxtBuscaProduto_TextChanged"/>
+                        <TextBlock x:Name="TxtAvisoBarras" Margin="0,4,0,0" FontSize="12"
+                                   Foreground="{StaticResource VermelhoErroBrush}" Visibility="Collapsed"/>
                     </StackPanel>
                     <Button Grid.Column="2" Style="{StaticResource BotaoPrimario}" Content="Adicionar"
                             Click="BtnAdicionarProduto_Click" VerticalAlignment="Bottom"/>

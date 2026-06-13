@@ -332,7 +332,7 @@ public class ProdutoViewModel : BaseViewModel
 
             form.InicializarNovo();
 
-            if (form.ShowDialog() == true)
+            if (ModalWindowHelper.ExibirDialogo(form) == true)
 
                 await CarregarAsync();
 
@@ -368,7 +368,7 @@ public class ProdutoViewModel : BaseViewModel
 
             form.InicializarEdicao(ProdutoSelecionado);
 
-            if (form.ShowDialog() == true)
+            if (ModalWindowHelper.ExibirDialogo(form) == true)
 
                 await CarregarAsync();
 
@@ -452,7 +452,7 @@ public class ProdutoViewModel : BaseViewModel
 
             form.InicializarProduto(ProdutoSelecionado);
 
-            if (form.ShowDialog() == true)
+            if (ModalWindowHelper.ExibirDialogo(form) == true)
 
                 await CarregarAsync();
 
@@ -465,6 +465,32 @@ public class ProdutoViewModel : BaseViewModel
             MostrarErro($"Erro ao abrir movimentação: {ex.Message}");
 
         }
+
+    }
+
+
+
+    public async Task<bool> ProcessarLeituraCodigoBarrasAsync(string codigo)
+
+    {
+
+        var produto = await _produtoService.ObterPorCodigoBarrasAsync(codigo)
+
+                      ?? await _produtoService.ObterPorCodigoInternoAsync(codigo);
+
+
+
+        if (produto is null)
+
+            return false;
+
+
+
+        TermoBusca = produto.CodigoBarras ?? produto.CodigoInterno ?? produto.Nome;
+
+        ProdutoSelecionado = produto;
+
+        return true;
 
     }
 

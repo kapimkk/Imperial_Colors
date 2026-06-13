@@ -1,6 +1,7 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.UI.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 
 namespace ImperialColors.UI.ViewModels;
@@ -10,7 +11,7 @@ public class ClienteViewModel : BaseViewModel
     public const int ItensPorPaginaPadrao = 50;
 
     private readonly IClienteService _clienteService;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private CancellationTokenSource? _buscaCts;
     private readonly SemaphoreSlim _buscaSemaforo = new(1, 1);
 
@@ -68,10 +69,10 @@ public class ClienteViewModel : BaseViewModel
     public AsyncRelayCommand PaginaAnteriorCommand { get; }
     public AsyncRelayCommand PaginaProximaCommand { get; }
 
-    public ClienteViewModel(IClienteService clienteService, IServiceProvider serviceProvider)
+    public ClienteViewModel(IClienteService clienteService, IServiceScopeFactory scopeFactory)
     {
         _clienteService = clienteService;
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         CarregarCommand = new AsyncRelayCommand(CarregarAsync);
         NovoClienteCommand = new AsyncRelayCommand(AbrirNovoCliente);
         EditarClienteCommand = new AsyncRelayCommand(AbrirEditarCliente, () => TemSelecao && !Carregando);
@@ -146,11 +147,17 @@ public class ClienteViewModel : BaseViewModel
 
     private Task AbrirNovoCliente()
     {
-        var janela = (System.Windows.Window)_serviceProvider.GetService(typeof(Views.ClienteFormView))!;
-        if (janela is Views.ClienteFormView form)
+        try
         {
+            using var escopo = _scopeFactory.CreateScope();
+            var form = escopo.ServiceProvider.GetRequiredService<Views.ClienteFormView>();
             form.InicializarNovo();
-            if (form.ShowDialog() == true) _ = CarregarAsync();
+            if (ModalWindowHelper.ExibirDialogo(form) == true)
+                _ = CarregarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao abrir cadastro: {ex.Message}");
         }
         return Task.CompletedTask;
     }
@@ -158,11 +165,17 @@ public class ClienteViewModel : BaseViewModel
     private Task AbrirEditarCliente()
     {
         if (ClienteSelecionado is null) return Task.CompletedTask;
-        var janela = (System.Windows.Window)_serviceProvider.GetService(typeof(Views.ClienteFormView))!;
-        if (janela is Views.ClienteFormView form)
+        try
         {
+            using var escopo = _scopeFactory.CreateScope();
+            var form = escopo.ServiceProvider.GetRequiredService<Views.ClienteFormView>();
             form.InicializarEdicao(ClienteSelecionado);
-            if (form.ShowDialog() == true) _ = CarregarAsync();
+            if (ModalWindowHelper.ExibirDialogo(form) == true)
+                _ = CarregarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao abrir edição: {ex.Message}");
         }
         return Task.CompletedTask;
     }

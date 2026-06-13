@@ -1,3 +1,4 @@
+using ImperialColors.UI.Helpers;
 using System.Windows;
 using System.Windows.Input;
 
@@ -10,6 +11,7 @@ public partial class NomeRapidoDialogView : Window
     public NomeRapidoDialogView(string titulo, string labelCampo)
     {
         InitializeComponent();
+        ModalWindowHelper.AplicarEstiloModerno(this);
         TxtTitulo.Text = titulo;
         TxtLabel.Text = labelCampo;
         TxtNome.Focus();
@@ -18,10 +20,7 @@ public partial class NomeRapidoDialogView : Window
     private void BtnSalvar_Click(object sender, RoutedEventArgs e) => Confirmar();
 
     private void BtnCancelar_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
-        Close();
-    }
+        => ModalWindowHelper.Fechar(this, false);
 
     private void TxtNome_KeyDown(object sender, KeyEventArgs e)
     {

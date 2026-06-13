@@ -164,11 +164,14 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
 
         PopupResultados.IsOpen = false;
-        MessageBox.Show(
-            $"Nenhum produto encontrado para \"{termo}\".",
-            "Produto não encontrado",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        NotificarProdutoNaoEncontrado();
+    }
+
+    private void NotificarProdutoNaoEncontrado()
+    {
+        _suprimirBuscaTextChanged = true;
+        BarcodeScanHelper.ProdutoNaoEncontrado(TxtBuscaProduto, TxtAvisoBarras);
+        _suprimirBuscaTextChanged = false;
     }
 
     private async Task TentarAutoAdicionarPorCodigoBarrasAsync(string termo)
@@ -190,7 +193,13 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
             var produto = await _produtoService.ObterPorCodigoBarrasAsync(termoAtual);
             if (produto is not null)
+            {
                 AdicionarItemVenda(produto);
+                return;
+            }
+
+            if (PareceCodigoBarras(termoAtual))
+                NotificarProdutoNaoEncontrado();
         }
         catch (OperationCanceledException)
         {
@@ -380,8 +389,8 @@ public partial class PDVView : Window, INotifyPropertyChanged
             AtualizarTotais();
             var desconto = _descontoEmReais;
             var clienteId = CmbCliente.SelectedValue is int cid && cid > 0 ? (int?)cid : null;
-            var fechamento = new FechamentoVendaView(Total) { Owner = Owner };
-            if (fechamento.ShowDialog() != true || fechamento.Pagamento is null)
+            var fechamento = new FechamentoVendaView(Total);
+            if (ModalWindowHelper.ExibirDialogo(fechamento, Owner) != true || fechamento.Pagamento is null)
                 return;
 
             var dto = new CriarVendaDto

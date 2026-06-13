@@ -25,7 +25,6 @@ public static class WindowHelper
 
         var cupom = serviceProvider.GetRequiredService<CupomView>();
         cupom.InicializarVenda(vendaCompleta);
-        cupom.Owner = owner ?? System.Windows.Application.Current.MainWindow;
-        cupom.ShowDialog();
+        ModalWindowHelper.ExibirDialogo(cupom, owner);
     }
 }

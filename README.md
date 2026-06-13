@@ -605,10 +605,12 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - Alertas de estoque baixo
 - Busca por nome, código interno ou código de barras
 - Suporte a leitura de código de barras (conecte o leitor USB e use no campo de busca)
+- Produto não encontrado: campo limpo automaticamente com alerta sonoro e mensagem em vermelho
 
 ### PDV - Ponto de Venda
 - Interface rápida para vendas
 - Busca de produtos por nome, código ou código de barras
+- Leitor de código de barras: produto inexistente limpa o campo na hora (alerta sonoro + mensagem vermelha)
 - Cálculo automático de totais
 - Aplicação de descontos
 - **Modal de fechamento** com formas de pagamento:
@@ -624,12 +626,15 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - Opções: imprimir, visualizar, salvar PDF
 
 ### Clientes
-- Cadastro completo (nome, contatos, endereço)
+- Cadastro completo (nome, CPF com máscara, contatos, endereço)
+- **Autopreenchimento de endereço via CEP** (ViaCEP) com botão **Buscar** ao lado do campo
 - Busca rápida
 - Vinculação com vendas
 
 ### Fornecedores / Mercadorias
-- Cadastro de fornecedores
+- Cadastro de fornecedores com **CNPJ** e botão **Buscar** (ReceitaWS + fallback BrasilAPI)
+- **Autopreenchimento de endereço via CEP** (ViaCEP) com botão **Buscar** ao lado do campo
+- Consulta CNPJ preenche razão social, telefone, e-mail e endereço
 - Lista de compras com controle de itens comprados
 
 ### Relatórios

@@ -51,6 +51,7 @@ public class FornecedorService : IFornecedorService
             ?? throw new DomainException($"Fornecedor com Id {id} não encontrado.");
 
         fornecedor.Nome = dto.Nome;
+        fornecedor.Cnpj = dto.Cnpj;
         fornecedor.Telefone = dto.Telefone;
         fornecedor.WhatsApp = dto.WhatsApp;
         fornecedor.Email = dto.Email;
@@ -91,7 +92,7 @@ public class FornecedorService : IFornecedorService
 
     private static FornecedorDto MapParaDto(Fornecedor f) => new()
     {
-        Id = f.Id, Nome = f.Nome, Telefone = f.Telefone, WhatsApp = f.WhatsApp,
+        Id = f.Id, Nome = f.Nome, Cnpj = f.Cnpj, Telefone = f.Telefone, WhatsApp = f.WhatsApp,
         Email = f.Email, Cep = f.Cep, Logradouro = f.Logradouro, Numero = f.Numero,
         Complemento = f.Complemento, Bairro = f.Bairro, Cidade = f.Cidade,
         Estado = f.Estado, Observacoes = f.Observacoes
@@ -99,7 +100,7 @@ public class FornecedorService : IFornecedorService
 
     private static Fornecedor MapParaEntidade(FornecedorDto dto) => new()
     {
-        Nome = dto.Nome, Telefone = dto.Telefone, WhatsApp = dto.WhatsApp,
+        Nome = dto.Nome, Cnpj = dto.Cnpj, Telefone = dto.Telefone, WhatsApp = dto.WhatsApp,
         Email = dto.Email, Cep = dto.Cep, Logradouro = dto.Logradouro, Numero = dto.Numero,
         Complemento = dto.Complemento, Bairro = dto.Bairro, Cidade = dto.Cidade,
         Estado = dto.Estado, Observacoes = dto.Observacoes

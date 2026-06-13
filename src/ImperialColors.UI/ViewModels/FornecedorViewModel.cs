@@ -1,6 +1,7 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.UI.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 
 namespace ImperialColors.UI.ViewModels;
@@ -10,7 +11,7 @@ public class FornecedorViewModel : BaseViewModel
     public const int ItensPorPaginaPadrao = 50;
 
     private readonly IFornecedorService _fornecedorService;
-    private readonly IServiceProvider _serviceProvider;
+    private readonly IServiceScopeFactory _scopeFactory;
     private CancellationTokenSource? _buscaCts;
     private readonly SemaphoreSlim _buscaSemaforo = new(1, 1);
 
@@ -68,10 +69,10 @@ public class FornecedorViewModel : BaseViewModel
     public AsyncRelayCommand PaginaAnteriorCommand { get; }
     public AsyncRelayCommand PaginaProximaCommand { get; }
 
-    public FornecedorViewModel(IFornecedorService fornecedorService, IServiceProvider serviceProvider)
+    public FornecedorViewModel(IFornecedorService fornecedorService, IServiceScopeFactory scopeFactory)
     {
         _fornecedorService = fornecedorService;
-        _serviceProvider = serviceProvider;
+        _scopeFactory = scopeFactory;
         CarregarCommand = new AsyncRelayCommand(CarregarAsync);
         NovoFornecedorCommand = new AsyncRelayCommand(AbrirNovo);
         EditarFornecedorCommand = new AsyncRelayCommand(AbrirEditar, () => TemSelecao && !Carregando);
@@ -146,11 +147,17 @@ public class FornecedorViewModel : BaseViewModel
 
     private Task AbrirNovo()
     {
-        var janela = (System.Windows.Window)_serviceProvider.GetService(typeof(Views.FornecedorFormView))!;
-        if (janela is Views.FornecedorFormView form)
+        try
         {
+            using var escopo = _scopeFactory.CreateScope();
+            var form = escopo.ServiceProvider.GetRequiredService<Views.FornecedorFormView>();
             form.InicializarNovo();
-            if (form.ShowDialog() == true) _ = CarregarAsync();
+            if (ModalWindowHelper.ExibirDialogo(form) == true)
+                _ = CarregarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao abrir cadastro: {ex.Message}");
         }
         return Task.CompletedTask;
     }
@@ -158,11 +165,17 @@ public class FornecedorViewModel : BaseViewModel
     private Task AbrirEditar()
     {
         if (FornecedorSelecionado is null) return Task.CompletedTask;
-        var janela = (System.Windows.Window)_serviceProvider.GetService(typeof(Views.FornecedorFormView))!;
-        if (janela is Views.FornecedorFormView form)
+        try
         {
+            using var escopo = _scopeFactory.CreateScope();
+            var form = escopo.ServiceProvider.GetRequiredService<Views.FornecedorFormView>();
             form.InicializarEdicao(FornecedorSelecionado);
-            if (form.ShowDialog() == true) _ = CarregarAsync();
+            if (ModalWindowHelper.ExibirDialogo(form) == true)
+                _ = CarregarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao abrir edição: {ex.Message}");
         }
         return Task.CompletedTask;
     }

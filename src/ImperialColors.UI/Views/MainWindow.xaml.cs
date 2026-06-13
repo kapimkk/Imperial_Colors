@@ -116,9 +116,7 @@ public partial class MainWindow : Window
 
             return;
 
-        janela.Owner = this;
-
-        janela.ShowDialog();
+        ModalWindowHelper.ExibirDialogo(janela, this);
 
     }
 
@@ -352,7 +350,7 @@ public partial class MainWindow : Window
 
         var login = escopoLogin.ServiceProvider.GetRequiredService<LoginView>();
 
-        if (login.ShowDialog() == true)
+        if (ModalWindowHelper.ExibirDialogo(login, this) == true)
 
         {
 

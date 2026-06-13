@@ -3,6 +3,7 @@ namespace ImperialColors.Domain.Entities;
 public class Fornecedor : BaseEntity
 {
     public string Nome { get; set; } = string.Empty;
+    public string? Cnpj { get; set; }
     public string? Telefone { get; set; }
     public string? WhatsApp { get; set; }
     public string? Email { get; set; }

@@ -176,7 +176,7 @@ public class VendaViewModel : BaseViewModel
         {
             using var escopo = _scopeFactory.CreateScope();
             var pdv = escopo.ServiceProvider.GetRequiredService<Views.PDVView>();
-            if (pdv.ShowDialog() == true)
+            if (ModalWindowHelper.ExibirDialogo(pdv) == true)
                 await CarregarAsync();
         }
         catch (Exception ex) { MostrarErro($"Erro ao abrir PDV: {ex.Message}"); }

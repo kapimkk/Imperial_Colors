@@ -13,76 +13,47 @@ namespace ImperialColors.Application.Tests;
 
 /// <summary>
 /// Homologação do módulo de estoque: busca paginada, buscas alternadas e soft delete.
-/// Requer .env com PostgreSQL acessível; pula silenciosamente se indisponível.
+/// Requer RUN_INTEGRATION_TESTS=true e PostgreSQL acessível via .env.
 /// </summary>
 public class ProdutoEstoqueIntegrationTests
 {
-    private static bool TryCarregarServicos(out ServiceProvider provider, out IProdutoService produtoService, out IDbContextFactory<AppDbContext> contextFactory)
+    [Fact]
+    public async Task Estoque_BuscaAlternadaEExclusao_DevePersistirSemErroDeContexto()
     {
-        provider = null!;
-        produtoService = null!;
-        contextFactory = null!;
-
-        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
-        var envPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env"));
-        if (!File.Exists(envPath))
-            return false;
-
-        DotNetEnv.Env.Load(envPath);
-
-        var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
-        if (string.IsNullOrWhiteSpace(password))
-            return false;
-
-        var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-        var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "imperial_colors";
-        var user = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
-        var ssl = Environment.GetEnvironmentVariable("DB_SSL_MODE") ?? "Prefer";
-
-        var cs = $"Host={host};Port={port};Database={dbName};Username={user};Password={password};SSL Mode={ssl};Trust Server Certificate=true;";
+        if (!IntegrationTestGuard.TryObterConnectionString(out var cs))
+            return;
 
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
         services.AddInfrastructure(cs);
         services.AddApplication();
 
-        provider = services.BuildServiceProvider();
-        produtoService = provider.GetRequiredService<IProdutoService>();
-        contextFactory = provider.GetRequiredService<IDbContextFactory<AppDbContext>>();
-        return true;
-    }
+        await using var provider = services.BuildServiceProvider();
+        var produtoService = provider.GetRequiredService<IProdutoService>();
+        var contextFactory = provider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+        var categoriaRepo = provider.GetRequiredService<IRepository<Domain.Entities.Categoria>>();
+        var marcaRepo = provider.GetRequiredService<IRepository<Domain.Entities.Marca>>();
 
-    [Fact]
-    public async Task Estoque_BuscaAlternadaEExclusao_DevePersistirSemErroDeContexto()
-    {
-        if (!TryCarregarServicos(out var provider, out var produtoService, out var contextFactory))
-            return;
+        var sufixo = Guid.NewGuid().ToString("N")[..8];
+        var termoBase = $"Homolog{sufixo}";
+        var idsCriados = new List<int>();
+        Domain.Entities.Categoria? categoria = null;
+        Domain.Entities.Marca? marca = null;
 
-        await using (provider)
+        try
         {
-            var categoriaService = provider.GetRequiredService<ICategoriaService>();
-            var marcaService = provider.GetRequiredService<IMarcaService>();
-            var categoriaRepo = provider.GetRequiredService<IRepository<Domain.Entities.Categoria>>();
-            var marcaRepo = provider.GetRequiredService<IRepository<Domain.Entities.Marca>>();
-
-            var sufixo = Guid.NewGuid().ToString("N")[..8];
-            var termoBase = $"Homolog{sufixo}";
-
-            var categoria = await categoriaRepo.AdicionarAsync(new Domain.Entities.Categoria
+            categoria = await categoriaRepo.AdicionarAsync(new Domain.Entities.Categoria
             {
                 Nome = $"Cat Homolog {sufixo}",
                 Ativo = true
             });
 
-            var marca = await marcaRepo.AdicionarAsync(new Domain.Entities.Marca
+            marca = await marcaRepo.AdicionarAsync(new Domain.Entities.Marca
             {
                 Nome = $"Marca Homolog {sufixo}",
                 Ativo = true
             });
 
-            var idsCriados = new List<int>();
             var nomes = new[]
             {
                 $"{termoBase} Alpha Tinta",
@@ -129,6 +100,26 @@ public class ProdutoEstoqueIntegrationTests
 
             var obterPorId = await produtoService.ObterPorIdAsync(idExcluir);
             Assert.Null(obterPorId);
+        }
+        finally
+        {
+            foreach (var id in idsCriados.Where(id => id > 0))
+            {
+                try { await produtoService.RemoverAsync(id); }
+                catch { /* produto já removido no teste */ }
+            }
+
+            if (categoria is not null)
+            {
+                try { await categoriaRepo.RemoverAsync(categoria.Id); }
+                catch { /* ignore */ }
+            }
+
+            if (marca is not null)
+            {
+                try { await marcaRepo.RemoverAsync(marca.Id); }
+                catch { /* ignore */ }
+            }
         }
     }
 }

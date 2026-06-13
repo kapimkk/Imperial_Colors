@@ -4,6 +4,7 @@ public class ClienteDto
 {
     public int Id { get; set; }
     public string Nome { get; set; } = string.Empty;
+    public string? Cpf { get; set; }
     public string? Telefone { get; set; }
     public string? WhatsApp { get; set; }
     public string? Email { get; set; }

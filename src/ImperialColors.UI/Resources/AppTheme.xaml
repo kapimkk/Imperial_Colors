@@ -160,13 +160,48 @@
         </Setter>
     </Style>
 
-    <Style x:Key="TextBoxMultilinha" TargetType="TextBox" BasedOn="{StaticResource TextBoxModerno}">
-        <Setter Property="Height" Value="Auto"/>
+    <Style x:Key="TextBoxMultilinha" TargetType="TextBox">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
         <Setter Property="MinHeight" Value="60"/>
-        <Setter Property="VerticalContentAlignment" Value="Top"/>
         <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="VerticalContentAlignment" Value="Top"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="AcceptsReturn" Value="True"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="Borda" Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}"
+                            MinHeight="{TemplateBinding MinHeight}">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      VerticalAlignment="Stretch"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalScrollBarVisibility="Hidden"
+                                      Focusable="False"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="Borda" Property="BorderBrush" Value="{StaticResource AmareloPrimarioBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Borda" Property="BorderBrush" Value="{StaticResource AmareloEscuroBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.65"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="TextBoxFiltro" TargetType="TextBox" BasedOn="{StaticResource TextBoxModerno}">

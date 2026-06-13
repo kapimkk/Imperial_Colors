@@ -23,6 +23,7 @@ public partial class ProdutoFormView : Window
         IMarcaService marcaService)
     {
         InitializeComponent();
+        ModalWindowHelper.AplicarEstiloModerno(this);
         _produtoService = produtoService;
         _categoriaService = categoriaService;
         _marcaService = marcaService;
@@ -116,8 +117,8 @@ public partial class ProdutoFormView : Window
 
     private async void BtnNovaCategoria_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new NomeRapidoDialogView("Nova Categoria", "Nome da Categoria *") { Owner = this };
-        if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.NomeInformado))
+        var dialog = new NomeRapidoDialogView("Nova Categoria", "Nome da Categoria *");
+        if (ModalWindowHelper.ExibirDialogo(dialog, this) != true || string.IsNullOrWhiteSpace(dialog.NomeInformado))
             return;
 
         try
@@ -134,8 +135,8 @@ public partial class ProdutoFormView : Window
 
     private async void BtnNovaMarca_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new NomeRapidoDialogView("Nova Marca", "Nome da Marca *") { Owner = this };
-        if (dialog.ShowDialog() != true || string.IsNullOrWhiteSpace(dialog.NomeInformado))
+        var dialog = new NomeRapidoDialogView("Nova Marca", "Nome da Marca *");
+        if (ModalWindowHelper.ExibirDialogo(dialog, this) != true || string.IsNullOrWhiteSpace(dialog.NomeInformado))
             return;
 
         try

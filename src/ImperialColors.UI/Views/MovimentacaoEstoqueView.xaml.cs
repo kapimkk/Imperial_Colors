@@ -16,6 +16,7 @@ public partial class MovimentacaoEstoqueView : Window
     public MovimentacaoEstoqueView(IProdutoService produtoService, ISessaoService sessaoService)
     {
         InitializeComponent();
+        ModalWindowHelper.AplicarEstiloModerno(this);
         _produtoService = produtoService;
         _sessaoService = sessaoService;
     }
@@ -71,8 +72,5 @@ public partial class MovimentacaoEstoqueView : Window
     }
 
     private void BtnCancelar_Click(object sender, RoutedEventArgs e)
-    {
-        DialogResult = false;
-        Close();
-    }
+        => ModalWindowHelper.Fechar(this, false);
 }

@@ -20,23 +20,8 @@ public class VendaPagamentoIntegrationTests
         provider = null!;
         contextFactory = null!;
 
-        var envPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env"));
-        if (!File.Exists(envPath))
+        if (!IntegrationTestGuard.TryObterConnectionString(out var cs))
             return false;
-
-        Env.Load(envPath);
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DB_PASSWORD")))
-            return false;
-
-        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
-        var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-        var dbName = Environment.GetEnvironmentVariable("DB_NAME") ?? "imperial_colors";
-        var user = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
-        var pass = Environment.GetEnvironmentVariable("DB_PASSWORD");
-        var ssl = Environment.GetEnvironmentVariable("DB_SSL_MODE") ?? "Prefer";
-        var cs = $"Host={host};Port={port};Database={dbName};Username={user};Password={pass};SSL Mode={ssl};Trust Server Certificate=true;";
 
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));

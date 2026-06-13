@@ -53,6 +53,7 @@ public class ClienteService : IClienteService
             ?? throw new DomainException($"Cliente com Id {id} não encontrado.");
 
         cliente.Nome = dto.Nome;
+        cliente.Cpf = dto.Cpf;
         cliente.Telefone = dto.Telefone;
         cliente.WhatsApp = dto.WhatsApp;
         cliente.Email = dto.Email;
@@ -96,7 +97,7 @@ public class ClienteService : IClienteService
 
     private static ClienteDto MapParaDto(Cliente c) => new()
     {
-        Id = c.Id, Nome = c.Nome, Telefone = c.Telefone, WhatsApp = c.WhatsApp,
+        Id = c.Id, Nome = c.Nome, Cpf = c.Cpf, Telefone = c.Telefone, WhatsApp = c.WhatsApp,
         Email = c.Email, Cep = c.Cep, Logradouro = c.Logradouro, Numero = c.Numero,
         Complemento = c.Complemento, Bairro = c.Bairro, Cidade = c.Cidade,
         Estado = c.Estado, Observacoes = c.Observacoes
@@ -105,6 +106,7 @@ public class ClienteService : IClienteService
     private static Cliente MapParaEntidade(ClienteDto dto) => new()
     {
         Nome = InputSanitizer.SanitizarTexto(dto.Nome, 200),
+        Cpf = InputSanitizer.SanitizarTexto(dto.Cpf, 14),
         Telefone = InputSanitizer.SanitizarTexto(dto.Telefone, 20),
         WhatsApp = InputSanitizer.SanitizarTexto(dto.WhatsApp, 20),
         Email = InputSanitizer.SanitizarEmail(dto.Email),

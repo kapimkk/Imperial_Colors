@@ -30,6 +30,31 @@ public static class InfrastructureExtensions
         services.AddSingleton<IPrinterService, PrinterService>();
         services.AddSingleton<ILocalConfigService, LocalConfigService>();
 
+        services.AddHttpClient<IViaCepService, ViaCepService>(client =>
+        {
+            client.BaseAddress = new Uri("https://viacep.com.br/");
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ImperialColors/1.0");
+        });
+
+        services.AddHttpClient<ReceitaWsCnpjService>(client =>
+        {
+            client.BaseAddress = new Uri("https://receitaws.com.br/");
+            client.Timeout = TimeSpan.FromSeconds(20);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ImperialColors/1.0");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        });
+
+        services.AddHttpClient<BrasilApiCnpjService>(client =>
+        {
+            client.BaseAddress = new Uri("https://brasilapi.com.br/");
+            client.Timeout = TimeSpan.FromSeconds(15);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("ImperialColors/1.0");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/json");
+        });
+
+        services.AddTransient<ICnpjConsultaService, CnpjConsultaCompostaService>();
+
         return services;
     }
 }

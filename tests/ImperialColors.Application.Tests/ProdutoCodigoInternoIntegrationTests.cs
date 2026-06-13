@@ -13,25 +13,8 @@ public class ProdutoCodigoInternoIntegrationTests
     [Fact]
     public async Task CriarTresProdutosSeguidos_DeveGerarCodigosSequenciaisUnicos()
     {
-        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
-
-        var envPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", ".env"));
-        if (!File.Exists(envPath))
+        if (!IntegrationTestGuard.TryObterConnectionString(out var cs))
             return;
-
-        DotNetEnv.Env.Load(envPath);
-
-        var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
-        if (string.IsNullOrWhiteSpace(password))
-            return;
-
-        var host = Environment.GetEnvironmentVariable("DB_HOST") ?? "localhost";
-        var port = Environment.GetEnvironmentVariable("DB_PORT") ?? "5432";
-        var db = Environment.GetEnvironmentVariable("DB_NAME") ?? "imperial_colors";
-        var user = Environment.GetEnvironmentVariable("DB_USER") ?? "postgres";
-        var ssl = Environment.GetEnvironmentVariable("DB_SSL_MODE") ?? "Prefer";
-
-        var cs = $"Host={host};Port={port};Database={db};Username={user};Password={password};SSL Mode={ssl};Trust Server Certificate=true;";
 
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
@@ -59,29 +42,42 @@ public class ProdutoCodigoInternoIntegrationTests
             .Max();
 
         var codigosGerados = new List<string>();
+        var idsCriados = new List<int>();
 
-        for (var i = 0; i < 3; i++)
+        try
         {
-            var codigoSugerido = await produtoService.GerarProximoCodigoInternoAsync();
-            var criado = await produtoService.CriarAsync(new CriarProdutoDto
+            for (var i = 0; i < 3; i++)
             {
-                CodigoInterno = codigoSugerido,
-                CodigoInternoDefinidoManualmente = false,
-                Nome = $"Produto Stress {Guid.NewGuid():N}",
-                CategoriaId = categorias[0].Id,
-                MarcaId = marcas[0].Id,
-                Custo = 10m,
-                PrecoVenda = 20m,
-                QuantidadeEstoque = 0,
-                EstoqueMinimo = 0,
-                Unidade = "UN"
-            });
+                var codigoSugerido = await produtoService.GerarProximoCodigoInternoAsync();
+                var criado = await produtoService.CriarAsync(new CriarProdutoDto
+                {
+                    CodigoInterno = codigoSugerido,
+                    CodigoInternoDefinidoManualmente = false,
+                    Nome = $"Produto Stress {Guid.NewGuid():N}",
+                    CategoriaId = categorias[0].Id,
+                    MarcaId = marcas[0].Id,
+                    Custo = 10m,
+                    PrecoVenda = 20m,
+                    QuantidadeEstoque = 0,
+                    EstoqueMinimo = 0,
+                    Unidade = "UN"
+                });
 
-            codigosGerados.Add(criado.CodigoInterno);
+                codigosGerados.Add(criado.CodigoInterno);
+                idsCriados.Add(criado.Id);
+            }
+
+            Assert.Equal(3, codigosGerados.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.All(codigosGerados, c => Assert.Matches("^P[0-9]{5}$", c));
+            Assert.All(codigosGerados, c => Assert.True(int.Parse(c[1..]) > maiorAntes || maiorAntes == 0));
         }
-
-        Assert.Equal(3, codigosGerados.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.All(codigosGerados, c => Assert.Matches("^P[0-9]{5}$", c));
-        Assert.All(codigosGerados, c => Assert.True(int.Parse(c[1..]) > maiorAntes || maiorAntes == 0));
+        finally
+        {
+            foreach (var id in idsCriados)
+            {
+                try { await produtoService.RemoverAsync(id); }
+                catch { /* ignore */ }
+            }
+        }
     }
 }

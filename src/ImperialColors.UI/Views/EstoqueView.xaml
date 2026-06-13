@@ -50,24 +50,29 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <Grid Grid.Column="0">
-                    <TextBox Style="{StaticResource TextBoxFiltro}"
-                             Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}"/>
-                    <TextBlock Text="🔍  Buscar por nome, código ou código de barras..."
-                               Foreground="{StaticResource CinzaTextoBrush}" FontSize="13"
-                               IsHitTestVisible="False" VerticalAlignment="Center" Margin="12,0,0,0">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding TermoBusca}" Value="">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </Grid>
+                <StackPanel Grid.Column="0">
+                    <Grid>
+                        <TextBox x:Name="TxtBuscaEstoque" Style="{StaticResource TextBoxFiltro}"
+                                 Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}"
+                                 KeyDown="TxtBuscaEstoque_KeyDown"/>
+                        <TextBlock Text="🔍  Buscar por nome, código ou código de barras..."
+                                   Foreground="{StaticResource CinzaTextoBrush}" FontSize="13"
+                                   IsHitTestVisible="False" VerticalAlignment="Center" Margin="12,0,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TermoBusca}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                    <TextBlock x:Name="TxtAvisoBarrasEstoque" Margin="4,4,0,0" FontSize="12"
+                               Foreground="{StaticResource VermelhoErroBrush}" Visibility="Collapsed"/>
+                </StackPanel>
                 <Button Grid.Column="1" Style="{StaticResource BotaoSecundario}" Margin="10,0,0,0"
                         Command="{Binding AtualizarCommand}" Content="⟳  Atualizar"/>
                 <Button Grid.Column="2" Style="{StaticResource BotaoSecundario}" Margin="10,0,0,0"

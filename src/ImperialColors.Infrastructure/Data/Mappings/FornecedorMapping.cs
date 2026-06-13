@@ -12,6 +12,7 @@ public class FornecedorMapping : IEntityTypeConfiguration<Fornecedor>
         builder.HasKey(f => f.Id);
         builder.Property(f => f.Id).HasColumnName("id").UseIdentityAlwaysColumn();
         builder.Property(f => f.Nome).HasColumnName("nome").HasMaxLength(200).IsRequired();
+        builder.Property(f => f.Cnpj).HasColumnName("cnpj").HasMaxLength(18);
         builder.Property(f => f.Telefone).HasColumnName("telefone").HasMaxLength(20);
         builder.Property(f => f.WhatsApp).HasColumnName("whatsapp").HasMaxLength(20);
         builder.Property(f => f.Email).HasColumnName("email").HasMaxLength(200);
