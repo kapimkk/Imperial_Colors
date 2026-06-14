@@ -17,7 +17,6 @@ public partial class PDVView : Window, INotifyPropertyChanged
 {
     private readonly IProdutoService _produtoService;
     private readonly IVendaService _vendaService;
-    private readonly IClienteService _clienteService;
     private readonly IServiceProvider _serviceProvider;
     private readonly ISessaoService _sessaoService;
 
@@ -49,26 +48,14 @@ public partial class PDVView : Window, INotifyPropertyChanged
     private const int AtrasoLeitorBarrasMs = 150;
 
     public PDVView(IProdutoService produtoService, IVendaService vendaService,
-                   IClienteService clienteService, IServiceProvider serviceProvider,
-                   ISessaoService sessaoService)
+                   IServiceProvider serviceProvider, ISessaoService sessaoService)
     {
         InitializeComponent();
         DataContext = this;
         _produtoService = produtoService;
         _vendaService = vendaService;
-        _clienteService = clienteService;
         _serviceProvider = serviceProvider;
         _sessaoService = sessaoService;
-        _ = InicializarAsync();
-    }
-
-    private async Task InicializarAsync()
-    {
-        var clientes = await _clienteService.ObterTodosAsync();
-        var clientesLista = new List<ClienteDto> { new() { Id = 0, Nome = "Consumidor final" } };
-        clientesLista.AddRange(clientes.OrderBy(c => c.Nome));
-        CmbCliente.ItemsSource = clientesLista;
-        CmbCliente.SelectedIndex = 0;
     }
 
     private async void TxtBuscaProduto_TextChanged(object sender, TextChangedEventArgs e)
@@ -388,14 +375,13 @@ public partial class PDVView : Window, INotifyPropertyChanged
         {
             AtualizarTotais();
             var desconto = _descontoEmReais;
-            var clienteId = CmbCliente.SelectedValue is int cid && cid > 0 ? (int?)cid : null;
             var fechamento = new FechamentoVendaView(Total);
             if (ModalWindowHelper.ExibirDialogo(fechamento, Owner) != true || fechamento.Pagamento is null)
                 return;
 
             var dto = new CriarVendaDto
             {
-                ClienteId = clienteId,
+                ClienteId = null,
                 Desconto = desconto,
                 Observacoes = TxtObservacoes.Text,
                 Usuario = _sessaoService.ObterNomeUsuario(),

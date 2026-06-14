@@ -136,13 +136,11 @@
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Unidade"/>
                         <ComboBox x:Name="CmbUnidade" Style="{StaticResource ComboBoxModerno}">
                             <ComboBoxItem Content="UN" IsSelected="True"/>
-                            <ComboBoxItem Content="KG"/>
-                            <ComboBoxItem Content="LT"/>
-                            <ComboBoxItem Content="MT"/>
-                            <ComboBoxItem Content="CX"/>
-                            <ComboBoxItem Content="PC"/>
                             <ComboBoxItem Content="GL"/>
+                            <ComboBoxItem Content="LT"/>
                             <ComboBoxItem Content="RL"/>
+                            <ComboBoxItem Content="CX"/>
+                            <ComboBoxItem Content="PCT"/>
                         </ComboBox>
                     </StackPanel>
                 </Grid>
@@ -152,13 +150,27 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="15"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Custo (R$)"/>
-                        <TextBox x:Name="TxtCusto" Style="{StaticResource TextBoxNumerico}" Text="R$ 0,00"/>
+                        <TextBox x:Name="TxtCusto" Style="{StaticResource TextBoxNumerico}"/>
                     </StackPanel>
                     <StackPanel Grid.Column="2">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Un. Custo"/>
+                        <ComboBox x:Name="CmbUnidadeCusto" Style="{StaticResource ComboBoxModerno}">
+                            <ComboBoxItem Content=""/>
+                            <ComboBoxItem Content="UN"/>
+                            <ComboBoxItem Content="GL"/>
+                            <ComboBoxItem Content="LT"/>
+                            <ComboBoxItem Content="RL"/>
+                            <ComboBoxItem Content="CX"/>
+                            <ComboBoxItem Content="PCT"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Preço de Venda (R$) *"/>
                         <TextBox x:Name="TxtPrecoVenda" Style="{StaticResource TextBoxNumerico}" Text="R$ 0,00"/>
                     </StackPanel>

@@ -8,8 +8,6 @@ using ImperialColors.Domain.Enums;
 
 using iText.IO.Font.Constants;
 
-using iText.IO.Image;
-
 using iText.Kernel.Colors;
 
 using iText.Kernel.Font;
@@ -98,11 +96,9 @@ public class RelatorioService : IRelatorioService
 
 
 
-            document.Add(CriarLinhaRotuloValor("Venda Nº:", venda.NumeroVenda));
+            document.Add(CriarLinhaRotuloValor("Venda Nº:", venda.NumeroVenda).SetMarginBottom(5));
 
-            document.Add(CriarLinhaRotuloValor("Data:", venda.DataVenda.ToString("dd/MM/yyyy HH:mm")));
-
-            document.Add(CriarLinhaRotuloValor("Cliente:", venda.ClienteNome ?? "Consumidor Final").SetMarginBottom(4));
+            document.Add(CriarLinhaRotuloValor("Data:", venda.DataVenda.ToString("dd/MM/yyyy HH:mm")).SetMarginBottom(8));
 
 
 
@@ -110,9 +106,10 @@ public class RelatorioService : IRelatorioService
 
 
 
-            var tabela = new ITextTable(new float[] { 3f, 1f, 1.6f }).UseAllAvailableWidth();
+            var cultura = new System.Globalization.CultureInfo("pt-BR");
+            var tabela = new ITextTable(new float[] { 3.2f, 0.8f, 0.7f, 1.3f }).UseAllAvailableWidth();
 
-            AdicionarCabecalhoTabela(tabela, "Produto", "Qtd", "Preco");
+            AdicionarCabecalhoTabela(tabela, "PRODUTO", "QTD", "UN", "VALOR");
 
 
 
@@ -122,9 +119,11 @@ public class RelatorioService : IRelatorioService
 
                 tabela.AddCell(CelulaCupom(item.NomeProduto));
 
-                tabela.AddCell(CelulaCupom($"{item.Quantidade} {item.Unidade}", TextAlignment.RIGHT));
+                tabela.AddCell(CelulaCupom(FormatarQuantidadeCupom(item.Quantidade), TextAlignment.RIGHT));
 
-                tabela.AddCell(CelulaCupom(item.PrecoUnitario.ToString("C2", new System.Globalization.CultureInfo("pt-BR")), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaCupom(item.Unidade ?? "UN", TextAlignment.CENTER));
+
+                tabela.AddCell(CelulaCupom(item.PrecoUnitario.ToString("C2", cultura), TextAlignment.RIGHT));
 
             }
 
@@ -144,7 +143,8 @@ public class RelatorioService : IRelatorioService
 
                 document.Add(CriarLinhaRotuloValor("Desconto:", venda.Desconto.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))));
 
-
+            var totalItens = venda.Itens.Sum(i => i.Quantidade);
+            document.Add(CriarLinhaRotuloValor("Total de Itens:", FormatarQuantidadeCupom(totalItens)).SetMarginTop(4));
 
             document.Add(new ITextParagraph($"TOTAL: {venda.Total.ToString("C2", new System.Globalization.CultureInfo("pt-BR"))}")
 
@@ -197,24 +197,6 @@ public class RelatorioService : IRelatorioService
     private void AdicionarCabecalhoCupom(Document document)
 
     {
-
-        if (File.Exists(_config.LogoSemFundoPath))
-
-        {
-
-            var logo = new Image(ImageDataFactory.Create(_config.LogoSemFundoPath))
-
-                .SetWidth(42)
-
-                .SetHorizontalAlignment(HorizontalAlignment.CENTER)
-
-                .SetMarginBottom(4);
-
-            document.Add(logo);
-
-        }
-
-
 
         document.Add(new ITextParagraph(Empresa.NomeFantasia.ToUpperInvariant())
 
@@ -304,7 +286,9 @@ public class RelatorioService : IRelatorioService
 
             .SetFontSize(9)
 
-            .SetMarginBottom(2);
+            .SetMarginBottom(3)
+
+            .SetFixedLeading(12);
 
     }
 
@@ -318,7 +302,15 @@ public class RelatorioService : IRelatorioService
 
             .SetBorder(iText.Layout.Borders.Border.NO_BORDER)
 
-            .SetPaddingTop(2).SetPaddingBottom(2).SetPaddingLeft(2).SetPaddingRight(alignment == TextAlignment.RIGHT ? 4 : 2);
+            .SetBorderBottom(new iText.Layout.Borders.DottedBorder(ColorConstants.BLACK, 0.5f))
+
+            .SetPadding(3);
+
+
+
+    private static string FormatarQuantidadeCupom(decimal quantidade)
+
+        => quantidade.ToString(quantidade % 1m == 0m ? "N0" : "N1", new System.Globalization.CultureInfo("pt-BR"));
 
 
 

@@ -56,7 +56,8 @@ public partial class ProdutoFormView : Window
         _codigoDefinidoManualmente = false;
         _ultimoCodigoGeradoAutomaticamente = null;
         LimparErroValidacao();
-        TxtCusto.Text = FormattingHelper.FormatarMoedaEntrada(0m);
+        TxtCusto.Text = string.Empty;
+        CmbUnidadeCusto.SelectedIndex = 0;
         TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(0m);
         _ = GerarCodigoAsync();
     }
@@ -77,6 +78,7 @@ public partial class ProdutoFormView : Window
             produto.EstoqueMinimo % 1m == 0m ? "N0" : "N1",
             FormattingHelper.CulturaPtBr);
         TxtCusto.Text = FormattingHelper.FormatarMoedaEntrada(produto.Custo);
+        SelecionarUnidadeCusto(produto.UnidadeCusto);
         TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(produto.PrecoVenda);
         TxtObservacoes.Text = produto.Observacoes ?? "";
 
@@ -84,6 +86,22 @@ public partial class ProdutoFormView : Window
             if (item.Content?.ToString() == produto.Unidade) { CmbUnidade.SelectedItem = item; break; }
 
         _ = CarregarComboBoxesAsync(produto.CategoriaId, produto.MarcaId);
+    }
+
+    private void SelecionarUnidadeCusto(string? unidadeCusto)
+    {
+        CmbUnidadeCusto.SelectedIndex = 0;
+        if (string.IsNullOrWhiteSpace(unidadeCusto))
+            return;
+
+        foreach (ComboBoxItem item in CmbUnidadeCusto.Items)
+        {
+            if (item.Content?.ToString() == unidadeCusto)
+            {
+                CmbUnidadeCusto.SelectedItem = item;
+                break;
+            }
+        }
     }
 
     private async Task GerarCodigoAsync()
@@ -160,14 +178,17 @@ public partial class ProdutoFormView : Window
 
         try
         {
+            FormattingHelper.TryParseMoedaOpcional(TxtCusto.Text, out decimal? custo);
             FormattingHelper.TryParseMoeda(TxtPrecoVenda.Text, out decimal preco);
-            FormattingHelper.TryParseMoeda(TxtCusto.Text, out decimal custo);
             FormattingHelper.TryParseQuantidade(TxtQuantidade.Text, out decimal quantidade);
             FormattingHelper.TryParseQuantidade(TxtEstoqueMinimo.Text, out decimal estoqueMin);
 
             var categoriaId = ObterIdSelecionado(CmbCategoria);
             var marcaId = ObterIdSelecionado(CmbMarca);
             var unidade = (CmbUnidade.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "UN";
+            var unidadeCusto = (CmbUnidadeCusto.SelectedItem as ComboBoxItem)?.Content?.ToString();
+            if (string.IsNullOrWhiteSpace(unidadeCusto))
+                unidadeCusto = null;
 
             BtnSalvar.IsEnabled = false;
             BtnSalvar.Content = "Salvando...";
@@ -185,6 +206,7 @@ public partial class ProdutoFormView : Window
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
+                    UnidadeCusto = unidadeCusto,
                     Custo = custo,
                     PrecoVenda = preco,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
@@ -203,6 +225,7 @@ public partial class ProdutoFormView : Window
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
+                    UnidadeCusto = unidadeCusto,
                     Custo = custo,
                     PrecoVenda = preco,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
@@ -249,9 +272,15 @@ public partial class ProdutoFormView : Window
             return false;
         }
 
-        if (!FormattingHelper.TryParseMoeda(TxtCusto.Text, out decimal custo) || custo <= 0)
+        if (!FormattingHelper.TryParseMoedaOpcional(TxtCusto.Text, out decimal? custo))
         {
-            ExibirErroValidacao("Preço de custo deve ser maior que zero.");
+            ExibirErroValidacao("Preço de custo inválido.");
+            return false;
+        }
+
+        if (custo is <= 0)
+        {
+            ExibirErroValidacao("Preço de custo, quando informado, deve ser maior que zero.");
             return false;
         }
 

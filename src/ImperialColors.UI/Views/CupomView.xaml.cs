@@ -32,7 +32,6 @@ public partial class CupomView : Window
 
         TxtEmpresaNome.Text = empresa.NomeFantasia;
         TxtRodape.Text = _config.CupomRodape;
-        LogoHelper.AplicarLogo(ImgLogo, _config.LogoSemFundoPath, 56, 56);
 
         if (!string.IsNullOrWhiteSpace(empresa.RazaoSocial))
             TxtEmpresaRazaoSocial.Text = empresa.RazaoSocial;
@@ -56,9 +55,10 @@ public partial class CupomView : Window
 
         TxtNumeroVenda.Text = venda.NumeroVenda;
         TxtData.Text = FormattingHelper.FormatarDataHora(venda.DataVenda);
-        TxtCliente.Text = venda.ClienteNome ?? "Consumidor Final";
         TxtSubtotal.Text = FormattingHelper.FormatarMoeda(venda.Subtotal);
         TxtDesconto.Text = FormattingHelper.FormatarMoeda(venda.Desconto);
+        var totalItens = venda.Itens.Sum(i => i.Quantidade);
+        TxtTotalItens.Text = FormattingHelper.FormatarQuantidade(totalItens);
         TxtTotal.Text = FormattingHelper.FormatarMoeda(venda.Total);
         TxtFormaPagamento.Text = venda.FormaPagamentoDescricao;
 

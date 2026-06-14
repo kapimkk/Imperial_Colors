@@ -39,6 +39,12 @@ public static class FormattingHelper
     public static string FormatarMoedaEntrada(decimal valor)
         => valor.ToString("C2", CulturaPtBr);
 
+    public static string FormatarMoedaEntrada(decimal? valor)
+        => valor.HasValue ? FormatarMoedaEntrada(valor.Value) : string.Empty;
+
+    public static string FormatarQuantidade(decimal quantidade)
+        => quantidade.ToString(quantidade % 1m == 0m ? "N0" : "N1", CulturaPtBr);
+
     public static string FormatarData(DateTime data)
         => data.ToString("dd/MM/yyyy", CulturaPtBr);
 
@@ -70,6 +76,24 @@ public static class FormattingHelper
                 NumberStyles.Number, CultureInfo.InvariantCulture, out valor);
     }
 
+    public static bool TryParseMoedaOpcional(string? texto, out decimal? valor)
+    {
+        if (string.IsNullOrWhiteSpace(texto))
+        {
+            valor = null;
+            return true;
+        }
+
+        if (TryParseMoeda(texto, out var parsed))
+        {
+            valor = parsed;
+            return true;
+        }
+
+        valor = null;
+        return false;
+    }
+
     public static bool TryParseQuantidade(string? texto, out decimal valor)
     {
         valor = 0m;
@@ -91,6 +115,7 @@ public static class FormattingHelper
             "LT" => plural ? "Litros" : "Litro",
             "MT" => plural ? "Metros" : "Metro",
             "CX" => plural ? "Caixas" : "Caixa",
+            "PCT" => plural ? "Pacotes" : "Pacote",
             "PC" => plural ? "Peças" : "Peça",
             "GL" => plural ? "Galões" : "Galão",
             "RL" => plural ? "Rolos" : "Rolo",

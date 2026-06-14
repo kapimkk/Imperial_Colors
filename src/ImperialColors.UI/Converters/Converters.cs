@@ -77,6 +77,26 @@ public class DataHoraConverter : IValueConverter
         => throw new NotImplementedException();
 }
 
+public class QuantidadeConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is decimal quantidade)
+            return FormattingHelper.FormatarQuantidade(quantidade);
+
+        if (value is double quantidadeDouble)
+            return FormattingHelper.FormatarQuantidade((decimal)quantidadeDouble);
+
+        if (decimal.TryParse(value?.ToString(), NumberStyles.Number, FormattingHelper.CulturaPtBr, out var qtd))
+            return FormattingHelper.FormatarQuantidade(qtd);
+
+        return string.Empty;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
 public class QuantidadeUnidadeConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)

@@ -19,7 +19,8 @@ public class ProdutoMapping : IEntityTypeConfiguration<Produto>
         builder.Property(p => p.QuantidadeEstoque).HasColumnName("quantidade_estoque").HasPrecision(10, 3);
         builder.Property(p => p.EstoqueMinimo).HasColumnName("estoque_minimo").HasPrecision(10, 3);
         builder.Property(p => p.Unidade).HasColumnName("unidade").HasMaxLength(10);
-        builder.Property(p => p.Custo).HasColumnName("custo").HasPrecision(10, 2);
+        builder.Property(p => p.UnidadeCusto).HasColumnName("unidade_custo").HasMaxLength(10);
+        builder.Property(p => p.Custo).HasColumnName("custo").HasPrecision(10, 2).IsRequired(false);
         builder.Property(p => p.PrecoVenda).HasColumnName("preco_venda").HasPrecision(10, 2);
         builder.Property(p => p.Observacoes).HasColumnName("observacoes");
         builder.Property(p => p.CriadoEm).HasColumnName("criado_em");

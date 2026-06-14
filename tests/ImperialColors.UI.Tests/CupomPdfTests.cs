@@ -221,7 +221,60 @@ public class CupomPdfTests
         Assert.Contains("Rolo de La 23cm", texto);
         Assert.Contains("Massa Corrida 25kg", texto);
         Assert.Contains("Verniz Maritimo Incolor", texto);
+        Assert.Contains("Total de Itens:", texto);
         Assert.Contains("Obrigado pela preferencia!", texto);
+        Assert.DoesNotContain("Cliente:", texto);
+    }
+
+    [Fact]
+    public async Task GerarCupomPdf_ComMultiplosItens_DeveExibirColunaUnETotalDeItens()
+    {
+        var pastaTemp = Path.Combine(Path.GetTempPath(), "ImperialColorsTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(pastaTemp);
+
+        var appsettingsPath = Path.Combine(pastaTemp, "appsettings.json");
+        await File.WriteAllTextAsync(appsettingsPath,
+            """
+            {
+              "DadosEmpresa": {
+                "NomeFantasia": "Imperial Colors",
+                "CNPJ": "12.345.678/0001-99"
+              }
+            }
+            """);
+
+        var venda = new VendaDto
+        {
+            NumeroVenda = "V-2026-0099",
+            DataVenda = new DateTime(2026, 6, 10, 16, 0, 0),
+            Subtotal = 215m,
+            Total = 215m,
+            FormaPagamento = FormaPagamento.Pix,
+            Itens =
+            [
+                new ItemVendaDto { NomeProduto = "Tinta Suvinil Fosca", Quantidade = 2, Unidade = "GL", PrecoUnitario = 90m, Subtotal = 180m },
+                new ItemVendaDto { NomeProduto = "Fita Crepe", Quantidade = 1, Unidade = "RL", PrecoUnitario = 35m, Subtotal = 35m }
+            ]
+        };
+
+        var pdfPath = Path.Combine(pastaTemp, "cupom-un-total.pdf");
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(pastaTemp)
+            .AddJsonFile("appsettings.json", optional: false)
+            .Build();
+
+        var services = CriarServicosCupom(configuration);
+        await using var provider = services.BuildServiceProvider();
+        var relatorio = provider.GetRequiredService<IRelatorioService>();
+
+        await relatorio.GerarCupomPdfAsync(venda, pdfPath);
+
+        var texto = ExtrairTextoPdf(pdfPath);
+        Assert.Contains("GL", texto);
+        Assert.Contains("RL", texto);
+        Assert.Contains("Total de Itens:", texto);
+        Assert.Contains("3", texto);
+        Assert.DoesNotContain("Cliente:", texto);
     }
 
     private static ServiceCollection CriarServicosCupom(IConfiguration configuration)

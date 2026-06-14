@@ -49,13 +49,33 @@ public class ProdutoValidatorTests
     }
 
     [Fact]
-    public void Validar_CustoZero_LancaDomainException()
+    public void Validar_CustoZeroQuandoInformado_LancaDomainException()
     {
         var dto = DtoValido();
         dto.Custo = 0;
 
         var ex = Assert.Throws<DomainException>(() => ProdutoValidator.Validar(dto));
         Assert.Contains("custo", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Validar_CustoNull_NaoLancaExcecao()
+    {
+        var dto = DtoValido();
+        dto.Custo = null;
+
+        var ex = Record.Exception(() => ProdutoValidator.Validar(dto));
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public void Validar_UnidadeInvalida_LancaDomainException()
+    {
+        var dto = DtoValido();
+        dto.Unidade = "KG";
+
+        var ex = Assert.Throws<DomainException>(() => ProdutoValidator.Validar(dto));
+        Assert.Contains("Unidade", ex.Message);
     }
 
     [Fact]

@@ -193,13 +193,9 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- Cliente -->
+                <!-- Resumo -->
                 <StackPanel Grid.Row="0">
                     <TextBlock Text="Resumo da Venda" FontSize="16" FontWeight="Bold" Margin="0,0,0,15"/>
-                    <TextBlock Style="{StaticResource LabelCampo}" Text="Cliente (opcional)"/>
-                    <ComboBox x:Name="CmbCliente" Style="{StaticResource ComboBoxModerno}"
-                              SelectedValuePath="Id" Margin="0,0,0,12"
-                              ItemTemplate="{StaticResource ComboBoxNomeTemplate}"/>
                     <Border Height="1" Background="{StaticResource CinzaMedioBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
 

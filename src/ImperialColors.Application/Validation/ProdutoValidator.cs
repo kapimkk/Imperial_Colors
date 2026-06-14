@@ -1,4 +1,5 @@
 using ImperialColors.Application.DTOs;
+using ImperialColors.Domain.Constants;
 using ImperialColors.Domain.Exceptions;
 
 namespace ImperialColors.Application.Validation;
@@ -19,11 +20,11 @@ public static class ProdutoValidator
         if (!dto.MarcaId.HasValue || dto.MarcaId.Value <= 0)
             throw new DomainException("Selecione uma Categoria e uma Marca válidas.");
 
-        if (dto.Custo <= 0)
-            throw new DomainException("Preço de custo deve ser maior que zero.");
-
         if (dto.PrecoVenda <= 0)
             throw new DomainException("Preço de venda deve ser maior que zero.");
+
+        if (dto.Custo is <= 0)
+            throw new DomainException("Preço de custo, quando informado, deve ser maior que zero.");
 
         if (dto.QuantidadeEstoque < 0)
             throw new DomainException("Quantidade em estoque não pode ser negativa.");
@@ -33,6 +34,12 @@ public static class ProdutoValidator
 
         if (string.IsNullOrWhiteSpace(dto.Unidade))
             throw new DomainException("Unidade de medida é obrigatória.");
+
+        if (!UnidadesMedida.EhValida(dto.Unidade))
+            throw new DomainException("Unidade de medida inválida. Use: UN, GL, LT, RL, CX ou PCT.");
+
+        if (!string.IsNullOrWhiteSpace(dto.UnidadeCusto) && !UnidadesMedida.EhValida(dto.UnidadeCusto))
+            throw new DomainException("Unidade de custo inválida. Use: UN, GL, LT, RL, CX ou PCT.");
     }
 
     public static void Validar(AtualizarProdutoDto dto) => Validar((CriarProdutoDto)dto);

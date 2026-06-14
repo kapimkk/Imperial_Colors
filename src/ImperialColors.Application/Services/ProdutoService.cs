@@ -3,6 +3,7 @@ using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.Application.Security;
 using ImperialColors.Application.Validation;
+using ImperialColors.Domain.Constants;
 using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Enums;
 using ImperialColors.Domain.Exceptions;
@@ -118,7 +119,10 @@ public class ProdutoService : IProdutoService
             MarcaId = dto.MarcaId,
             QuantidadeEstoque = dto.QuantidadeEstoque,
             EstoqueMinimo = dto.EstoqueMinimo,
-            Unidade = dto.Unidade,
+            Unidade = UnidadesMedida.Normalizar(dto.Unidade),
+            UnidadeCusto = string.IsNullOrWhiteSpace(dto.UnidadeCusto)
+                ? null
+                : UnidadesMedida.Normalizar(dto.UnidadeCusto),
             Custo = dto.Custo,
             PrecoVenda = dto.PrecoVenda,
             Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500)
@@ -163,7 +167,10 @@ public class ProdutoService : IProdutoService
         produto.CategoriaId = dto.CategoriaId;
         produto.MarcaId = dto.MarcaId;
         produto.EstoqueMinimo = dto.EstoqueMinimo;
-        produto.Unidade = dto.Unidade;
+        produto.Unidade = UnidadesMedida.Normalizar(dto.Unidade);
+        produto.UnidadeCusto = string.IsNullOrWhiteSpace(dto.UnidadeCusto)
+            ? null
+            : UnidadesMedida.Normalizar(dto.UnidadeCusto);
         produto.Custo = dto.Custo;
         produto.PrecoVenda = dto.PrecoVenda;
         produto.Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500);
@@ -295,6 +302,7 @@ public class ProdutoService : IProdutoService
         QuantidadeEstoque = p.QuantidadeEstoque,
         EstoqueMinimo = p.EstoqueMinimo,
         Unidade = p.Unidade,
+        UnidadeCusto = p.UnidadeCusto,
         Custo = p.Custo,
         PrecoVenda = p.PrecoVenda,
         Observacoes = p.Observacoes
