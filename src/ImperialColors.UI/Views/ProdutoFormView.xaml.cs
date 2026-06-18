@@ -16,6 +16,8 @@ public partial class ProdutoFormView : Window
     private bool _codigoDefinidoManualmente;
     private string? _ultimoCodigoGeradoAutomaticamente;
     private bool _ignorarAlteracaoCodigoInterno;
+    private bool _modoCustoTotal;
+    private bool _suprimirAtualizacaoCusto;
 
     public ProdutoFormView(
         IProdutoService produtoService,
@@ -56,8 +58,11 @@ public partial class ProdutoFormView : Window
         _codigoDefinidoManualmente = false;
         _ultimoCodigoGeradoAutomaticamente = null;
         LimparErroValidacao();
+        ChkCustoTotal.IsChecked = false;
+        TxtCustoTotal.Text = string.Empty;
+        PainelCustoTotal.Visibility = Visibility.Collapsed;
+        TxtCusto.IsReadOnly = false;
         TxtCusto.Text = string.Empty;
-        CmbUnidadeCusto.SelectedIndex = 0;
         TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(0m);
         _ = GerarCodigoAsync();
     }
@@ -68,6 +73,10 @@ public partial class ProdutoFormView : Window
         _produtoId = produto.Id;
         _codigoDefinidoManualmente = true;
         LimparErroValidacao();
+        ChkCustoTotal.IsChecked = false;
+        TxtCustoTotal.Text = string.Empty;
+        PainelCustoTotal.Visibility = Visibility.Collapsed;
+        TxtCusto.IsReadOnly = false;
         DefinirCodigoInternoSemMarcarManual(produto.CodigoInterno);
         TxtCodigoBarras.Text = produto.CodigoBarras ?? "";
         TxtNome.Text = produto.Nome;
@@ -78,7 +87,6 @@ public partial class ProdutoFormView : Window
             produto.EstoqueMinimo % 1m == 0m ? "N0" : "N1",
             FormattingHelper.CulturaPtBr);
         TxtCusto.Text = FormattingHelper.FormatarMoedaEntrada(produto.Custo);
-        SelecionarUnidadeCusto(produto.UnidadeCusto);
         TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(produto.PrecoVenda);
         TxtObservacoes.Text = produto.Observacoes ?? "";
 
@@ -86,22 +94,6 @@ public partial class ProdutoFormView : Window
             if (item.Content?.ToString() == produto.Unidade) { CmbUnidade.SelectedItem = item; break; }
 
         _ = CarregarComboBoxesAsync(produto.CategoriaId, produto.MarcaId);
-    }
-
-    private void SelecionarUnidadeCusto(string? unidadeCusto)
-    {
-        CmbUnidadeCusto.SelectedIndex = 0;
-        if (string.IsNullOrWhiteSpace(unidadeCusto))
-            return;
-
-        foreach (ComboBoxItem item in CmbUnidadeCusto.Items)
-        {
-            if (item.Content?.ToString() == unidadeCusto)
-            {
-                CmbUnidadeCusto.SelectedItem = item;
-                break;
-            }
-        }
     }
 
     private async Task GerarCodigoAsync()
@@ -132,6 +124,59 @@ public partial class ProdutoFormView : Window
     }
 
     private void BtnGerarCodigo_Click(object sender, RoutedEventArgs e) => _ = GerarCodigoAsync();
+
+    private void ChkCustoTotal_Changed(object sender, RoutedEventArgs e)
+    {
+        _modoCustoTotal = ChkCustoTotal.IsChecked == true;
+        PainelCustoTotal.Visibility = _modoCustoTotal ? Visibility.Visible : Visibility.Collapsed;
+        TxtCusto.IsReadOnly = _modoCustoTotal;
+
+        if (_modoCustoTotal)
+            CalcularCustoUnitarioPeloTotal();
+        else
+            TxtCustoTotal.Text = string.Empty;
+    }
+
+    private void TxtQuantidade_TextChanged(object sender, TextChangedEventArgs e)
+        => CalcularCustoUnitarioPeloTotal();
+
+    private void TxtCustoTotal_TextChanged(object sender, TextChangedEventArgs e)
+        => CalcularCustoUnitarioPeloTotal();
+
+    private void TxtCusto_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suprimirAtualizacaoCusto || _modoCustoTotal)
+            return;
+    }
+
+    private void CalcularCustoUnitarioPeloTotal()
+    {
+        if (!_modoCustoTotal)
+            return;
+
+        if (!FormattingHelper.TryParseQuantidade(TxtQuantidade.Text, out var quantidade) || quantidade <= 0)
+        {
+            DefinirCustoCalculado(null);
+            return;
+        }
+
+        if (!FormattingHelper.TryParseMoeda(TxtCustoTotal.Text, out var total) || total <= 0)
+        {
+            DefinirCustoCalculado(null);
+            return;
+        }
+
+        DefinirCustoCalculado(total / quantidade);
+    }
+
+    private void DefinirCustoCalculado(decimal? custoUnitario)
+    {
+        _suprimirAtualizacaoCusto = true;
+        TxtCusto.Text = custoUnitario.HasValue
+            ? FormattingHelper.FormatarMoedaEntrada(custoUnitario.Value)
+            : string.Empty;
+        _suprimirAtualizacaoCusto = false;
+    }
 
     private async void BtnNovaCategoria_Click(object sender, RoutedEventArgs e)
     {
@@ -186,9 +231,6 @@ public partial class ProdutoFormView : Window
             var categoriaId = ObterIdSelecionado(CmbCategoria);
             var marcaId = ObterIdSelecionado(CmbMarca);
             var unidade = (CmbUnidade.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "UN";
-            var unidadeCusto = (CmbUnidadeCusto.SelectedItem as ComboBoxItem)?.Content?.ToString();
-            if (string.IsNullOrWhiteSpace(unidadeCusto))
-                unidadeCusto = null;
 
             BtnSalvar.IsEnabled = false;
             BtnSalvar.Content = "Salvando...";
@@ -206,7 +248,6 @@ public partial class ProdutoFormView : Window
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
-                    UnidadeCusto = unidadeCusto,
                     Custo = custo,
                     PrecoVenda = preco,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
@@ -225,7 +266,6 @@ public partial class ProdutoFormView : Window
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
-                    UnidadeCusto = unidadeCusto,
                     Custo = custo,
                     PrecoVenda = preco,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
@@ -278,7 +318,25 @@ public partial class ProdutoFormView : Window
             return false;
         }
 
-        if (custo is <= 0)
+        if (_modoCustoTotal)
+        {
+            if (!FormattingHelper.TryParseMoeda(TxtCustoTotal.Text, out var totalCompra) || totalCompra <= 0)
+            {
+                ExibirErroValidacao("Informe o valor total da compra.");
+                return false;
+            }
+
+            if (!FormattingHelper.TryParseQuantidade(TxtQuantidade.Text, out var quantidadeCompra) || quantidadeCompra <= 0)
+            {
+                ExibirErroValidacao("Informe a quantidade em estoque para calcular o custo unitário.");
+                return false;
+            }
+
+            CalcularCustoUnitarioPeloTotal();
+            FormattingHelper.TryParseMoedaOpcional(TxtCusto.Text, out custo);
+        }
+
+        if (custo is <= 0 && (_modoCustoTotal || !string.IsNullOrWhiteSpace(TxtCusto.Text)))
         {
             ExibirErroValidacao("Preço de custo, quando informado, deve ser maior que zero.");
             return false;

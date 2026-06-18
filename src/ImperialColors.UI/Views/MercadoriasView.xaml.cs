@@ -6,18 +6,27 @@ namespace ImperialColors.UI.Views;
 
 public partial class MercadoriasView : UserControl
 {
-    private readonly FornecedorViewModel _viewModel;
+    private readonly FornecedorViewModel _fornecedorViewModel;
+    private readonly ListaCompraViewModel _listaCompraViewModel;
 
-    public MercadoriasView(FornecedorViewModel viewModel)
+    public MercadoriasView(FornecedorViewModel fornecedorViewModel, ListaCompraViewModel listaCompraViewModel)
     {
         InitializeComponent();
-        _viewModel = viewModel;
-        DataContext = viewModel;
+        _fornecedorViewModel = fornecedorViewModel;
+        _listaCompraViewModel = listaCompraViewModel;
+        PainelFornecedores.DataContext = fornecedorViewModel;
+        PainelListasCompra.DataContext = listaCompraViewModel;
     }
 
-    private void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    private void FornecedoresGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
-        if (_viewModel.FornecedorSelecionado is not null)
-            _viewModel.EditarFornecedorCommand.Execute(null);
+        if (_fornecedorViewModel.FornecedorSelecionado is not null)
+            _fornecedorViewModel.EditarFornecedorCommand.Execute(null);
+    }
+
+    private void ListasGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (_listaCompraViewModel.ListaSelecionada is not null)
+            _listaCompraViewModel.EditarListaCommand.Execute(null);
     }
 }

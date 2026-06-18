@@ -37,9 +37,6 @@ public static class ProdutoValidator
 
         if (!UnidadesMedida.EhValida(dto.Unidade))
             throw new DomainException("Unidade de medida inválida. Use: UN, GL, LT, RL, CX ou PCT.");
-
-        if (!string.IsNullOrWhiteSpace(dto.UnidadeCusto) && !UnidadesMedida.EhValida(dto.UnidadeCusto))
-            throw new DomainException("Unidade de custo inválida. Use: UN, GL, LT, RL, CX ou PCT.");
     }
 
     public static void Validar(AtualizarProdutoDto dto) => Validar((CriarProdutoDto)dto);

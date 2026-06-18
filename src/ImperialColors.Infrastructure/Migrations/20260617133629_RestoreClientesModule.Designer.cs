@@ -3,6 +3,7 @@ using System;
 using ImperialColors.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ImperialColors.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260617133629_RestoreClientesModule")]
+    partial class RestoreClientesModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -268,11 +271,6 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("criado_em");
 
-                    b.Property<string>("DescricaoItem")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("descricao_item");
-
                     b.Property<int>("ListaCompraId")
                         .HasColumnType("integer")
                         .HasColumnName("lista_compra_id");
@@ -281,7 +279,7 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("observacoes");
 
-                    b.Property<int?>("ProdutoId")
+                    b.Property<int>("ProdutoId")
                         .HasColumnType("integer")
                         .HasColumnName("produto_id");
 
@@ -775,7 +773,8 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.HasOne("ImperialColors.Domain.Entities.Produto", "Produto")
                         .WithMany("ItensListaCompra")
                         .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("ListaCompra");
 

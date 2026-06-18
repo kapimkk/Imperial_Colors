@@ -10,7 +10,6 @@ public class Produto : BaseEntity
     public decimal QuantidadeEstoque { get; set; }
     public decimal EstoqueMinimo { get; set; }
     public string Unidade { get; set; } = "UN";
-    public string? UnidadeCusto { get; set; }
     public decimal? Custo { get; set; }
     public decimal PrecoVenda { get; set; }
     public string? Observacoes { get; set; }

@@ -87,7 +87,26 @@ public partial class MainWindow : Window
         NavigateToDashboard();
 
         Closed += (_, _) => _escopoPagina?.Dispose();
+        PreviewKeyDown += JanelaPrincipal_PreviewKeyDown;
+    }
 
+    private void JanelaPrincipal_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.F2 || Keyboard.Modifiers != ModifierKeys.None)
+            return;
+
+        e.Handled = true;
+        AbrirPdvComFoco();
+    }
+
+    private void AbrirPdvComFoco()
+    {
+        using var escopo = _scopeFactory.CreateScope();
+        if (escopo.ServiceProvider.GetRequiredService(typeof(PDVView)) is not PDVView pdv)
+            return;
+
+        pdv.PrepararFocoBusca();
+        ModalWindowHelper.ExibirDialogo(pdv, this);
     }
 
 
@@ -246,7 +265,7 @@ public partial class MainWindow : Window
 
 
 
-    private void BtnPDV_Click(object sender, RoutedEventArgs e) => AbrirModal<PDVView>();
+    private void BtnPDV_Click(object sender, RoutedEventArgs e) => AbrirPdvComFoco();
 
 
 
@@ -274,13 +293,14 @@ public partial class MainWindow : Window
 
         DefinirMenuAtivo(BtnMercadorias);
 
-        TxtTituloPagina.Text = "Mercadorias / Fornecedores";
+        TxtTituloPagina.Text = "Mercadorias";
 
-        var vm = ObterServicosPagina().GetRequiredService<FornecedorViewModel>();
+        var fornecedorVm = ObterServicosPagina().GetRequiredService<FornecedorViewModel>();
+        var listaVm = ObterServicosPagina().GetRequiredService<ListaCompraViewModel>();
 
-        ConteudoPrincipal.Content = new MercadoriasView(vm);
-
-        _ = vm.CarregarAsync();
+        ConteudoPrincipal.Content = new MercadoriasView(fornecedorVm, listaVm);
+        _ = fornecedorVm.CarregarAsync();
+        _ = listaVm.CarregarAsync();
 
     }
 

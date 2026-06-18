@@ -58,6 +58,20 @@ public partial class PDVView : Window, INotifyPropertyChanged
         _sessaoService = sessaoService;
     }
 
+    public void PrepararFocoBusca()
+    {
+        void Focar()
+        {
+            TxtBuscaProduto.Focus();
+            Keyboard.Focus(TxtBuscaProduto);
+        }
+
+        if (IsLoaded)
+            Dispatcher.BeginInvoke(Focar, System.Windows.Threading.DispatcherPriority.Input);
+        else
+            Loaded += (_, _) => Dispatcher.BeginInvoke(Focar, System.Windows.Threading.DispatcherPriority.Input);
+    }
+
     private async void TxtBuscaProduto_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_suprimirBuscaTextChanged)

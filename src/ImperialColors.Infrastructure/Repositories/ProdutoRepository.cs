@@ -52,6 +52,13 @@ public class ProdutoRepository : RepositoryBase<Produto>, IProdutoRepository
             .ToListAsync();
     }
 
+    public async Task<int> ContarComEstoqueCriticoAsync(decimal limiteUnidades = 5)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await ConsultaLeituraComIncludes(context)
+            .CountAsync(p => p.QuantidadeEstoque > 0 && p.QuantidadeEstoque < limiteUnidades);
+    }
+
     public async Task<IEnumerable<Produto>> ObterComCategoriaEMarcaAsync()
     {
         await using var context = ContextFactory.CreateDbContext();

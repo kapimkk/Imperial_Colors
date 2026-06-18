@@ -5,14 +5,18 @@ public class DashboardDto
     public decimal TotalVendasHoje { get; set; }
     public decimal TotalVendasMes { get; set; }
     public int QuantidadeVendasHoje { get; set; }
-    public int ProdutosEstoqueBaixo { get; set; }
+    public int ProdutosEstoqueCritico { get; set; }
     public int ProdutosSemEstoque { get; set; }
-    public int TotalClientes { get; set; }
     public int TotalProdutos { get; set; }
-    public List<ProdutoBaixoEstoqueDto> ProdutosBaixoEstoque { get; set; } = new();
-    public List<ProdutoMaisVendidoDto> TopProdutosMes { get; set; } = new();
+    public List<VendaResumoDashboardDto> UltimasVendas { get; set; } = new();
+}
 
-    public int AlertasEstoqueCritico => ProdutosEstoqueBaixo + ProdutosSemEstoque;
+public class VendaResumoDashboardDto
+{
+    public DateTime DataVenda { get; set; }
+    public string HoraVenda => DataVenda.ToString("HH:mm");
+    public string FormaPagamentoDescricao { get; set; } = string.Empty;
+    public decimal Total { get; set; }
 }
 
 public class ProdutoBaixoEstoqueDto

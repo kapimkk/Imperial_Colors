@@ -2,7 +2,9 @@
 
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+
+             xmlns:helpers="clr-namespace:ImperialColors.UI.Helpers">
 
 
 
@@ -14,7 +16,9 @@
 
 
 
-    <ScrollViewer Style="{StaticResource ScrollViewerComMargem}" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer Style="{StaticResource ScrollViewerComMargem}"
+                  VerticalScrollBarVisibility="Auto"
+                  helpers:ScrollViewerMouseWheelHelper.Habilitar="True">
 
         <Grid Margin="22,20">
 
@@ -28,7 +32,7 @@
 
                 <RowDefinition Height="20"/>
 
-                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
 
             </Grid.RowDefinitions>
 

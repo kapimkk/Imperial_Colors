@@ -168,39 +168,8 @@ public class VendaService : IVendaService
 
     public async Task CancelarAsync(int id)
     {
-        var venda = await _vendaRepository.ObterComItensAsync(id)
-            ?? throw new DomainException($"Venda com Id {id} não encontrada.");
-
-        if (venda.Status == StatusVenda.Cancelada)
-            throw new DomainException("Venda já está cancelada.");
-
-        if (venda.Status == StatusVenda.Finalizada)
-        {
-            foreach (var item in venda.Itens)
-            {
-                var produto = await _produtoRepository.ObterPorIdAsync(item.ProdutoId);
-                if (produto is not null)
-                {
-                    var qtdAnterior = produto.QuantidadeEstoque;
-                    produto.QuantidadeEstoque += item.Quantidade;
-                    await _produtoRepository.AtualizarAsync(produto);
-
-                    await _movimentacaoRepository.AdicionarAsync(new MovimentacaoEstoque
-                    {
-                        ProdutoId = item.ProdutoId,
-                        Tipo = TipoMovimentacao.Entrada,
-                        Quantidade = item.Quantidade,
-                        QuantidadeAnterior = qtdAnterior,
-                        QuantidadeAtual = produto.QuantidadeEstoque,
-                        Motivo = $"Cancelamento venda #{venda.NumeroVenda}",
-                        VendaId = id
-                    });
-                }
-            }
-        }
-
-        venda.Status = StatusVenda.Cancelada;
-        await _vendaRepository.AtualizarAsync(venda);
+        await _vendaRepository.CancelarComEstornoAsync(id);
+        _logger.LogInformation("Venda cancelada com estorno de estoque: {VendaId}", id);
     }
 
     public async Task<decimal> ObterTotalVendasDiaAsync()

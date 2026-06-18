@@ -120,9 +120,6 @@ public class ProdutoService : IProdutoService
             QuantidadeEstoque = dto.QuantidadeEstoque,
             EstoqueMinimo = dto.EstoqueMinimo,
             Unidade = UnidadesMedida.Normalizar(dto.Unidade),
-            UnidadeCusto = string.IsNullOrWhiteSpace(dto.UnidadeCusto)
-                ? null
-                : UnidadesMedida.Normalizar(dto.UnidadeCusto),
             Custo = dto.Custo,
             PrecoVenda = dto.PrecoVenda,
             Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500)
@@ -168,9 +165,6 @@ public class ProdutoService : IProdutoService
         produto.MarcaId = dto.MarcaId;
         produto.EstoqueMinimo = dto.EstoqueMinimo;
         produto.Unidade = UnidadesMedida.Normalizar(dto.Unidade);
-        produto.UnidadeCusto = string.IsNullOrWhiteSpace(dto.UnidadeCusto)
-            ? null
-            : UnidadesMedida.Normalizar(dto.UnidadeCusto);
         produto.Custo = dto.Custo;
         produto.PrecoVenda = dto.PrecoVenda;
         produto.Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500);
@@ -302,7 +296,6 @@ public class ProdutoService : IProdutoService
         QuantidadeEstoque = p.QuantidadeEstoque,
         EstoqueMinimo = p.EstoqueMinimo,
         Unidade = p.Unidade,
-        UnidadeCusto = p.UnidadeCusto,
         Custo = p.Custo,
         PrecoVenda = p.PrecoVenda,
         Observacoes = p.Observacoes

@@ -16,4 +16,6 @@ public interface IVendaRepository : IRepository<Venda>
     Task<(IReadOnlyList<Venda> Itens, int Total)> ObterPaginadoPorPeriodoAsync(
         DateTime inicio, DateTime fim, int pagina, int itensPorPagina, string? termoBusca = null,
         CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Venda>> ObterUltimasFinalizadasAsync(int quantidade = 5, CancellationToken cancellationToken = default);
+    Task CancelarComEstornoAsync(int vendaId, CancellationToken cancellationToken = default);
 }

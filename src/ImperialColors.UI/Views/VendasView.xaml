@@ -31,7 +31,7 @@
                 <Button Style="{StaticResource BotaoSecundario}" Command="{Binding ImprimirCupomCommand}"
                         Margin="0,0,10,0" Content="🧾  Cupom"/>
                 <Button Style="{StaticResource BotaoPerigo}" Command="{Binding CancelarVendaCommand}"
-                        Margin="0,0,10,0" Content="✕  Cancelar Venda"/>
+                        Margin="0,0,10,0" Content="↩  Registrar Devolução"/>
                 <Button Style="{StaticResource BotaoPrimario}" Command="{Binding NovaVendaCommand}"
                         Content="+ Nova Venda (PDV)"/>
             </StackPanel>
@@ -65,7 +65,7 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Nº Venda" Binding="{Binding NumeroVenda}" Width="130"/>
                     <DataGridTextColumn Header="Data" Binding="{Binding DataVenda, Converter={StaticResource DataHoraConverter}}" Width="150"/>
-                    <DataGridTextColumn Header="Cliente" Binding="{Binding ClienteNome}" Width="*"/>
+                    <DataGridTextColumn Header="Pagamento" Binding="{Binding FormaPagamentoDescricao}" Width="140"/>
                     <DataGridTextColumn Header="Subtotal" Binding="{Binding Subtotal, Converter={StaticResource MoedaConverter}}" Width="100"/>
                     <DataGridTextColumn Header="Desconto" Binding="{Binding Desconto, Converter={StaticResource MoedaConverter}}" Width="100"/>
                     <DataGridTextColumn Header="Total" Binding="{Binding Total, Converter={StaticResource MoedaConverter}}" Width="110"/>

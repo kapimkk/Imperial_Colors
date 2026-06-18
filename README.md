@@ -595,9 +595,9 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 
 ### Dashboard
 - Total de vendas do dia e do mês
-- Alertas de estoque baixo
-- Quantidade de clientes cadastrados
-- Resumo financeiro
+- Alertas de estoque baixo e zerado
+- Top 3 produtos mais vendidos
+- Resumo financeiro e últimas vendas
 
 ### Estoque
 - Cadastro completo de produtos (código interno, código de barras, categoria, marca, etc.)
@@ -608,6 +608,7 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - Produto não encontrado: campo limpo automaticamente com alerta sonoro e mensagem em vermelho
 
 ### PDV - Ponto de Venda
+- Atalho no menu: **PDV - Nova venda (F2)**
 - Interface rápida para vendas
 - Busca de produtos por nome, código ou código de barras
 - Leitor de código de barras: produto inexistente limpa o campo na hora (alerta sonoro + mensagem vermelha)
@@ -616,8 +617,18 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - **Modal de fechamento** com formas de pagamento:
   - Dinheiro (valor recebido + troco automático)
   - Cartão Débito / Crédito (1x a 12x) / Pix / Boleto
-- Vinculação opcional de cliente
 - Atualização automática do estoque ao confirmar venda
+
+### Histórico de Vendas
+- Listagem paginada com filtro por período (coluna **Cliente** removida da grid; busca por nome de cliente ainda funciona)
+- Botão **Registrar Devolução** cancela vendas finalizadas e repõe estoque automaticamente (transação no PostgreSQL)
+- Impressão/visualização de cupom
+
+### Clientes
+- Cadastro completo (nome, CPF, contatos, endereço com ViaCEP)
+- Busca rápida e paginação
+- Acesso pelo menu **Clientes** (`Views/ClientesView.xaml`)
+- Vinculação opcional com vendas no PDV
 
 ### Cupom Não Fiscal
 - Gerado automaticamente após cada venda
@@ -625,17 +636,10 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - Impressão direta na impressora configurada em Periféricos
 - Opções: imprimir, visualizar, salvar PDF
 
-### Clientes
-- Cadastro completo (nome, CPF com máscara, contatos, endereço)
-- **Autopreenchimento de endereço via CEP** (ViaCEP) com botão **Buscar** ao lado do campo
-- Busca rápida
-- Vinculação com vendas
-
-### Fornecedores / Mercadorias
-- Cadastro de fornecedores com **CNPJ** e botão **Buscar** (ReceitaWS + fallback BrasilAPI)
-- **Autopreenchimento de endereço via CEP** (ViaCEP) com botão **Buscar** ao lado do campo
-- Consulta CNPJ preenche razão social, telefone, e-mail e endereço
-- Lista de compras com controle de itens comprados
+### Mercadorias / Fornecedores
+- Acesse pelo menu **Mercadorias**
+- **Aba Fornecedores:** cadastro de fornecedores (CNPJ, CEP, contatos)
+- **Aba Listas de Compra:** monte listas de produtos para comprar, marque itens comprados e finalize a lista
 
 ### Relatórios
 - Vendas por período (PDF e Excel)
@@ -659,7 +663,7 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 - **Menu lateral:** indicador amarelo (3px) + fundo destacado na aba ativa
 - **Inputs:** altura mínima 36px, texto centralizado verticalmente
 - **Botões:** hover suave (amarelo escuro / borda amarela nos secundários), cursor `Hand`
-- **Scrollbars:** estilo fino minimalista com margem interna em modais
+- **Scrollbars:** estilo fino com `PART_*` corretos — arraste e roda do mouse funcionam em login/cadastro
 - **Configurações:** cards clicáveis com ícone, título e descrição
 
 ### Persistência e performance (EF Core)
@@ -669,6 +673,7 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 - Erros de banco exibem a mensagem detalhada do PostgreSQL (`DbUpdateException` + inner exception)
 - Busca de produtos com debounce (300 ms) e cancelamento de buscas anteriores
 - Paginação (50 itens/página), `AsNoTracking` e soft delete com Global Query Filter
+- **Exclusão de produtos/fornecedores:** soft delete (`ativo = false`) quando há histórico vinculado (movimentações, vendas)
 - Detalhes em `docs/RELATORIO_HOMOLOGACAO_DBCONTEXT.md`, `docs/RELATORIO_ESTOQUE_PERFORMANCE.md` e `docs/RELATORIO_ERRO_SALVAMENTO_PRODUTO.md`
 
 ### Formatação visual (pt-BR)
@@ -679,7 +684,7 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 
 ### Performance e paginação
 
-- Listagens (Estoque, Clientes, Fornecedores, Vendas): **50 registros/página** com `Skip/Take` no PostgreSQL e `AsNoTracking`
+- Listagens (Estoque, Clientes, Mercadorias, Vendas): **50 registros/página** com `Skip/Take` no PostgreSQL e `AsNoTracking`
 - DataGrids com virtualização de linhas (`VirtualizingStackPanel.Recycling`)
 - Logos em cache (`BitmapCacheOption.OnLoad`) — não recarregados a cada navegação
 - PDV: desconto em **R$** ou **%** com cálculo automático do total líquido
@@ -698,27 +703,32 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 7. Preencha os demais campos e clique em **Salvar Produto**
 8. A listagem carrega **50 produtos por página** — use **◀ Anterior / Próxima ▶** para navegar
 
-> **Exclusão:** o sistema usa soft delete (`ativo = false` no PostgreSQL). O registro permanece no banco para histórico, mas some de todas as telas.
-> Erros de banco são exibidos com a mensagem real do PostgreSQL. Detalhes em `docs/RELATORIO_ERRO_SALVAMENTO_PRODUTO.md` e `docs/RELATORIO_ESTOQUE_PERFORMANCE.md`.
-
-### Realizando uma venda (PDV)
-1. Clique em **PDV - Nova Venda** no menu lateral
-2. Digite o nome, código ou código de barras do produto no campo de busca
-3. Selecione o produto da lista ou pressione Enter
-4. Ajuste a quantidade clicando nos botões +/- ou editando diretamente
-5. Selecione o cliente (opcional)
-6. Aplique desconto se necessário
-7. Clique em **✓ FINALIZAR VENDA**
-8. O cupom será exibido automaticamente
-
-### Impressão de cupom
-- Após a venda: o cupom é exibido automaticamente
-- No histórico: acesse **Vendas**, selecione uma venda e clique em **Cupom**
+> **Exclusão:** Produtos e Fornecedores usam soft delete (`ativo = false`). O registro permanece no banco para integridade com movimentações/vendas, mas some das telas.
 
 ### Cadastro de clientes
 1. Acesse **Clientes** no menu
 2. Clique em **+ Novo Cliente**
 3. Preencha os dados e salve
+
+### Realizando uma venda (PDV)
+1. Clique em **PDV - Nova venda (F2)** no menu lateral (ou pressione **F2**)
+2. Digite o nome, código ou código de barras do produto no campo de busca
+3. Selecione o produto da lista ou pressione Enter
+4. Ajuste a quantidade clicando nos botões +/- ou editando diretamente
+5. Aplique desconto se necessário
+6. Clique em **✓ FINALIZAR VENDA**
+7. O cupom será exibido automaticamente
+
+### Registrar devolução de venda
+1. Acesse **Vendas** no menu
+2. Selecione uma venda com status **Finalizada**
+3. Clique em **Registrar Devolução**
+4. Confirme — o estoque dos itens vendidos será reposto automaticamente
+5. Verifique no **Dashboard/Estoque** se as quantidades aumentaram
+
+### Impressão de cupom
+- Após a venda: o cupom é exibido automaticamente
+- No histórico: acesse **Vendas**, selecione uma venda e clique em **Cupom**
 
 ### Relatórios
 1. Acesse **Relatórios** no menu
@@ -762,7 +772,7 @@ dotnet ef migrations remove --project src/ImperialColors.Infrastructure --startu
 | `marcas` | Marcas de produtos |
 | `movimentacoes_estoque` | Histórico de movimentações |
 | `clientes` | Cadastro de clientes |
-| `vendas` | Registro de vendas (inclui forma de pagamento, parcelas, troco) |
+| `vendas` | Registro de vendas (forma de pagamento, parcelas, troco, status) |
 | `itens_venda` | Itens de cada venda |
 | `fornecedores` | Cadastro de fornecedores |
 | `listas_compra` | Listas de compras |

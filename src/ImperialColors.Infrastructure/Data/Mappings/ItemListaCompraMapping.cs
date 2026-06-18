@@ -12,7 +12,8 @@ public class ItemListaCompraMapping : IEntityTypeConfiguration<ItemListaCompra>
         builder.HasKey(i => i.Id);
         builder.Property(i => i.Id).HasColumnName("id").UseIdentityAlwaysColumn();
         builder.Property(i => i.ListaCompraId).HasColumnName("lista_compra_id").IsRequired();
-        builder.Property(i => i.ProdutoId).HasColumnName("produto_id").IsRequired();
+        builder.Property(i => i.ProdutoId).HasColumnName("produto_id");
+        builder.Property(i => i.DescricaoItem).HasColumnName("descricao_item").HasMaxLength(200);
         builder.Property(i => i.QuantidadeDesejada).HasColumnName("quantidade_desejada").HasPrecision(10, 3);
         builder.Property(i => i.QuantidadeComprada).HasColumnName("quantidade_comprada").HasPrecision(10, 3);
         builder.Property(i => i.Comprado).HasColumnName("comprado");
@@ -22,6 +23,6 @@ public class ItemListaCompraMapping : IEntityTypeConfiguration<ItemListaCompra>
         builder.Property(i => i.Ativo).HasColumnName("ativo");
 
         builder.HasOne(i => i.ListaCompra).WithMany(l => l.Itens).HasForeignKey(i => i.ListaCompraId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(i => i.Produto).WithMany(p => p.ItensListaCompra).HasForeignKey(i => i.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(i => i.Produto).WithMany(p => p.ItensListaCompra).HasForeignKey(i => i.ProdutoId).OnDelete(DeleteBehavior.SetNull);
     }
 }

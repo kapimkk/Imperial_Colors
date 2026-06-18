@@ -20,6 +20,7 @@ public static class InfrastructureExtensions
         services.AddSingleton<IVendaRepository, VendaRepository>();
         services.AddSingleton<IClienteRepository, ClienteRepository>();
         services.AddSingleton<IFornecedorRepository, FornecedorRepository>();
+        services.AddSingleton<IListaCompraRepository, ListaCompraRepository>();
         services.AddSingleton<IMovimentacaoEstoqueRepository, MovimentacaoEstoqueRepository>();
         services.AddSingleton<IRepository<Categoria>, CategoriaRepository>();
         services.AddSingleton<IRepository<Marca>, MarcaRepository>();

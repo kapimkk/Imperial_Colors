@@ -14,6 +14,7 @@ public static class ApplicationExtensions
         services.AddSingleton<IVendaService, VendaService>();
         services.AddSingleton<IClienteService, ClienteService>();
         services.AddSingleton<IFornecedorService, FornecedorService>();
+        services.AddSingleton<IListaCompraService, ListaCompraService>();
         services.AddSingleton<IDashboardService, DashboardService>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IUsuarioService, UsuarioService>();

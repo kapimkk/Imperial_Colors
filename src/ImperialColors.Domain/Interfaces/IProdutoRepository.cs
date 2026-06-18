@@ -9,6 +9,7 @@ public interface IProdutoRepository : IRepository<Produto>
     Task<IEnumerable<Produto>> BuscarPorNomeAsync(string nome);
     Task<IEnumerable<Produto>> ObterComEstoqueBaixoAsync();
     Task<IEnumerable<Produto>> ObterSemEstoqueAsync();
+    Task<int> ContarComEstoqueCriticoAsync(decimal limiteUnidades = 5);
     Task<IEnumerable<Produto>> ObterComCategoriaEMarcaAsync();
     Task<bool> CodigoInternoExisteAsync(string codigoInterno, int? ignorarId = null);
     Task<int> ObterMaiorSequenciaCodigoInternoAsync();

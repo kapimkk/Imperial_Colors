@@ -3,6 +3,7 @@ using System;
 using ImperialColors.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ImperialColors.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260617133010_RemoveUnidadeCustoAndClientes")]
+    partial class RemoveUnidadeCustoAndClientes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -59,97 +62,6 @@ namespace ImperialColors.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("categorias", (string)null);
-                });
-
-            modelBuilder.Entity("ImperialColors.Domain.Entities.Cliente", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Ativo")
-                        .HasColumnType("boolean")
-                        .HasColumnName("ativo");
-
-                    b.Property<DateTime?>("AtualizadoEm")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("atualizado_em");
-
-                    b.Property<string>("Bairro")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("bairro");
-
-                    b.Property<string>("Cep")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("cep");
-
-                    b.Property<string>("Cidade")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("cidade");
-
-                    b.Property<string>("Complemento")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("complemento");
-
-                    b.Property<string>("Cpf")
-                        .HasMaxLength(14)
-                        .HasColumnType("character varying(14)")
-                        .HasColumnName("cpf");
-
-                    b.Property<DateTime>("CriadoEm")
-                        .HasColumnType("timestamp without time zone")
-                        .HasColumnName("criado_em");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("email");
-
-                    b.Property<string>("Estado")
-                        .HasMaxLength(2)
-                        .HasColumnType("character varying(2)")
-                        .HasColumnName("estado");
-
-                    b.Property<string>("Logradouro")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("logradouro");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("nome");
-
-                    b.Property<string>("Numero")
-                        .HasMaxLength(10)
-                        .HasColumnType("character varying(10)")
-                        .HasColumnName("numero");
-
-                    b.Property<string>("Observacoes")
-                        .HasColumnType("text")
-                        .HasColumnName("observacoes");
-
-                    b.Property<string>("Telefone")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("telefone");
-
-                    b.Property<string>("WhatsApp")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasColumnName("whatsapp");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("clientes", (string)null);
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Fornecedor", b =>
@@ -268,11 +180,6 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("criado_em");
 
-                    b.Property<string>("DescricaoItem")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasColumnName("descricao_item");
-
                     b.Property<int>("ListaCompraId")
                         .HasColumnType("integer")
                         .HasColumnName("lista_compra_id");
@@ -281,7 +188,7 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("observacoes");
 
-                    b.Property<int?>("ProdutoId")
+                    b.Property<int>("ProdutoId")
                         .HasColumnType("integer")
                         .HasColumnName("produto_id");
 
@@ -686,10 +593,6 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("atualizado_em");
 
-                    b.Property<int?>("ClienteId")
-                        .HasColumnType("integer")
-                        .HasColumnName("cliente_id");
-
                     b.Property<DateTime>("CriadoEm")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("criado_em");
@@ -754,8 +657,6 @@ namespace ImperialColors.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClienteId");
-
                     b.HasIndex("DataVenda");
 
                     b.HasIndex("NumeroVenda")
@@ -775,7 +676,8 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.HasOne("ImperialColors.Domain.Entities.Produto", "Produto")
                         .WithMany("ItensListaCompra")
                         .HasForeignKey("ProdutoId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("ListaCompra");
 
@@ -846,24 +748,9 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.Navigation("Marca");
                 });
 
-            modelBuilder.Entity("ImperialColors.Domain.Entities.Venda", b =>
-                {
-                    b.HasOne("ImperialColors.Domain.Entities.Cliente", "Cliente")
-                        .WithMany("Vendas")
-                        .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Cliente");
-                });
-
             modelBuilder.Entity("ImperialColors.Domain.Entities.Categoria", b =>
                 {
                     b.Navigation("Produtos");
-                });
-
-            modelBuilder.Entity("ImperialColors.Domain.Entities.Cliente", b =>
-                {
-                    b.Navigation("Vendas");
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Fornecedor", b =>

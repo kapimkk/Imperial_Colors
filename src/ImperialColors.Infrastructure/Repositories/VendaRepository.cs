@@ -1,9 +1,11 @@
 using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Enums;
+using ImperialColors.Domain.Exceptions;
 using ImperialColors.Domain.Interfaces;
 using ImperialColors.Domain.ReadModels;
 using ImperialColors.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+
 namespace ImperialColors.Infrastructure.Repositories;
 
 public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
@@ -140,7 +142,7 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
         var query = context.Set<Venda>()
             .AsNoTracking()
             .Include(v => v.Cliente)
-            .Where(v => v.DataVenda >= inicio && v.DataVenda <= fim && v.Status == StatusVenda.Finalizada);
+            .Where(v => v.DataVenda >= inicio && v.DataVenda <= fim && v.Status != StatusVenda.Aberta);
 
         if (!string.IsNullOrWhiteSpace(termoBusca))
         {
@@ -158,6 +160,71 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
             .ToListAsync(cancellationToken);
 
         return (itens, total);
+    }
+
+    public async Task<IReadOnlyList<Venda>> ObterUltimasFinalizadasAsync(
+        int quantidade = 5,
+        CancellationToken cancellationToken = default)
+    {
+        quantidade = Math.Clamp(quantidade, 1, 50);
+
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
+            .AsNoTracking()
+            .Where(v => v.Status == StatusVenda.Finalizada)
+            .OrderByDescending(v => v.DataVenda)
+            .Take(quantidade)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task CancelarComEstornoAsync(int vendaId, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var venda = await context.Set<Venda>()
+                .Include(v => v.Itens)
+                .FirstOrDefaultAsync(v => v.Id == vendaId, cancellationToken)
+                ?? throw new DomainException($"Venda com Id {vendaId} não encontrada.");
+
+            if (venda.Status == StatusVenda.Cancelada)
+                throw new DomainException("Venda já está cancelada.");
+
+            if (venda.Status == StatusVenda.Finalizada)
+            {
+                foreach (var item in venda.Itens)
+                {
+                    var produto = await context.Set<Produto>()
+                        .FirstOrDefaultAsync(p => p.Id == item.ProdutoId, cancellationToken)
+                        ?? throw new DomainException($"Produto com Id {item.ProdutoId} não encontrado para estorno.");
+
+                    var quantidadeAnterior = produto.QuantidadeEstoque;
+                    produto.QuantidadeEstoque += item.Quantidade;
+
+                    context.Set<MovimentacaoEstoque>().Add(new MovimentacaoEstoque
+                    {
+                        ProdutoId = item.ProdutoId,
+                        Tipo = TipoMovimentacao.Entrada,
+                        Quantidade = item.Quantidade,
+                        QuantidadeAnterior = quantidadeAnterior,
+                        QuantidadeAtual = produto.QuantidadeEstoque,
+                        Motivo = $"Cancelamento venda #{venda.NumeroVenda}",
+                        VendaId = vendaId
+                    });
+                }
+            }
+
+            venda.Status = StatusVenda.Cancelada;
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public override async Task<IEnumerable<Venda>> ObterTodosAsync()

@@ -1,7 +1,7 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
-using ImperialColors.UI.Helpers;
-using Microsoft.Extensions.DependencyInjection;
+using ImperialColors.Domain.Enums;
+using ImperialColors.UI.Helpers;using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 
 namespace ImperialColors.UI.ViewModels;
@@ -22,10 +22,16 @@ public class VendaViewModel : BaseViewModel
     public VendaDto? VendaSelecionada
     {
         get => _vendaSelecionada;
-        set { SetProperty(ref _vendaSelecionada, value); OnPropertyChanged(nameof(TemSelecao)); }
+        set
+        {
+            SetProperty(ref _vendaSelecionada, value);
+            OnPropertyChanged(nameof(TemSelecao));
+            OnPropertyChanged(nameof(PodeCancelarVenda));
+        }
     }
 
     public bool TemSelecao => VendaSelecionada is not null;
+    public bool PodeCancelarVenda => TemSelecao && VendaSelecionada?.Status == StatusVenda.Finalizada;
 
     private DateTime _dataInicio = DateTime.Today.AddDays(-30);
     public DateTime DataInicio
@@ -93,7 +99,7 @@ public class VendaViewModel : BaseViewModel
         CarregarCommand = new AsyncRelayCommand(CarregarAsync);
         NovaVendaCommand = new AsyncRelayCommand(AbrirPDV);
         VisualizarVendaCommand = new AsyncRelayCommand(VisualizarVenda, () => TemSelecao);
-        CancelarVendaCommand = new AsyncRelayCommand(CancelarVenda, () => TemSelecao);
+        CancelarVendaCommand = new AsyncRelayCommand(CancelarVenda, () => PodeCancelarVenda && !Carregando);
         ImprimirCupomCommand = new AsyncRelayCommand(ImprimirCupom, () => TemSelecao);
         FiltrarCommand = new AsyncRelayCommand(FiltrarAsync);
         PaginaAnteriorCommand = new AsyncRelayCommand(IrPaginaAnterior, () => PodePaginaAnterior);
@@ -176,6 +182,7 @@ public class VendaViewModel : BaseViewModel
         {
             using var escopo = _scopeFactory.CreateScope();
             var pdv = escopo.ServiceProvider.GetRequiredService<Views.PDVView>();
+            pdv.PrepararFocoBusca();
             if (ModalWindowHelper.ExibirDialogo(pdv) == true)
                 await CarregarAsync();
         }
@@ -192,14 +199,22 @@ public class VendaViewModel : BaseViewModel
     private async Task CancelarVenda()
     {
         if (VendaSelecionada is null) return;
-        if (!ConfirmarAcao($"Deseja cancelar a venda #{VendaSelecionada.NumeroVenda}?")) return;
+        if (VendaSelecionada.Status != StatusVenda.Finalizada)
+        {
+            MostrarErro("Somente vendas finalizadas podem ser devolvidas.");
+            return;
+        }
+
+        if (!ConfirmarAcao($"Deseja registrar a devolução da venda #{VendaSelecionada.NumeroVenda}? O estoque será reposto automaticamente."))
+            return;
+
         try
         {
             await _vendaService.CancelarAsync(VendaSelecionada.Id);
-            MostrarSucesso("Venda cancelada com sucesso!");
+            MostrarSucesso("Devolução registrada e estoque reposto com sucesso!");
             await CarregarAsync();
         }
-        catch (Exception ex) { MostrarErro($"Erro ao cancelar: {ex.Message}"); }
+        catch (Exception ex) { MostrarErro($"Erro ao registrar devolução: {ex.Message}"); }
     }
 
     private async Task ImprimirCupom()

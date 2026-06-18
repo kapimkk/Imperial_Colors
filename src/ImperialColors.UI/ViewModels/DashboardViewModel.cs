@@ -13,14 +13,14 @@ public class DashboardViewModel : BaseViewModel
     private decimal _totalVendasMes;
     public decimal TotalVendasMes { get => _totalVendasMes; set => SetProperty(ref _totalVendasMes, value); }
 
-    private int _alertasEstoqueCritico;
-    public int AlertasEstoqueCritico { get => _alertasEstoqueCritico; set => SetProperty(ref _alertasEstoqueCritico, value); }
+    private int _produtosEstoqueCritico;
+    public int ProdutosEstoqueCritico { get => _produtosEstoqueCritico; set => SetProperty(ref _produtosEstoqueCritico, value); }
 
-    private int _totalClientes;
-    public int TotalClientes { get => _totalClientes; set => SetProperty(ref _totalClientes, value); }
+    private int _produtosSemEstoque;
+    public int ProdutosSemEstoque { get => _produtosSemEstoque; set => SetProperty(ref _produtosSemEstoque, value); }
 
-    private List<ProdutoMaisVendidoDto> _topProdutosMes = new();
-    public List<ProdutoMaisVendidoDto> TopProdutosMes { get => _topProdutosMes; set => SetProperty(ref _topProdutosMes, value); }
+    private List<VendaResumoDashboardDto> _ultimasVendas = new();
+    public List<VendaResumoDashboardDto> UltimasVendas { get => _ultimasVendas; set => SetProperty(ref _ultimasVendas, value); }
 
     public string DataHoje => DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("pt-BR"));
 
@@ -40,9 +40,9 @@ public class DashboardViewModel : BaseViewModel
             var dados = await _dashboardService.ObterDadosDashboardAsync();
             TotalVendasHoje = dados.TotalVendasHoje;
             TotalVendasMes = dados.TotalVendasMes;
-            AlertasEstoqueCritico = dados.AlertasEstoqueCritico;
-            TotalClientes = dados.TotalClientes;
-            TopProdutosMes = dados.TopProdutosMes;
+            ProdutosEstoqueCritico = dados.ProdutosEstoqueCritico;
+            ProdutosSemEstoque = dados.ProdutosSemEstoque;
+            UltimasVendas = dados.UltimasVendas;
         }
         catch (Exception ex)
         {

@@ -88,6 +88,7 @@ public partial class App : System.Windows.Application
                 services.AddTransient<VendaViewModel>();
                 services.AddTransient<ClienteViewModel>();
                 services.AddTransient<FornecedorViewModel>();
+                services.AddTransient<ListaCompraViewModel>();
 
                 services.AddTransient<LoginView>();
                 services.AddTransient<ImperialColors.UI.Views.MainWindow>();
@@ -96,6 +97,7 @@ public partial class App : System.Windows.Application
                 services.AddTransient<MovimentacaoEstoqueView>();
                 services.AddTransient<ClienteFormView>();
                 services.AddTransient<FornecedorFormView>();
+                services.AddTransient<ListaCompraFormView>();
                 services.AddTransient<CupomView>();
                 services.AddTransient<GestaoUsuariosView>();
                 services.AddTransient<PerifericosView>();
