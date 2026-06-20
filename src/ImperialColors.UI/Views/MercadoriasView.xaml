@@ -81,6 +81,8 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource BotaoWhatsApp}" Command="{Binding EnviarWhatsAppCommand}"
+                                Margin="0,0,10,0" Content="💬  Enviar WhatsApp"/>
                         <Button Style="{StaticResource BotaoSecundario}" Command="{Binding FinalizarListaCommand}"
                                 Margin="0,0,10,0" Content="✓  Finalizar"/>
                         <Button Style="{StaticResource BotaoSecundario}" Command="{Binding ReabrirListaCommand}"

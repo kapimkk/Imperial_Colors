@@ -110,6 +110,7 @@ public class ProdutoService : IProdutoService
             codigoInterno = await GerarProximoCodigoInternoDisponivelAsync();
         }
 
+        var unidade = UnidadesMedida.Normalizar(dto.Unidade);
         var produto = new Produto
         {
             CodigoInterno = codigoInterno,
@@ -119,7 +120,8 @@ public class ProdutoService : IProdutoService
             MarcaId = dto.MarcaId,
             QuantidadeEstoque = dto.QuantidadeEstoque,
             EstoqueMinimo = dto.EstoqueMinimo,
-            Unidade = UnidadesMedida.Normalizar(dto.Unidade),
+            Unidade = unidade,
+            LitragemGl = unidade == "GL" ? dto.LitragemGl : null,
             Custo = dto.Custo,
             PrecoVenda = dto.PrecoVenda,
             Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500)
@@ -164,7 +166,9 @@ public class ProdutoService : IProdutoService
         produto.CategoriaId = dto.CategoriaId;
         produto.MarcaId = dto.MarcaId;
         produto.EstoqueMinimo = dto.EstoqueMinimo;
-        produto.Unidade = UnidadesMedida.Normalizar(dto.Unidade);
+        var unidadeAtualizada = UnidadesMedida.Normalizar(dto.Unidade);
+        produto.Unidade = unidadeAtualizada;
+        produto.LitragemGl = unidadeAtualizada == "GL" ? dto.LitragemGl : null;
         produto.Custo = dto.Custo;
         produto.PrecoVenda = dto.PrecoVenda;
         produto.Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500);
@@ -296,6 +300,7 @@ public class ProdutoService : IProdutoService
         QuantidadeEstoque = p.QuantidadeEstoque,
         EstoqueMinimo = p.EstoqueMinimo,
         Unidade = p.Unidade,
+        LitragemGl = p.LitragemGl,
         Custo = p.Custo,
         PrecoVenda = p.PrecoVenda,
         Observacoes = p.Observacoes

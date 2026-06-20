@@ -1,4 +1,5 @@
 using ImperialColors.Application.DTOs;
+using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.UI.Helpers;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +10,7 @@ namespace ImperialColors.UI.ViewModels;
 public class ListaCompraViewModel : BaseViewModel
 {
     private readonly IListaCompraService _listaCompraService;
+    private readonly IFornecedorService _fornecedorService;
     private readonly IServiceScopeFactory _scopeFactory;
 
     private ObservableCollection<ListaCompraDto> _listas = new();
@@ -24,12 +26,17 @@ public class ListaCompraViewModel : BaseViewModel
             OnPropertyChanged(nameof(TemSelecao));
             OnPropertyChanged(nameof(PodeFinalizar));
             OnPropertyChanged(nameof(PodeReabrir));
+            OnPropertyChanged(nameof(PodeEnviarWhatsApp));
+            NotifyCanExecuteChanged();
         }
     }
 
     public bool TemSelecao => ListaSelecionada is not null;
     public bool PodeFinalizar => TemSelecao && ListaSelecionada is { Finalizada: false };
     public bool PodeReabrir => TemSelecao && ListaSelecionada is { Finalizada: true };
+    public bool PodeEnviarWhatsApp => TemSelecao
+        && ListaSelecionada!.FornecedorId is > 0
+        && ListaSelecionada.TotalItens > 0;
 
     private string _termoBusca = string.Empty;
     public string TermoBusca
@@ -48,10 +55,15 @@ public class ListaCompraViewModel : BaseViewModel
     public AsyncRelayCommand ExcluirListaCommand { get; }
     public AsyncRelayCommand FinalizarListaCommand { get; }
     public AsyncRelayCommand ReabrirListaCommand { get; }
+    public AsyncRelayCommand EnviarWhatsAppCommand { get; }
 
-    public ListaCompraViewModel(IListaCompraService listaCompraService, IServiceScopeFactory scopeFactory)
+    public ListaCompraViewModel(
+        IListaCompraService listaCompraService,
+        IFornecedorService fornecedorService,
+        IServiceScopeFactory scopeFactory)
     {
         _listaCompraService = listaCompraService;
+        _fornecedorService = fornecedorService;
         _scopeFactory = scopeFactory;
 
         CarregarCommand = new AsyncRelayCommand(CarregarAsync);
@@ -60,6 +72,7 @@ public class ListaCompraViewModel : BaseViewModel
         ExcluirListaCommand = new AsyncRelayCommand(Excluir, () => TemSelecao && !Carregando);
         FinalizarListaCommand = new AsyncRelayCommand(Finalizar, () => PodeFinalizar && !Carregando);
         ReabrirListaCommand = new AsyncRelayCommand(Reabrir, () => PodeReabrir && !Carregando);
+        EnviarWhatsAppCommand = new AsyncRelayCommand(EnviarWhatsApp, () => PodeEnviarWhatsApp && !Carregando);
     }
 
     public async Task CarregarAsync()
@@ -100,34 +113,49 @@ public class ListaCompraViewModel : BaseViewModel
         return Task.CompletedTask;
     }
 
-    private Task AbrirEditar()
+    private async Task AbrirEditar()
     {
-        if (ListaSelecionada is null) return Task.CompletedTask;
+        if (!ValidarSelecao(ListaSelecionada, "lista de compras"))
+            return;
+
+        var listaId = ListaSelecionada!.Id;
 
         try
         {
+            var lista = await _listaCompraService.ObterPorIdAsync(listaId);
+            if (lista is null)
+            {
+                MostrarErro("Lista não encontrada ou foi removida.");
+                return;
+            }
+
             using var escopo = _scopeFactory.CreateScope();
             var form = escopo.ServiceProvider.GetRequiredService<Views.ListaCompraFormView>();
-            form.InicializarEdicao(ListaSelecionada);
+            form.InicializarEdicao(lista);
             if (ModalWindowHelper.ExibirDialogo(form) == true)
-                _ = CarregarAsync();
+                await CarregarAsync();
         }
         catch (Exception ex)
         {
             MostrarErro($"Erro ao abrir edição: {ex.Message}");
         }
+    }
 
-        return Task.CompletedTask;
+    public void ExecutarEdicaoSeSelecionado()
+    {
+        if (ValidarSelecao(ListaSelecionada, "lista de compras"))
+            EditarListaCommand.Execute(null);
     }
 
     private async Task Excluir()
     {
-        if (ListaSelecionada is null) return;
-        if (!ConfirmarAcao($"Deseja excluir a lista '{ListaSelecionada.Nome}'?")) return;
+        if (!ValidarSelecao(ListaSelecionada, "lista de compras"))
+            return;
+        if (!ConfirmarAcao($"Deseja excluir a lista '{ListaSelecionada!.Nome}'?")) return;
 
         try
         {
-            await _listaCompraService.RemoverAsync(ListaSelecionada.Id);
+            await _listaCompraService.RemoverAsync(ListaSelecionada!.Id);
             MostrarSucesso("Lista excluída!");
             await CarregarAsync();
         }
@@ -164,6 +192,56 @@ public class ListaCompraViewModel : BaseViewModel
         catch (Exception ex)
         {
             MostrarErro($"Erro ao reabrir: {ex.Message}");
+        }
+    }
+
+    private async Task EnviarWhatsApp()
+    {
+        if (!ValidarSelecao(ListaSelecionada, "lista de compras"))
+            return;
+
+        var listaResumo = ListaSelecionada!;
+        if (listaResumo.FornecedorId is not > 0)
+        {
+            MostrarErro("Selecione uma lista vinculada a um fornecedor para enviar pelo WhatsApp.");
+            return;
+        }
+
+        try
+        {
+            var lista = await _listaCompraService.ObterPorIdAsync(listaResumo.Id);
+            if (lista is null)
+            {
+                MostrarErro("Lista não encontrada ou foi removida.");
+                return;
+            }
+
+            if (lista.Itens.Count == 0)
+            {
+                MostrarErro("A lista precisa conter pelo menos um item para envio.");
+                return;
+            }
+
+            var fornecedor = await _fornecedorService.ObterPorIdAsync(lista.FornecedorId!.Value);
+            if (fornecedor is null)
+            {
+                MostrarErro("Fornecedor não encontrado.");
+                return;
+            }
+
+            var telefone = ListaCompraWhatsAppHelper.NormalizarTelefoneWhatsApp(fornecedor.WhatsApp, fornecedor.Telefone);
+            if (telefone is null)
+            {
+                MostrarErro($"O fornecedor '{fornecedor.Nome}' não possui WhatsApp ou telefone válido cadastrado.");
+                return;
+            }
+
+            var mensagem = ListaCompraWhatsAppHelper.MontarMensagemPedido(fornecedor.Nome, lista.Itens);
+            WhatsAppHelper.AbrirChat(telefone, mensagem);
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao preparar envio pelo WhatsApp: {ex.Message}");
         }
     }
 

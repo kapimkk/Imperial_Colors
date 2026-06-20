@@ -10,6 +10,8 @@ public class Produto : BaseEntity
     public decimal QuantidadeEstoque { get; set; }
     public decimal EstoqueMinimo { get; set; }
     public string Unidade { get; set; } = "UN";
+    // Litragem específica para Galão (GL): 3.6 ou 18. Null para outras unidades.
+    public decimal? LitragemGl { get; set; }
     public decimal? Custo { get; set; }
     public decimal PrecoVenda { get; set; }
     public string? Observacoes { get; set; }

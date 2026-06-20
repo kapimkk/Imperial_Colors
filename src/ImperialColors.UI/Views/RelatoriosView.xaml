@@ -12,103 +12,160 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="20"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="20"/>
-                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0">
                 <TextBlock Style="{StaticResource TituloModulo}" Text="Relatórios"/>
-                <TextBlock Text="Gere e exporte relatórios do sistema" FontSize="13"
-                           Foreground="{StaticResource CinzaTextoBrush}" Margin="0,4,0,0"/>
+                <TextBlock Text="Selecione o relatório, ajuste os filtros e escolha o formato de exportação"
+                           FontSize="13" Foreground="{StaticResource CinzaTextoBrush}" Margin="0,4,0,0"/>
             </StackPanel>
 
-            <!-- Filtros de período -->
-            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="20">
-                <StackPanel>
-                    <TextBlock Text="Período" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,12"/>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="De:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <DatePicker x:Name="DpInicio" Width="150" Margin="0,0,15,0" SelectedDateFormat="Short"/>
-                        <TextBlock Text="Até:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <DatePicker x:Name="DpFim" Width="150" Margin="0,0,0,0"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- Cards de relatórios -->
-            <UniformGrid Grid.Row="4" Columns="3">
-                <!-- Relatório de Vendas PDF -->
-                <Border Style="{StaticResource Card}" Margin="0,0,15,15">
+            <WrapPanel Grid.Row="2">
+                <!-- Vendas por Período -->
+                <Border Style="{StaticResource Card}" MinWidth="380" Width="380" Margin="0,0,15,15" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="📊" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="📊" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBlock Text="Vendas por Período" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Exportar PDF" FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
-                                   HorizontalAlignment="Center" Margin="0,3,0,15"/>
-                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar PDF"
-                                Click="BtnVendasPdf_Click"/>
+                        <TextBlock Text="Vendas finalizadas no intervalo selecionado"
+                                   FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,12"/>
+
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Período"/>
+                        <Grid Margin="0,6,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="8"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="36"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="De:" VerticalAlignment="Center"
+                                       Style="{StaticResource LabelCampo}"/>
+                            <DatePicker Grid.Row="0" Grid.Column="1" x:Name="DpInicio"
+                                        Style="{StaticResource DatePickerModerno}"
+                                        HorizontalAlignment="Stretch"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Até:" VerticalAlignment="Center"
+                                       Style="{StaticResource LabelCampo}"/>
+                            <DatePicker Grid.Row="2" Grid.Column="1" x:Name="DpFim"
+                                        Style="{StaticResource DatePickerModerno}"
+                                        HorizontalAlignment="Stretch"/>
+                        </Grid>
+
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Formato" Margin="0,14,0,6"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbVendasPdf" Content="PDF" GroupName="FmtVendas" IsChecked="True" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="RbVendasExcel" Content="Excel" GroupName="FmtVendas"/>
+                        </StackPanel>
+
+                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar" Margin="0,16,0,0"
+                                Click="BtnGerarVendas_Click"/>
                     </StackPanel>
                 </Border>
 
-                <!-- Relatório de Vendas Excel -->
-                <Border Style="{StaticResource Card}" Margin="0,0,15,15">
+                <!-- Estoque Completo -->
+                <Border Style="{StaticResource Card}" Width="340" Margin="0,0,15,15" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="📈" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                        <TextBlock Text="Vendas por Período" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Exportar Excel" FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
-                                   HorizontalAlignment="Center" Margin="0,3,0,15"/>
-                        <Button Style="{StaticResource BotaoSucesso}" Content="Gerar Excel"
-                                Click="BtnVendasExcel_Click"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Estoque PDF -->
-                <Border Style="{StaticResource Card}" Margin="0,0,0,15">
-                    <StackPanel>
-                        <TextBlock Text="📦" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="📦" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBlock Text="Estoque Completo" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Exportar PDF" FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
-                                   HorizontalAlignment="Center" Margin="0,3,0,15"/>
-                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar PDF"
-                                Click="BtnEstoquePdf_Click"/>
+                        <TextBlock Text="Todos os produtos ativos com saldo, categoria e preço"
+                                   FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,12"/>
+
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Formato" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbEstoquePdf" Content="PDF" GroupName="FmtEstoque" IsChecked="True" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="RbEstoqueExcel" Content="Excel" GroupName="FmtEstoque"/>
+                        </StackPanel>
+
+                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar" Margin="0,16,0,0"
+                                Click="BtnGerarEstoque_Click"/>
                     </StackPanel>
                 </Border>
 
-                <!-- Estoque Excel -->
-                <Border Style="{StaticResource Card}" Margin="0,0,15,0">
+                <!-- Estoque Baixo -->
+                <Border Style="{StaticResource Card}" Width="340" Margin="0,0,15,15" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="📋" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                        <TextBlock Text="Estoque Completo" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Exportar Excel" FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
-                                   HorizontalAlignment="Center" Margin="0,3,0,15"/>
-                        <Button Style="{StaticResource BotaoSucesso}" Content="Gerar Excel"
-                                Click="BtnEstoqueExcel_Click"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Estoque Baixo PDF -->
-                <Border Style="{StaticResource Card}" Margin="0,0,15,0">
-                    <StackPanel>
-                        <TextBlock Text="⚠" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="⚠" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBlock Text="Estoque Baixo" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Produtos abaixo do mínimo" FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
-                                   HorizontalAlignment="Center" Margin="0,3,0,15"/>
-                        <Button Style="{StaticResource BotaoPerigo}" Content="Gerar Relatório"
-                                Click="BtnEstoqueBaixoPdf_Click"/>
+                        <TextBlock Text="Produtos ativos abaixo do estoque mínimo"
+                                   FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,12"/>
+
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Formato" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbEstoqueBaixoPdf" Content="PDF" GroupName="FmtEstoqueBaixo" IsChecked="True" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="RbEstoqueBaixoExcel" Content="Excel" GroupName="FmtEstoqueBaixo"/>
+                        </StackPanel>
+
+                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar" Margin="0,16,0,0"
+                                Click="BtnGerarEstoqueBaixo_Click"/>
                     </StackPanel>
                 </Border>
 
-                <!-- Produtos Sem Estoque -->
-                <Border Style="{StaticResource Card}" Margin="0,0,0,0">
+                <!-- Sem Estoque -->
+                <Border Style="{StaticResource Card}" Width="340" Margin="0,0,15,15" Padding="20">
                     <StackPanel>
-                        <TextBlock Text="🚫" FontSize="30" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                        <TextBlock Text="🚫" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,8"/>
                         <TextBlock Text="Sem Estoque" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                        <TextBlock Text="Produtos zerados" FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
-                                   HorizontalAlignment="Center" Margin="0,3,0,15"/>
-                        <Button Style="{StaticResource BotaoPerigo}" Content="Gerar Relatório"
-                                Click="BtnSemEstoquePdf_Click"/>
+                        <TextBlock Text="Produtos ativos com quantidade zerada"
+                                   FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,12"/>
+
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Formato" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbSemEstoquePdf" Content="PDF" GroupName="FmtSemEstoque" IsChecked="True" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="RbSemEstoqueExcel" Content="Excel" GroupName="FmtSemEstoque"/>
+                        </StackPanel>
+
+                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar" Margin="0,16,0,0"
+                                Click="BtnGerarSemEstoque_Click"/>
                     </StackPanel>
                 </Border>
-            </UniformGrid>
+
+                <!-- Tabela de Vendas da Loja -->
+                <Border Style="{StaticResource Card}" Width="340" Margin="0,0,15,15" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="🏷" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="Tabela de Vendas da Loja" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Catálogo de preços de balcão: código de barras, nome e preço atual"
+                                   FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,12"/>
+
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Formato" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbTabelaLojaPdf" Content="PDF" GroupName="FmtTabelaLoja" IsChecked="True" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="RbTabelaLojaExcel" Content="Excel" GroupName="FmtTabelaLoja"/>
+                        </StackPanel>
+
+                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar" Margin="0,16,0,0"
+                                Click="BtnGerarTabelaLoja_Click"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Tabela do Pintor -->
+                <Border Style="{StaticResource Card}" Width="340" Margin="0,0,15,15" Padding="20">
+                    <StackPanel>
+                        <TextBlock Text="🎨" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="Tabela do Pintor" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Mesma estrutura da tabela da loja, com acréscimo automático de 5% no preço exibido"
+                                   FontSize="11" Foreground="{StaticResource CinzaTextoBrush}"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,12"/>
+
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Formato" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbTabelaPintorPdf" Content="PDF" GroupName="FmtTabelaPintor" IsChecked="True" Margin="0,0,16,0"/>
+                            <RadioButton x:Name="RbTabelaPintorExcel" Content="Excel" GroupName="FmtTabelaPintor"/>
+                        </StackPanel>
+
+                        <Button Style="{StaticResource BotaoPrimario}" Content="Gerar" Margin="0,16,0,0"
+                                Click="BtnGerarTabelaPintor_Click"/>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
         </Grid>
     </ScrollViewer>
 </UserControl>

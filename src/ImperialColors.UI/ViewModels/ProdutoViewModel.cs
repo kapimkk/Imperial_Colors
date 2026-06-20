@@ -53,6 +53,7 @@ public class ProdutoViewModel : BaseViewModel
             SetProperty(ref _produtoSelecionado, value);
 
             OnPropertyChanged(nameof(TemSelecao));
+            NotifyCanExecuteChanged();
 
         }
 
@@ -351,50 +352,48 @@ public class ProdutoViewModel : BaseViewModel
 
 
     private async Task AbrirEditarProduto()
-
     {
+        if (!ValidarSelecao(ProdutoSelecionado, "produto"))
+            return;
 
-        if (ProdutoSelecionado is null) return;
-
-
+        var produtoId = ProdutoSelecionado!.Id;
 
         try
-
         {
+            var produto = await _produtoService.ObterPorIdAsync(produtoId);
+            if (produto is null)
+            {
+                MostrarErro("Produto não encontrado ou foi removido.");
+                return;
+            }
 
             using var escopo = _scopeFactory.CreateScope();
-
             var form = escopo.ServiceProvider.GetRequiredService<Views.ProdutoFormView>();
-
-            form.InicializarEdicao(ProdutoSelecionado);
+            form.InicializarEdicao(produto);
 
             if (ModalWindowHelper.ExibirDialogo(form) == true)
-
                 await CarregarAsync();
-
         }
-
         catch (Exception ex)
-
         {
-
             MostrarErro($"Erro ao abrir edição: {ex.Message}");
-
         }
-
     }
 
 
 
-    private async Task ExcluirProduto()
-
+    public void ExecutarEdicaoSeSelecionado()
     {
+        if (ValidarSelecao(ProdutoSelecionado, "produto"))
+            EditarProdutoCommand.Execute(null);
+    }
 
-        if (ProdutoSelecionado is null) return;
+    private async Task ExcluirProduto()
+    {
+        if (!ValidarSelecao(ProdutoSelecionado, "produto"))
+            return;
 
-
-
-        var produto = ProdutoSelecionado;
+        var produto = ProdutoSelecionado!;
 
         if (!ConfirmarAcao($"Deseja excluir o produto '{produto.Nome}'?")) return;
 
@@ -435,22 +434,24 @@ public class ProdutoViewModel : BaseViewModel
 
 
     private async Task AbrirMovimentacao()
-
     {
+        if (!ValidarSelecao(ProdutoSelecionado, "produto"))
+            return;
 
-        if (ProdutoSelecionado is null) return;
-
-
+        var produtoId = ProdutoSelecionado!.Id;
 
         try
-
         {
+            var produto = await _produtoService.ObterPorIdAsync(produtoId);
+            if (produto is null)
+            {
+                MostrarErro("Produto não encontrado ou foi removido.");
+                return;
+            }
 
             using var escopo = _scopeFactory.CreateScope();
-
             var form = escopo.ServiceProvider.GetRequiredService<Views.MovimentacaoEstoqueView>();
-
-            form.InicializarProduto(ProdutoSelecionado);
+            form.InicializarProduto(produto);
 
             if (ModalWindowHelper.ExibirDialogo(form) == true)
 

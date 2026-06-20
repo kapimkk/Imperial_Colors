@@ -227,6 +227,61 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
         }
     }
 
+    public async Task ExcluirFisicamenteComEstornoAsync(int vendaId, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var possuiTrocas = await context.Set<Troca>()
+                .IgnoreQueryFilters()
+                .AnyAsync(t => t.VendaOrigemId == vendaId, cancellationToken);
+
+            if (possuiTrocas)
+                throw new DomainException("Não é possível excluir esta venda porque existem trocas registradas vinculadas a ela.");
+
+            var venda = await context.Set<Venda>()
+                .IgnoreQueryFilters()
+                .Include(v => v.Itens)
+                .FirstOrDefaultAsync(v => v.Id == vendaId, cancellationToken)
+                ?? throw new DomainException($"Venda com Id {vendaId} não encontrada.");
+
+            if (venda.Status == StatusVenda.Finalizada)
+            {
+                foreach (var item in venda.Itens)
+                {
+                    var produto = await context.Set<Produto>()
+                        .FirstOrDefaultAsync(p => p.Id == item.ProdutoId, cancellationToken)
+                        ?? throw new DomainException($"Produto com Id {item.ProdutoId} não encontrado para estorno.");
+
+                    var quantidadeAnterior = produto.QuantidadeEstoque;
+                    produto.QuantidadeEstoque += item.Quantidade;
+
+                    context.Set<MovimentacaoEstoque>().Add(new MovimentacaoEstoque
+                    {
+                        ProdutoId = item.ProdutoId,
+                        Tipo = TipoMovimentacao.Entrada,
+                        Quantidade = item.Quantidade,
+                        QuantidadeAnterior = quantidadeAnterior,
+                        QuantidadeAtual = produto.QuantidadeEstoque,
+                        Motivo = $"Exclusão permanente venda #{venda.NumeroVenda}",
+                        VendaId = vendaId
+                    });
+                }
+            }
+
+            context.Set<Venda>().Remove(venda);
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public override async Task<IEnumerable<Venda>> ObterTodosAsync()
     {
         await using var context = ContextFactory.CreateDbContext();

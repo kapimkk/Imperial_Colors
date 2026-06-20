@@ -172,6 +172,12 @@ public class VendaService : IVendaService
         _logger.LogInformation("Venda cancelada com estorno de estoque: {VendaId}", id);
     }
 
+    public async Task ExcluirFisicamenteAsync(int id)
+    {
+        await _vendaRepository.ExcluirFisicamenteComEstornoAsync(id);
+        _logger.LogWarning("Venda excluída permanentemente do banco: {VendaId}", id);
+    }
+
     public async Task<decimal> ObterTotalVendasDiaAsync()
         => await _vendaRepository.ObterTotalVendasDiaAsync(DateTime.Today);
 

@@ -19,14 +19,8 @@ public partial class MercadoriasView : UserControl
     }
 
     private void FornecedoresGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (_fornecedorViewModel.FornecedorSelecionado is not null)
-            _fornecedorViewModel.EditarFornecedorCommand.Execute(null);
-    }
+        => _fornecedorViewModel.ExecutarEdicaoSeSelecionado();
 
     private void ListasGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (_listaCompraViewModel.ListaSelecionada is not null)
-            _listaCompraViewModel.EditarListaCommand.Execute(null);
-    }
+        => _listaCompraViewModel.ExecutarEdicaoSeSelecionado();
 }

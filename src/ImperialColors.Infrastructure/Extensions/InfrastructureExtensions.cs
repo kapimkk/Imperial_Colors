@@ -1,6 +1,7 @@
 using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Interfaces;
+using ImperialColors.Infrastructure.Configuration;
 using ImperialColors.Infrastructure.Data;
 using ImperialColors.Infrastructure.Repositories;
 using ImperialColors.Infrastructure.Services;
@@ -16,6 +17,10 @@ public static class InfrastructureExtensions
         services.AddDbContextFactory<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 
+        services.AddSingleton(BackupOptions.CarregarDoAmbiente());
+        services.AddSingleton<IBackupService, BackupService>();
+        services.AddSingleton<IParametroSistemaRepository, ParametroSistemaRepository>();
+
         services.AddSingleton<IProdutoRepository, ProdutoRepository>();
         services.AddSingleton<IVendaRepository, VendaRepository>();
         services.AddSingleton<IClienteRepository, ClienteRepository>();
@@ -27,6 +32,8 @@ public static class InfrastructureExtensions
         services.AddSingleton<IRepository<ListaCompra>, ListaCompraRepository>();
         services.AddSingleton<IRepository<ItemListaCompra>, RepositoryBase<ItemListaCompra>>();
         services.AddSingleton<IUsuarioRepository, UsuarioRepository>();
+        services.AddSingleton<ITrocaRepository, TrocaRepository>();
+        services.AddSingleton<IVendaExternaRepository, VendaExternaRepository>();
 
         services.AddSingleton<IPrinterService, PrinterService>();
         services.AddSingleton<ILocalConfigService, LocalConfigService>();

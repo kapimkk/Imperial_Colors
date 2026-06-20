@@ -17,10 +17,7 @@ public partial class EstoqueView : UserControl
     }
 
     private void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (_viewModel.ProdutoSelecionado is not null)
-            _viewModel.EditarProdutoCommand.Execute(null);
-    }
+        => _viewModel.ExecutarEdicaoSeSelecionado();
 
     private async void TxtBuscaEstoque_KeyDown(object sender, KeyEventArgs e)
     {

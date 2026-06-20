@@ -14,6 +14,7 @@
     <Color x:Key="VerdeSucesso">#28A745</Color>
     <Color x:Key="VermelhoErro">#DC3545</Color>
     <Color x:Key="AzulInfo">#17A2B8</Color>
+    <Color x:Key="AzulPrimario">#1565C0</Color>
     <Color x:Key="LaranjaAviso">#FD7E14</Color>
     <Color x:Key="MenuLateral">#1A1A2E</Color>
     <Color x:Key="MenuLateralHover">#2D2D4E</Color>
@@ -31,12 +32,18 @@
     <SolidColorBrush x:Key="VerdeSucessoBrush" Color="{StaticResource VerdeSucesso}"/>
     <SolidColorBrush x:Key="VermelhoErroBrush" Color="{StaticResource VermelhoErro}"/>
     <SolidColorBrush x:Key="AzulInfoBrush" Color="{StaticResource AzulInfo}"/>
+    <SolidColorBrush x:Key="AzulPrimarioBrush" Color="{StaticResource AzulPrimario}"/>
     <SolidColorBrush x:Key="LaranjaAvisoBrush" Color="{StaticResource LaranjaAviso}"/>
     <SolidColorBrush x:Key="MenuLateralBrush" Color="{StaticResource MenuLateral}"/>
     <SolidColorBrush x:Key="MenuLateralHoverBrush" Color="{StaticResource MenuLateralHover}"/>
     <SolidColorBrush x:Key="MenuItemAtivoFundoBrush" Color="{StaticResource MenuItemAtivoFundo}"/>
 
     <FontFamily x:Key="FontePrimaria">Segoe UI</FontFamily>
+
+    <!-- Dimensões padronizadas de inputs e filtros -->
+    <sys:Double xmlns:sys="clr-namespace:System;assembly=mscorlib" x:Key="AlturaInputPadrao">38</sys:Double>
+    <Thickness x:Key="PaddingInputPadrao">10,5,10,5</Thickness>
+    <Thickness x:Key="PaddingInputFiltro">40,5,10,5</Thickness>
 
     <!-- Scrollbar minimalista -->
     <Style x:Key="ScrollBarMinimalThumb" TargetType="Thumb">
@@ -126,27 +133,34 @@
     <Style x:Key="TextBoxModerno" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
         <Setter Property="FontSize" Value="13"/>
-        <Setter Property="MinHeight" Value="36"/>
-        <Setter Property="Height" Value="36"/>
-        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Height" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="MinHeight" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="Padding" Value="{StaticResource PaddingInputPadrao}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
         <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource AmareloClaroBrush}"/>
+        <Setter Property="SelectionTextBrush" Value="{StaticResource PretoPrimarioBrush}"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Borda" Background="{TemplateBinding Background}"
+                    <Border x:Name="Borda"
+                            Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6"
-                            Padding="{TemplateBinding Padding}">
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
                         <ScrollViewer x:Name="PART_ContentHost"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Stretch"
-                                      Focusable="False"/>
+                                      Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"
+                                      CanContentScroll="False"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
@@ -167,30 +181,35 @@
     <Style x:Key="TextBoxMultilinha" TargetType="TextBox">
         <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
         <Setter Property="FontSize" Value="13"/>
-        <Setter Property="MinHeight" Value="60"/>
-        <Setter Property="Padding" Value="12,10"/>
+        <Setter Property="MinHeight" Value="80"/>
+        <Setter Property="Padding" Value="10,8,10,8"/>
         <Setter Property="VerticalContentAlignment" Value="Top"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
         <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
         <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource AmareloClaroBrush}"/>
+        <Setter Property="SelectionTextBrush" Value="{StaticResource PretoPrimarioBrush}"/>
         <Setter Property="TextWrapping" Value="Wrap"/>
         <Setter Property="AcceptsReturn" Value="True"/>
         <Setter Property="SnapsToDevicePixels" Value="True"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TextBox">
-                    <Border x:Name="Borda" Background="{TemplateBinding Background}"
+                    <Border x:Name="Borda"
+                            Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="6"
                             Padding="{TemplateBinding Padding}"
-                            MinHeight="{TemplateBinding MinHeight}">
+                            MinHeight="{TemplateBinding MinHeight}"
+                            SnapsToDevicePixels="True">
                         <ScrollViewer x:Name="PART_ContentHost"
-                                      VerticalAlignment="Stretch"
-                                      HorizontalAlignment="Stretch"
-                                      VerticalScrollBarVisibility="Hidden"
-                                      Focusable="False"/>
+                                      Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Auto"
+                                      CanContentScroll="False"/>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsFocused" Value="True">
@@ -209,17 +228,203 @@
     </Style>
 
     <Style x:Key="TextBoxFiltro" TargetType="TextBox" BasedOn="{StaticResource TextBoxModerno}">
-        <Setter Property="Padding" Value="36,0,12,0"/>
+        <Setter Property="Padding" Value="{StaticResource PaddingInputFiltro}"/>
+    </Style>
+
+    <!-- DatePicker alinhado aos TextBox -->
+    <Style x:Key="DatePickerModerno" TargetType="DatePicker">
+        <Setter Property="helpers:DatePickerSyncHelper.Enable" Value="True"/>
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Height" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="MinHeight" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="MinWidth" Value="176"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="SelectedDateFormat" Value="Short"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="DatePicker">
+                    <Border x:Name="Borda"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            ClipToBounds="False"
+                            SnapsToDevicePixels="True">
+                        <Grid x:Name="GridRoot" SnapsToDevicePixels="True">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="34"/>
+                            </Grid.ColumnDefinitions>
+
+                            <DatePickerTextBox x:Name="PART_TextBox"
+                                               Grid.Column="0"
+                                               Grid.ColumnSpan="1"
+                                               Margin="8,0,0,0"
+                                               MinWidth="100"
+                                               VerticalContentAlignment="Center"
+                                               HorizontalContentAlignment="Stretch"
+                                               HorizontalAlignment="Stretch"
+                                               Background="Transparent"
+                                               BorderThickness="0"
+                                               Focusable="{TemplateBinding Focusable}"
+                                               FontFamily="{TemplateBinding FontFamily}"
+                                               FontSize="{TemplateBinding FontSize}"
+                                               Foreground="{TemplateBinding Foreground}"/>
+
+                            <Button x:Name="PART_Button"
+                                    Grid.Column="1"
+                                    TabIndex="2"
+                                    Width="34"
+                                    Padding="0"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Cursor="Hand"
+                                    Focusable="False"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Stretch">
+                                <TextBlock Text="&#x1F4C5;" FontSize="14"
+                                           VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                            </Button>
+
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=GridRoot}"
+                                   StaysOpen="False"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Borda" Property="BorderBrush" Value="{StaticResource AmareloEscuroBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Borda" Property="BorderBrush" Value="{StaticResource AmareloPrimarioBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.65"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Resources>
+            <Style TargetType="{x:Type DatePickerTextBox}">
+                <Setter Property="HorizontalAlignment" Value="Stretch"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="{x:Type DatePickerTextBox}">
+                            <Grid Background="Transparent">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="WatermarkStates">
+                                        <VisualState x:Name="Unwatermarked"/>
+                                        <VisualState x:Name="Watermarked">
+                                            <Storyboard>
+                                                <DoubleAnimation Storyboard.TargetName="PART_TextBox"
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="0" Duration="0:0:0"/>
+                                                <DoubleAnimation Storyboard.TargetName="PART_Watermark"
+                                                                 Storyboard.TargetProperty="Opacity"
+                                                                 To="1" Duration="0:0:0"/>
+                                            </Storyboard>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+
+                                <Grid x:Name="WatermarkWrapper">
+                                    <TextBox x:Name="PART_TextBox"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             Padding="0,0,2,0"
+                                             VerticalContentAlignment="Center"
+                                             HorizontalAlignment="Stretch"
+                                             HorizontalContentAlignment="Left"
+                                             MinWidth="90"
+                                             Focusable="{TemplateBinding Focusable}"
+                                             FontFamily="{TemplateBinding FontFamily}"
+                                             FontSize="{TemplateBinding FontSize}"
+                                             Foreground="{TemplateBinding Foreground}"
+                                             CaretBrush="{TemplateBinding Foreground}"/>
+                                    <ContentControl x:Name="PART_Watermark"
+                                                    IsTabStop="False"
+                                                    IsHitTestVisible="False"
+                                                    Opacity="0"
+                                                    VerticalAlignment="Center"
+                                                    HorizontalAlignment="Left"
+                                                    Margin="0,0,0,0"/>
+                                </Grid>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Style.Resources>
+    </Style>
+
+    <Style x:Key="PasswordBoxModerno" TargetType="PasswordBox">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Height" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="MinHeight" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="Padding" Value="{StaticResource PaddingInputPadrao}"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="CaretBrush" Value="{StaticResource PretoPrimarioBrush}"/>
+        <Setter Property="SelectionBrush" Value="{StaticResource AmareloClaroBrush}"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="PasswordBox">
+                    <Border x:Name="Borda"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Focusable="False"
+                                      HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden"
+                                      CanContentScroll="False"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="Borda" Property="BorderBrush" Value="{StaticResource AmareloPrimarioBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Borda" Property="BorderBrush" Value="{StaticResource AmareloEscuroBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.65"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <!-- ComboBox -->
     <Style x:Key="ComboBoxModerno" TargetType="ComboBox">
         <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
         <Setter Property="FontSize" Value="13"/>
-        <Setter Property="MinHeight" Value="36"/>
-        <Setter Property="Height" Value="36"/>
-        <Setter Property="Padding" Value="12,0"/>
+        <Setter Property="Height" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="MinHeight" Value="{StaticResource AlturaInputPadrao}"/>
+        <Setter Property="Padding" Value="{StaticResource PaddingInputPadrao}"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="BorderThickness" Value="1"/>
         <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
         <Setter Property="Background" Value="{StaticResource BrancoFundoBrush}"/>
@@ -267,7 +472,7 @@
                                           Content="{TemplateBinding SelectionBoxItem}"
                                           ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
                                           ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
-                                          Margin="12,0,28,0"
+                                          Margin="10,5,28,5"
                                           VerticalAlignment="Center"
                                           HorizontalAlignment="Left"/>
                         <Popup x:Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
@@ -386,6 +591,20 @@
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="#218838"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Color x:Key="WhatsAppVerde">#25D366</Color>
+    <SolidColorBrush x:Key="WhatsAppVerdeBrush" Color="{StaticResource WhatsAppVerde}"/>
+
+    <Style x:Key="BotaoWhatsApp" TargetType="Button" BasedOn="{StaticResource BotaoPrimario}">
+        <Setter Property="Background" Value="{StaticResource WhatsAppVerdeBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#1EBE57"/>
             </Trigger>
         </Style.Triggers>
     </Style>

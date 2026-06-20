@@ -42,6 +42,13 @@ public class ItemVendaDto
     public decimal Desconto { get; set; }
     public decimal Subtotal { get; set; }
     public string Unidade { get; set; } = "UN";
+
+    /// <summary>Nome comercial legível para seleção em telas (ex.: Registrar Troca).</summary>
+    public string DescricaoTroca => string.IsNullOrWhiteSpace(NomeProduto)
+        ? CodigoInterno ?? "Produto da venda"
+        : NomeProduto;
+
+    public string NomeExibicao => $"{NomeProduto}  ×{Quantidade} {Unidade}  — R$ {PrecoUnitario:N2}/un";
 }
 
 public class CriarVendaDto

@@ -22,7 +22,7 @@ public class ClienteViewModel : BaseViewModel
     public ClienteDto? ClienteSelecionado
     {
         get => _clienteSelecionado;
-        set { SetProperty(ref _clienteSelecionado, value); OnPropertyChanged(nameof(TemSelecao)); }
+        set { SetProperty(ref _clienteSelecionado, value); OnPropertyChanged(nameof(TemSelecao)); NotifyCanExecuteChanged(); }
     }
 
     public bool TemSelecao => ClienteSelecionado is not null;
@@ -162,31 +162,48 @@ public class ClienteViewModel : BaseViewModel
         return Task.CompletedTask;
     }
 
-    private Task AbrirEditarCliente()
+    private async Task AbrirEditarCliente()
     {
-        if (ClienteSelecionado is null) return Task.CompletedTask;
+        if (!ValidarSelecao(ClienteSelecionado, "cliente"))
+            return;
+
+        var clienteId = ClienteSelecionado!.Id;
+
         try
         {
+            var cliente = await _clienteService.ObterPorIdAsync(clienteId);
+            if (cliente is null)
+            {
+                MostrarErro("Cliente não encontrado ou foi removido.");
+                return;
+            }
+
             using var escopo = _scopeFactory.CreateScope();
             var form = escopo.ServiceProvider.GetRequiredService<Views.ClienteFormView>();
-            form.InicializarEdicao(ClienteSelecionado);
+            form.InicializarEdicao(cliente);
             if (ModalWindowHelper.ExibirDialogo(form) == true)
-                _ = CarregarAsync();
+                await CarregarAsync();
         }
         catch (Exception ex)
         {
             MostrarErro($"Erro ao abrir edição: {ex.Message}");
         }
-        return Task.CompletedTask;
+    }
+
+    public void ExecutarEdicaoSeSelecionado()
+    {
+        if (ValidarSelecao(ClienteSelecionado, "cliente"))
+            EditarClienteCommand.Execute(null);
     }
 
     private async Task ExcluirCliente()
     {
-        if (ClienteSelecionado is null) return;
-        if (!ConfirmarAcao($"Deseja excluir o cliente '{ClienteSelecionado.Nome}'?")) return;
+        if (!ValidarSelecao(ClienteSelecionado, "cliente"))
+            return;
+        if (!ConfirmarAcao($"Deseja excluir o cliente '{ClienteSelecionado!.Nome}'?")) return;
         try
         {
-            await _clienteService.RemoverAsync(ClienteSelecionado.Id);
+            await _clienteService.RemoverAsync(ClienteSelecionado!.Id);
             MostrarSucesso("Cliente excluído!");
             await CarregarAsync();
         }

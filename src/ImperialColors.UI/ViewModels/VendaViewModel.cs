@@ -1,7 +1,8 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Enums;
-using ImperialColors.UI.Helpers;using Microsoft.Extensions.DependencyInjection;
+using ImperialColors.UI.Helpers;
+using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
 
 namespace ImperialColors.UI.ViewModels;
@@ -27,21 +28,26 @@ public class VendaViewModel : BaseViewModel
             SetProperty(ref _vendaSelecionada, value);
             OnPropertyChanged(nameof(TemSelecao));
             OnPropertyChanged(nameof(PodeCancelarVenda));
+            OnPropertyChanged(nameof(PodeRegistrarTroca));
+            OnPropertyChanged(nameof(PodeExcluirVenda));
+            NotifyCanExecuteChanged();
         }
     }
 
     public bool TemSelecao => VendaSelecionada is not null;
     public bool PodeCancelarVenda => TemSelecao && VendaSelecionada?.Status == StatusVenda.Finalizada;
+    public bool PodeRegistrarTroca => TemSelecao && VendaSelecionada?.Status == StatusVenda.Finalizada;
+    public bool PodeExcluirVenda => TemSelecao && VendaSelecionada?.Status != StatusVenda.Aberta;
 
-    private DateTime _dataInicio = DateTime.Today.AddDays(-30);
-    public DateTime DataInicio
+    private DateTime? _dataInicio = DateTime.Today.AddDays(-30);
+    public DateTime? DataInicio
     {
         get => _dataInicio;
         set => SetProperty(ref _dataInicio, value);
     }
 
-    private DateTime _dataFim = DateTime.Today;
-    public DateTime DataFim
+    private DateTime? _dataFim = DateTime.Today;
+    public DateTime? DataFim
     {
         get => _dataFim;
         set => SetProperty(ref _dataFim, value);
@@ -86,6 +92,8 @@ public class VendaViewModel : BaseViewModel
     public AsyncRelayCommand NovaVendaCommand { get; }
     public AsyncRelayCommand VisualizarVendaCommand { get; }
     public AsyncRelayCommand CancelarVendaCommand { get; }
+    public AsyncRelayCommand ExcluirVendaCommand { get; }
+    public AsyncRelayCommand RegistrarTrocaCommand { get; }
     public AsyncRelayCommand ImprimirCupomCommand { get; }
     public AsyncRelayCommand FiltrarCommand { get; }
     public AsyncRelayCommand PaginaAnteriorCommand { get; }
@@ -100,6 +108,8 @@ public class VendaViewModel : BaseViewModel
         NovaVendaCommand = new AsyncRelayCommand(AbrirPDV);
         VisualizarVendaCommand = new AsyncRelayCommand(VisualizarVenda, () => TemSelecao);
         CancelarVendaCommand = new AsyncRelayCommand(CancelarVenda, () => PodeCancelarVenda && !Carregando);
+        ExcluirVendaCommand = new AsyncRelayCommand(ExcluirVenda, () => PodeExcluirVenda && !Carregando);
+        RegistrarTrocaCommand = new AsyncRelayCommand(AbrirRegistrarTroca, () => PodeRegistrarTroca && !Carregando);
         ImprimirCupomCommand = new AsyncRelayCommand(ImprimirCupom, () => TemSelecao);
         FiltrarCommand = new AsyncRelayCommand(FiltrarAsync);
         PaginaAnteriorCommand = new AsyncRelayCommand(IrPaginaAnterior, () => PodePaginaAnterior);
@@ -134,9 +144,12 @@ public class VendaViewModel : BaseViewModel
 
             UiDispatcher.ExecutarNaUi(() => Carregando = true);
 
+            var inicio = DataInicio ?? DateTime.Today.AddDays(-30);
+            var fim = (DataFim ?? DateTime.Today).Date.AddDays(1).AddSeconds(-1);
+
             var resultado = await _vendaService.ObterPaginadoPorPeriodoAsync(
-                DataInicio,
-                DataFim.AddDays(1).AddSeconds(-1),
+                inicio,
+                fim,
                 PaginaAtual,
                 ItensPorPaginaPadrao,
                 string.IsNullOrWhiteSpace(TermoBusca) ? null : TermoBusca.Trim(),
@@ -196,6 +209,62 @@ public class VendaViewModel : BaseViewModel
         await WindowHelper.ExibirCupomAsync(escopo.ServiceProvider, VendaSelecionada);
     }
 
+    private async Task AbrirRegistrarTroca()
+    {
+        if (!ValidarSelecao(
+                VendaSelecionada,
+                mensagem: "Por favor, selecione uma venda na lista antes de clicar em Registrar Troca."))
+            return;
+
+        var vendaSelecionada = VendaSelecionada!;
+
+        if (vendaSelecionada.Status != StatusVenda.Finalizada)
+        {
+            MostrarErro("Somente vendas finalizadas podem ter itens trocados.");
+            return;
+        }
+
+        var vendaId = vendaSelecionada.Id;
+
+        try
+        {
+            var vendaComItens = await _vendaService.ObterComItensAsync(vendaId);
+            if (vendaComItens is null)
+            {
+                MostrarErro("Venda não encontrada ou foi removida.");
+                return;
+            }
+
+            var itens = vendaComItens.Itens ?? [];
+            if (itens.Count == 0)
+            {
+                MostrarErro("Não foi possível carregar os itens desta venda.");
+                return;
+            }
+
+            using var escopo = _scopeFactory.CreateScope();
+            var modal = escopo.ServiceProvider.GetRequiredService<Views.TrocaFormView>();
+            modal.Inicializar(vendaComItens, itens);
+            if (ModalWindowHelper.ExibirDialogo(modal) == true)
+            {
+                MostrarSucesso("Troca registrada com sucesso! Estoque atualizado.");
+                await CarregarAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao abrir registro de troca: {ex.Message}");
+        }
+    }
+
+    public void ExecutarRegistrarTrocaSeSelecionado()
+    {
+        if (ValidarSelecao(
+                VendaSelecionada,
+                mensagem: "Por favor, selecione uma venda na lista antes de clicar em Registrar Troca."))
+            RegistrarTrocaCommand.Execute(null);
+    }
+
     private async Task CancelarVenda()
     {
         if (VendaSelecionada is null) return;
@@ -215,6 +284,36 @@ public class VendaViewModel : BaseViewModel
             await CarregarAsync();
         }
         catch (Exception ex) { MostrarErro($"Erro ao registrar devolução: {ex.Message}"); }
+    }
+
+    private async Task ExcluirVenda()
+    {
+        if (!ValidarSelecao(
+                VendaSelecionada,
+                entidade: "venda",
+                mensagem: "Por favor, selecione uma venda na lista antes de clicar em Excluir Venda."))
+            return;
+
+        var venda = VendaSelecionada!;
+
+        var mensagem = "ATENÇÃO: Esta ação é IRREVERSÍVEL.\n\n" +
+                       $"A venda #{venda.NumeroVenda} e todos os seus itens serão EXCLUÍDOS PERMANENTEMENTE do banco de dados.";
+
+        if (venda.Status == StatusVenda.Finalizada)
+            mensagem += "\n\nO estoque dos produtos vendidos será reposto automaticamente antes da exclusão.";
+
+        mensagem += "\n\nTem certeza absoluta que deseja continuar?";
+
+        if (!ConfirmarAcao(mensagem))
+            return;
+
+        try
+        {
+            await _vendaService.ExcluirFisicamenteAsync(venda.Id);
+            MostrarSucesso($"Venda #{venda.NumeroVenda} excluída permanentemente.");
+            await CarregarAsync();
+        }
+        catch (Exception ex) { MostrarErro($"Erro ao excluir venda: {ex.Message}"); }
     }
 
     private async Task ImprimirCupom()

@@ -16,8 +16,5 @@ public partial class ClientesView : UserControl
     }
 
     private void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-    {
-        if (_viewModel.ClienteSelecionado is not null)
-            _viewModel.EditarClienteCommand.Execute(null);
-    }
+        => _viewModel.ExecutarEdicaoSeSelecionado();
 }

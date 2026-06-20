@@ -13,11 +13,17 @@ public class ProdutoDto
     public decimal QuantidadeEstoque { get; set; }
     public decimal EstoqueMinimo { get; set; }
     public string Unidade { get; set; } = "UN";
+    public decimal? LitragemGl { get; set; }
     public decimal? Custo { get; set; }
     public decimal PrecoVenda { get; set; }
     public string? Observacoes { get; set; }
     public bool EstoqueBaixo => QuantidadeEstoque <= EstoqueMinimo && QuantidadeEstoque > 0;
     public bool SemEstoque => QuantidadeEstoque <= 0;
+
+    /// <summary>Nome para exibição com litragem (ex: "Tinta Coral - GL 18L")</summary>
+    public string NomeExibicao => Unidade == "GL" && LitragemGl.HasValue
+        ? $"{Nome} (GL {LitragemGl:G}L)"
+        : Nome;
 }
 
 public class CriarProdutoDto
@@ -30,6 +36,7 @@ public class CriarProdutoDto
     public decimal QuantidadeEstoque { get; set; }
     public decimal EstoqueMinimo { get; set; }
     public string Unidade { get; set; } = "UN";
+    public decimal? LitragemGl { get; set; }
     public decimal? Custo { get; set; }
     public decimal PrecoVenda { get; set; }
     public string? Observacoes { get; set; }

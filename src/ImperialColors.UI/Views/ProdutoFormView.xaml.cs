@@ -2,6 +2,7 @@ using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Exceptions;
 using ImperialColors.UI.Helpers;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -18,6 +19,8 @@ public partial class ProdutoFormView : Window
     private bool _ignorarAlteracaoCodigoInterno;
     private bool _modoCustoTotal;
     private bool _suprimirAtualizacaoCusto;
+
+    private bool _suprimirEventosUi;
 
     public ProdutoFormView(
         IProdutoService produtoService,
@@ -69,29 +72,49 @@ public partial class ProdutoFormView : Window
 
     public void InicializarEdicao(ProdutoDto produto)
     {
-        TxtTitulo.Text = "Editar Produto";
-        _produtoId = produto.Id;
-        _codigoDefinidoManualmente = true;
-        LimparErroValidacao();
-        ChkCustoTotal.IsChecked = false;
-        TxtCustoTotal.Text = string.Empty;
-        PainelCustoTotal.Visibility = Visibility.Collapsed;
-        TxtCusto.IsReadOnly = false;
-        DefinirCodigoInternoSemMarcarManual(produto.CodigoInterno);
-        TxtCodigoBarras.Text = produto.CodigoBarras ?? "";
-        TxtNome.Text = produto.Nome;
-        TxtQuantidade.Text = produto.QuantidadeEstoque.ToString(
-            produto.QuantidadeEstoque % 1m == 0m ? "N0" : "N1",
-            FormattingHelper.CulturaPtBr);
-        TxtEstoqueMinimo.Text = produto.EstoqueMinimo.ToString(
-            produto.EstoqueMinimo % 1m == 0m ? "N0" : "N1",
-            FormattingHelper.CulturaPtBr);
-        TxtCusto.Text = FormattingHelper.FormatarMoedaEntrada(produto.Custo);
-        TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(produto.PrecoVenda);
-        TxtObservacoes.Text = produto.Observacoes ?? "";
+        ArgumentNullException.ThrowIfNull(produto);
 
-        foreach (ComboBoxItem item in CmbUnidade.Items)
-            if (item.Content?.ToString() == produto.Unidade) { CmbUnidade.SelectedItem = item; break; }
+        _suprimirEventosUi = true;
+        try
+        {
+            TxtTitulo.Text = "Editar Produto";
+            _produtoId = produto.Id;
+            _codigoDefinidoManualmente = true;
+            LimparErroValidacao();
+            ChkCustoTotal.IsChecked = false;
+            TxtCustoTotal.Text = string.Empty;
+            PainelCustoTotal.Visibility = Visibility.Collapsed;
+            TxtCusto.IsReadOnly = false;
+            DefinirCodigoInternoSemMarcarManual(produto.CodigoInterno ?? string.Empty);
+            TxtCodigoBarras.Text = produto.CodigoBarras ?? "";
+            TxtNome.Text = produto.Nome ?? string.Empty;
+            TxtQuantidade.Text = produto.QuantidadeEstoque.ToString(
+                produto.QuantidadeEstoque % 1m == 0m ? "N0" : "N1",
+                FormattingHelper.CulturaPtBr);
+            TxtEstoqueMinimo.Text = produto.EstoqueMinimo.ToString(
+                produto.EstoqueMinimo % 1m == 0m ? "N0" : "N1",
+                FormattingHelper.CulturaPtBr);
+            TxtCusto.Text = FormattingHelper.FormatarMoedaEntrada(produto.Custo);
+            TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(produto.PrecoVenda);
+            TxtObservacoes.Text = produto.Observacoes ?? "";
+
+            foreach (ComboBoxItem item in CmbUnidade.Items)
+            {
+                if (item.Content?.ToString() == produto.Unidade)
+                {
+                    CmbUnidade.SelectedItem = item;
+                    break;
+                }
+            }
+
+            AtualizarVisibilidadeLitragemGl();
+            if (produto.LitragemGl.HasValue)
+                SelecionarLitragemGl(produto.LitragemGl.Value);
+        }
+        finally
+        {
+            _suprimirEventosUi = false;
+        }
 
         _ = CarregarComboBoxesAsync(produto.CategoriaId, produto.MarcaId);
     }
@@ -124,6 +147,44 @@ public partial class ProdutoFormView : Window
     }
 
     private void BtnGerarCodigo_Click(object sender, RoutedEventArgs e) => _ = GerarCodigoAsync();
+
+    private void CmbUnidade_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suprimirEventosUi) return;
+        AtualizarVisibilidadeLitragemGl();
+    }
+
+    private void AtualizarVisibilidadeLitragemGl()
+    {
+        if (PainelLitragemGl is null || CmbUnidade is null) return;
+
+        var unidade = (CmbUnidade.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        PainelLitragemGl.Visibility = unidade == "GL" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void SelecionarLitragemGl(decimal litragem)
+    {
+        if (CmbLitragemGl is null) return;
+
+        foreach (ComboBoxItem item in CmbLitragemGl.Items)
+        {
+            if (item.Tag is string tag &&
+                decimal.TryParse(tag, NumberStyles.Any, CultureInfo.InvariantCulture, out var val) &&
+                val == litragem)
+            {
+                CmbLitragemGl.SelectedItem = item;
+                return;
+            }
+        }
+    }
+
+    private decimal? ObterLitragemGlSelecionada()
+    {
+        var unidade = (CmbUnidade.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        if (unidade != "GL") return null;
+        var tag = (CmbLitragemGl.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        return decimal.TryParse(tag, NumberStyles.Any, CultureInfo.InvariantCulture, out var val) ? val : null;
+    }
 
     private void ChkCustoTotal_Changed(object sender, RoutedEventArgs e)
     {
@@ -231,6 +292,7 @@ public partial class ProdutoFormView : Window
             var categoriaId = ObterIdSelecionado(CmbCategoria);
             var marcaId = ObterIdSelecionado(CmbMarca);
             var unidade = (CmbUnidade.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "UN";
+            var litragemGl = ObterLitragemGlSelecionada();
 
             BtnSalvar.IsEnabled = false;
             BtnSalvar.Content = "Salvando...";
@@ -248,6 +310,7 @@ public partial class ProdutoFormView : Window
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
+                    LitragemGl = litragemGl,
                     Custo = custo,
                     PrecoVenda = preco,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
@@ -266,6 +329,7 @@ public partial class ProdutoFormView : Window
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
+                    LitragemGl = litragemGl,
                     Custo = custo,
                     PrecoVenda = preco,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
@@ -309,6 +373,13 @@ public partial class ProdutoFormView : Window
         if (!categoriaId.HasValue || !marcaId.HasValue)
         {
             ExibirErroValidacao("Selecione uma Categoria e uma Marca válidas.");
+            return false;
+        }
+
+        var unidadeValidacao = (CmbUnidade.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        if (unidadeValidacao == "GL" && ObterLitragemGlSelecionada() is null)
+        {
+            ExibirErroValidacao("Selecione a litragem do Galão (3,6L ou 18L).");
             return false;
         }
 

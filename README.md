@@ -606,6 +606,9 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - Busca por nome, código interno ou código de barras
 - Suporte a leitura de código de barras (conecte o leitor USB e use no campo de busca)
 - Produto não encontrado: campo limpo automaticamente com alerta sonoro e mensagem em vermelho
+- **Unidades de Medida suportadas:** UN, GL (Galão), BD (Balde), LT (Litro), RL (Rolo), CX (Caixa), PCT (Pacote)
+- **Galão (GL):** ao selecionar GL, o campo **Litragem** aparece automaticamente com opções **3,6L** ou **18L** — salvo na coluna `litragem_gl` do banco e exibido no estoque e PDV (ex: `Tinta Coral (GL 18L)`)
+- **Balde (BD):** nova unidade para tintas vendidas em balde, disponível em todo o sistema
 
 ### PDV - Ponto de Venda
 - Atalho no menu: **PDV - Nova venda (F2)**
@@ -622,7 +625,27 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 ### Histórico de Vendas
 - Listagem paginada com filtro por período (coluna **Cliente** removida da grid; busca por nome de cliente ainda funciona)
 - Botão **Registrar Devolução** cancela vendas finalizadas e repõe estoque automaticamente (transação no PostgreSQL)
+- Botão **Registrar Troca** — módulo profissional de troca de produtos:
+  - **Etapa 1 – Item Devolvido:** selecione o produto da venda original e a quantidade devolvida
+  - **Checkbox:** "Retornar item devolvido para o estoque físico?" (para latas lacradas/não abertas)
+  - **Etapa 2 – Novo Item:** busca de produto por nome, código ou código de barras
+  - **Etapa 3 – Resumo Financeiro:** cálculo em tempo real da diferença
+    - Troca idêntica → `Troca Idêntica`
+    - Novo mais caro → `Diferença a Receber: R$ X` com seleção de forma de pagamento (Pix, Dinheiro, Débito, Crédito)
+    - Novo mais barato → `Diferença a Devolver: R$ Y`
+  - Toda a operação roda em uma única `IDbContextTransaction` — se qualquer etapa falhar, nada é salvo
+  - Movimentações de estoque registradas automaticamente com rastreabilidade (`Troca vinculada à Venda ID X`)
 - Impressão/visualização de cupom
+
+### Vendas Externas
+- Menu lateral **Vendas externas** (ícone 🚚), posicionado logo abaixo de **Vendas**
+- Consolida vendas realizadas fora do estabelecimento físico
+- **Fluxo A – Produto cadastrado:** busca por código de barras ou texto; preenche nome e preço base; informa quantidade e valor praticado na rua; ao concluir, dá baixa automática no estoque
+- **Fluxo B – Item manual:** nome, quantidade e valor unitário livres, sem vínculo com produto — computado apenas no faturamento, sem baixa de estoque
+- **Importador TXT:** formato `CODIGO_DE_BARRAS;NOME_DO_PRODUTO;QUANTIDADE` — grade de conferência editável antes da aprovação
+- Botão **Aprovar e Concluir Venda** grava venda + baixas em uma única transação (`IDbContextTransaction`); falha de estoque ou validação faz rollback completo
+- Número da venda: `EXT-yyyyMMdd-0001`
+- Tabelas PostgreSQL: `vendas_externas`, `itens_venda_externa`; movimentações de estoque vinculadas via `venda_externa_id`
 
 ### Clientes
 - Cadastro completo (nome, CPF, contatos, endereço com ViaCEP)
@@ -646,6 +669,18 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - Estoque completo (PDF e Excel)
 - Produtos com estoque baixo
 - Produtos sem estoque
+
+### Backup Automático Híbrido
+- Disparo silencioso na abertura da `MainWindow` (após login), em `Task.Run` — **não bloqueia** login, menu ou PDV
+- Verifica `DataUltimoBackup` na tabela PostgreSQL `parametros_sistema` (chave `DataUltimoBackup`)
+- Executa backup se nunca rodou ou se passaram **≥ 7 dias** (`BACKUP_INTERVALO_DIAS` no `.env`)
+- Destino padrão: `C:\backup_sistema\{mes-ano}\{dd-MM-yyyy}\` (ex.: `C:\backup_sistema\junho-2026\20-06-2026\`)
+- Conteúdo do backup diário:
+  - `backup_imperial_dd_MM_yyyy.sql` — dump completo via `pg_dump` (janela oculta)
+  - `appsettings.json` — configurações locais
+  - `logos_empresa\` — pasta de ícones/logos da interface e cupons
+- Em caso de falha: log silencioso em `C:\backup_sistema\backup_erros.log`; tenta novamente na próxima abertura
+- Variáveis `.env`: `BACKUP_PATH`, `BACKUP_INTERVALO_DIAS`, `BACKUP_PREFIXO_EMPRESA`, `PG_DUMP_PATH` (opcional)
 
 ### Configurações
 - Teste de conexão com o banco
@@ -698,12 +733,23 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 2. Clique em **+ Novo Produto**
 3. O código interno é gerado automaticamente (ou clique em "Gerar")
 4. **Categoria** e **Marca** são obrigatórias — use os botões **+** ao lado dos ComboBoxes para cadastro rápido
-5. Preço de custo e venda devem ser maiores que zero; estoque inicial não pode ser negativo
-6. Para usar código de barras: conecte o leitor USB e posicione o cursor no campo "Código de Barras"
-7. Preencha os demais campos e clique em **Salvar Produto**
-8. A listagem carrega **50 produtos por página** — use **◀ Anterior / Próxima ▶** para navegar
+5. Selecione a **Unidade** (UN, GL, BD, LT, RL, CX, PCT):
+   - Se **GL (Galão)** for selecionado, aparece automaticamente o campo **Litragem do Galão** com opções **3,6L** e **18L** — campo obrigatório para GL
+6. Preço de custo e venda devem ser maiores que zero; estoque inicial não pode ser negativo
+7. Para usar código de barras: conecte o leitor USB e posicione o cursor no campo "Código de Barras"
+8. Preencha os demais campos e clique em **Salvar Produto**
+9. A listagem carrega **50 produtos por página** — use **◀ Anterior / Próxima ▶** para navegar
 
 > **Exclusão:** Produtos e Fornecedores usam soft delete (`ativo = false`). O registro permanece no banco para integridade com movimentações/vendas, mas some das telas.
+
+### Registrar Troca de Produto
+1. Acesse **Histórico de Vendas** no menu lateral
+2. Selecione uma venda com status **Finalizada**
+3. Clique em **🔄 Registrar Troca**
+4. **Etapa 1:** selecione o produto devolvido e a quantidade; marque o checkbox se o item voltará ao estoque físico
+5. **Etapa 2:** busque o novo produto (nome, código ou barras) e informe a quantidade
+6. **Etapa 3:** o sistema calcula automaticamente a diferença; se houver valor a receber, selecione a forma de pagamento
+7. Clique em **✔ Confirmar Troca** — a operação é atômica (transação completa no PostgreSQL)
 
 ### Cadastro de clientes
 1. Acesse **Clientes** no menu
@@ -767,7 +813,7 @@ dotnet ef migrations remove --project src/ImperialColors.Infrastructure --startu
 
 | Tabela | Descrição |
 |---|---|
-| `produtos` | Cadastro de produtos |
+| `produtos` | Cadastro de produtos (coluna `litragem_gl` para Galão 3,6L/18L) |
 | `categorias` | Categorias de produtos |
 | `marcas` | Marcas de produtos |
 | `movimentacoes_estoque` | Histórico de movimentações |
@@ -776,7 +822,8 @@ dotnet ef migrations remove --project src/ImperialColors.Infrastructure --startu
 | `itens_venda` | Itens de cada venda |
 | `fornecedores` | Cadastro de fornecedores |
 | `listas_compra` | Listas de compras |
-| `itens_lista_compra` | Itens de cada lista |
+| `itens_lista_compra` | Itens de cada lista (produto de estoque ou item manual) |
+| `trocas` | Registro de trocas de produtos (vinculado à venda de origem, controle transacional) |
 | `usuarios` | Usuários do sistema (login e permissões) |
 
 ---

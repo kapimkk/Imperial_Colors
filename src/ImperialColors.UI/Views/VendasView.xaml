@@ -30,31 +30,40 @@
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                 <Button Style="{StaticResource BotaoSecundario}" Command="{Binding ImprimirCupomCommand}"
                         Margin="0,0,10,0" Content="🧾  Cupom"/>
+                <Button Style="{StaticResource BotaoSecundario}" Command="{Binding RegistrarTrocaCommand}"
+                        Margin="0,0,10,0" Content="🔄  Registrar Troca"/>
                 <Button Style="{StaticResource BotaoPerigo}" Command="{Binding CancelarVendaCommand}"
                         Margin="0,0,10,0" Content="↩  Registrar Devolução"/>
+                <Button Style="{StaticResource BotaoPerigo}" Command="{Binding ExcluirVendaCommand}"
+                        Margin="0,0,10,0" Content="🗑  Excluir Venda"/>
                 <Button Style="{StaticResource BotaoPrimario}" Command="{Binding NovaVendaCommand}"
                         Content="+ Nova Venda (PDV)"/>
             </StackPanel>
         </Grid>
 
         <Border Grid.Row="2" Style="{StaticResource Card}" Padding="15">
-            <Grid>
+            <Grid VerticalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="180"/>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="180"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="De:" VerticalAlignment="Center" Margin="0,0,8,0" Style="{StaticResource LabelCampo}"/>
-                <DatePicker Grid.Column="1" SelectedDate="{Binding DataInicio}" SelectedDateFormat="Short"/>
-                <TextBlock Grid.Column="2" Text="Até:" VerticalAlignment="Center" Margin="15,0,8,0" Style="{StaticResource LabelCampo}"/>
-                <DatePicker Grid.Column="3" SelectedDate="{Binding DataFim}" SelectedDateFormat="Short"/>
+                <TextBlock Grid.Column="0" Text="De:" VerticalAlignment="Center" Margin="0,0,8,0"
+                           Style="{StaticResource LabelCampo}"/>
+                <DatePicker Grid.Column="1" Style="{StaticResource DatePickerModerno}"
+                            SelectedDate="{Binding DataInicio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Grid.Column="2" Text="Até:" VerticalAlignment="Center" Margin="15,0,8,0"
+                           Style="{StaticResource LabelCampo}"/>
+                <DatePicker Grid.Column="3" Style="{StaticResource DatePickerModerno}"
+                            SelectedDate="{Binding DataFim, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                 <TextBox Grid.Column="4" Style="{StaticResource TextBoxFiltro}" Margin="15,0,15,0"
+                         VerticalAlignment="Center"
                          Text="{Binding TermoBusca, UpdateSourceTrigger=PropertyChanged}"/>
-                <Button Grid.Column="5" Style="{StaticResource BotaoPrimario}" Command="{Binding FiltrarCommand}"
-                        Content="🔍  Filtrar" Padding="15,8"/>
+                <Button Grid.Column="5" Style="{StaticResource BotaoPrimario}" VerticalAlignment="Center"
+                        Command="{Binding FiltrarCommand}" Content="🔍  Filtrar" Padding="15,8"/>
             </Grid>
         </Border>
 

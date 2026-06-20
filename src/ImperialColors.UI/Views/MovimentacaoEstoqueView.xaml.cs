@@ -23,8 +23,10 @@ public partial class MovimentacaoEstoqueView : Window
 
     public void InicializarProduto(ProdutoDto produto)
     {
+        ArgumentNullException.ThrowIfNull(produto);
+
         _produto = produto;
-        TxtNomeProduto.Text = $"{produto.CodigoInterno} - {produto.Nome}";
+        TxtNomeProduto.Text = $"{produto.CodigoInterno} - {produto.NomeExibicao}";
         TxtEstoqueAtual.Text = FormattingHelper.FormatarQuantidadeUnidade(produto.QuantidadeEstoque, produto.Unidade);
     }
 

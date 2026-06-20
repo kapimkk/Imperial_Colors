@@ -1,9 +1,8 @@
 using ClosedXML.Excel;
 
 using ImperialColors.Application.Configuration;
-
 using ImperialColors.Application.DTOs;
-
+using ImperialColors.Application.Helpers;
 using ImperialColors.Domain.Enums;
 
 using iText.IO.Font.Constants;
@@ -464,6 +463,89 @@ public class RelatorioService : IRelatorioService
 
                 if (p.SemEstoque) ws.Cell(row, 5).Style.Font.FontColor = XLColor.Red;
                 else if (p.EstoqueBaixo) ws.Cell(row, 5).Style.Font.FontColor = XLColor.Orange;
+
+                if (row % 2 == 0)
+                    ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);
+                row++;
+            }
+
+            ws.Columns().AdjustToContents();
+            workbook.SaveAs(caminhoArquivo);
+        });
+    }
+
+    public Task GerarTabelaPrecosPdfAsync(
+        IEnumerable<ProdutoDto> produtos,
+        string titulo,
+        string subtitulo,
+        decimal acrescimoPercentual,
+        string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var writer = new PdfWriter(caminhoArquivo);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf, iText.Kernel.Geom.PageSize.A4);
+            document.SetMargins(30, 30, 30, 30);
+
+            AdicionarCabecalhoRelatorio(document, titulo, subtitulo);
+
+            var tabela = new ITextTable(new float[] { 2.2f, 4.5f, 2f }).UseAllAvailableWidth();
+            AdicionarCabecalhoTabela(tabela, "CODIGO DE BARRAS", "NOME DO PRODUTO", "PRECO DE VENDA ATUAL");
+
+            var cultura = new System.Globalization.CultureInfo("pt-BR");
+            var listaOrdenada = BinarySearchCollectionHelper.OrdenarPorId(produtos, p => p.Id);
+            foreach (var produto in listaOrdenada.OrderBy(p => p.Nome))
+            {
+                var preco = TabelaPrecosHelper.CalcularPrecoExibicao(produto.PrecoVenda, acrescimoPercentual);
+                tabela.AddCell(CelulaTabela(TabelaPrecosHelper.ObterCodigoBarrasExibicao(produto.CodigoBarras, produto.CodigoInterno)));
+                tabela.AddCell(CelulaTabela(produto.NomeExibicao));
+                tabela.AddCell(CelulaTabela(preco.ToString("C2", cultura), TextAlignment.RIGHT));
+            }
+
+            document.Add(tabela);
+            document.Add(new ITextParagraph($"\nTotal de produtos: {produtos.Count()}")
+                .SetFont(ObterFonte()).SetFontSize(11));
+        });
+    }
+
+    public Task GerarTabelaPrecosExcelAsync(
+        IEnumerable<ProdutoDto> produtos,
+        string titulo,
+        decimal acrescimoPercentual,
+        string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Tabela de Precos");
+
+            ws.Cell(1, 1).Value = $"{_config.EmpresaNome} - {titulo}";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+            ws.Range(1, 1, 1, 3).Merge();
+
+            ws.Cell(2, 1).Value = $"Gerado em: {DateTime.Now:dd/MM/yyyy HH:mm}";
+            ws.Range(2, 1, 2, 3).Merge();
+
+            var headers = new[] { "CODIGO DE BARRAS", "NOME DO PRODUTO", "PRECO DE VENDA ATUAL" };
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(4, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Fill.BackgroundColor = XLColor.FromArgb(245, 194, 0);
+                cell.Style.Font.Bold = true;
+            }
+
+            int row = 5;
+            var listaOrdenada = BinarySearchCollectionHelper.OrdenarPorId(produtos, p => p.Id);
+            foreach (var produto in listaOrdenada.OrderBy(p => p.Nome))
+            {
+                var preco = TabelaPrecosHelper.CalcularPrecoExibicao(produto.PrecoVenda, acrescimoPercentual);
+                ws.Cell(row, 1).Value = TabelaPrecosHelper.ObterCodigoBarrasExibicao(produto.CodigoBarras, produto.CodigoInterno);
+                ws.Cell(row, 2).Value = produto.NomeExibicao;
+                ws.Cell(row, 3).Value = preco;
+                ws.Cell(row, 3).Style.NumberFormat.Format = "R$ #,##0.00";
 
                 if (row % 2 == 0)
                     ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);

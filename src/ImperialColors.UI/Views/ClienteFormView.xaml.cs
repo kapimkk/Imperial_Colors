@@ -13,6 +13,8 @@ public partial class ClienteFormView : Window
     private int? _clienteId;
     private bool _suprimirMascaraCpf;
     private bool _suprimirMascaraCep;
+    private bool _suprimirMascaraTelefone;
+    private bool _suprimirMascaraWhatsApp;
     private bool _consultandoCep;
     private CancellationTokenSource? _cepCts;
 
@@ -34,14 +36,20 @@ public partial class ClienteFormView : Window
 
     public void InicializarEdicao(ClienteDto cliente)
     {
+        ArgumentNullException.ThrowIfNull(cliente);
+
         TxtTitulo.Text = "Editar Cliente";
         _clienteId = cliente.Id;
-        TxtNome.Text = cliente.Nome;
+        TxtNome.Text = cliente.Nome ?? string.Empty;
         _suprimirMascaraCpf = true;
         TxtCpf.Text = DocumentoHelper.AplicarMascaraCpf(cliente.Cpf);
         _suprimirMascaraCpf = false;
-        TxtTelefone.Text = cliente.Telefone ?? string.Empty;
-        TxtWhatsApp.Text = cliente.WhatsApp ?? string.Empty;
+        _suprimirMascaraTelefone = true;
+        TxtTelefone.Text = DocumentoHelper.AplicarMascaraCelular(cliente.Telefone);
+        _suprimirMascaraTelefone = false;
+        _suprimirMascaraWhatsApp = true;
+        TxtWhatsApp.Text = DocumentoHelper.AplicarMascaraCelular(cliente.WhatsApp);
+        _suprimirMascaraWhatsApp = false;
         TxtEmail.Text = cliente.Email ?? string.Empty;
         _suprimirMascaraCep = true;
         TxtCep.Text = DocumentoHelper.AplicarMascaraCep(cliente.Cep);
@@ -66,6 +74,25 @@ public partial class ClienteFormView : Window
         TxtCpf.Text = DocumentoHelper.AplicarMascaraCpf(TxtCpf.Text);
         TxtCpf.SelectionStart = Math.Min(TxtCpf.Text.Length, digitsAntes + (digitsAntes > 3 ? 1 : 0) + (digitsAntes > 6 ? 1 : 0) + (digitsAntes > 9 ? 1 : 0));
         _suprimirMascaraCpf = false;
+    }
+
+    private void TxtTelefone_TextChanged(object sender, TextChangedEventArgs e)
+        => AplicarMascaraCelular(TxtTelefone, ref _suprimirMascaraTelefone);
+
+    private void TxtWhatsApp_TextChanged(object sender, TextChangedEventArgs e)
+        => AplicarMascaraCelular(TxtWhatsApp, ref _suprimirMascaraWhatsApp);
+
+    private static void AplicarMascaraCelular(TextBox textBox, ref bool suprimirFlag)
+    {
+        if (suprimirFlag) return;
+
+        suprimirFlag = true;
+        var cursor = textBox.SelectionStart;
+        var textoAntes = textBox.Text[..Math.Min(cursor, textBox.Text.Length)];
+        var digitosAntes = DocumentoHelper.SomenteDigitos(textoAntes).Length;
+        textBox.Text = DocumentoHelper.AplicarMascaraCelular(textBox.Text);
+        textBox.SelectionStart = DocumentoHelper.CalcularPosicaoCursorCelular(textBox.Text, digitosAntes);
+        suprimirFlag = false;
     }
 
     private void TxtCep_TextChanged(object sender, TextChangedEventArgs e)

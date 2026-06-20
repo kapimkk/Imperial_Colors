@@ -18,4 +18,5 @@ public interface IVendaRepository : IRepository<Venda>
         CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Venda>> ObterUltimasFinalizadasAsync(int quantidade = 5, CancellationToken cancellationToken = default);
     Task CancelarComEstornoAsync(int vendaId, CancellationToken cancellationToken = default);
+    Task ExcluirFisicamenteComEstornoAsync(int vendaId, CancellationToken cancellationToken = default);
 }

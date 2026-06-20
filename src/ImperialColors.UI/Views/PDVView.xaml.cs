@@ -24,6 +24,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
     private TipoDescontoVenda _tipoDesconto = TipoDescontoVenda.Valor;
     private decimal _descontoEmReais;
+    private List<ItemVendaDto> _indiceItensPorProdutoId = new();
     private ObservableCollection<ItemVendaDto> _itensVenda = new();
     public ObservableCollection<ItemVendaDto> ItensVenda
     {
@@ -236,7 +237,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
             return;
         }
 
-        var itemExistente = ItensVenda.FirstOrDefault(i => i.ProdutoId == produto.Id);
+        var itemExistente = BuscarItemPorProdutoId(produto.Id);
         if (itemExistente is not null)
         {
             if (itemExistente.Quantidade + 1 > produto.QuantidadeEstoque)
@@ -247,6 +248,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
             itemExistente.Quantidade += 1;
             itemExistente.Subtotal = itemExistente.Quantidade * itemExistente.PrecoUnitario - itemExistente.Desconto;
             DgItens.Items.Refresh();
+            ReindexarItensVenda();
         }
         else
         {
@@ -261,6 +263,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
                 Subtotal = produto.PrecoVenda,
                 Unidade = produto.Unidade
             });
+            ReindexarItensVenda();
         }
 
         CancelarLeituraBarrasPendente();
@@ -277,6 +280,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
         if ((sender as Button)?.Tag is ItemVendaDto item)
         {
             ItensVenda.Remove(item);
+            ReindexarItensVenda();
             AtualizarTotais();
         }
     }
@@ -299,6 +303,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
             if (item.Quantidade <= 1)
             {
                 ItensVenda.Remove(item);
+                ReindexarItensVenda();
             }
             else
             {
@@ -330,6 +335,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
             MessageBox.Show("Limpar todos os itens?", "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
         {
             ItensVenda.Clear();
+            ReindexarItensVenda();
             AtualizarTotais();
         }
     }
@@ -435,6 +441,12 @@ public partial class PDVView : Window, INotifyPropertyChanged
             Close();
         }
     }
+
+    private void ReindexarItensVenda()
+        => _indiceItensPorProdutoId = BinarySearchCollectionHelper.OrdenarPorId(ItensVenda, i => i.ProdutoId);
+
+    private ItemVendaDto? BuscarItemPorProdutoId(int produtoId)
+        => BinarySearchCollectionHelper.FindById(_indiceItensPorProdutoId, produtoId, i => i.ProdutoId);
 
     private void NotifyPropertyChanged([CallerMemberName] string name = "")
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

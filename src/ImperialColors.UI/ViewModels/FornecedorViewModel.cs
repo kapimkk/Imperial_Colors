@@ -22,7 +22,7 @@ public class FornecedorViewModel : BaseViewModel
     public FornecedorDto? FornecedorSelecionado
     {
         get => _fornecedorSelecionado;
-        set { SetProperty(ref _fornecedorSelecionado, value); OnPropertyChanged(nameof(TemSelecao)); }
+        set { SetProperty(ref _fornecedorSelecionado, value); OnPropertyChanged(nameof(TemSelecao)); NotifyCanExecuteChanged(); }
     }
 
     public bool TemSelecao => FornecedorSelecionado is not null;
@@ -162,31 +162,48 @@ public class FornecedorViewModel : BaseViewModel
         return Task.CompletedTask;
     }
 
-    private Task AbrirEditar()
+    private async Task AbrirEditar()
     {
-        if (FornecedorSelecionado is null) return Task.CompletedTask;
+        if (!ValidarSelecao(FornecedorSelecionado, "fornecedor"))
+            return;
+
+        var fornecedorId = FornecedorSelecionado!.Id;
+
         try
         {
+            var fornecedor = await _fornecedorService.ObterPorIdAsync(fornecedorId);
+            if (fornecedor is null)
+            {
+                MostrarErro("Fornecedor não encontrado ou foi removido.");
+                return;
+            }
+
             using var escopo = _scopeFactory.CreateScope();
             var form = escopo.ServiceProvider.GetRequiredService<Views.FornecedorFormView>();
-            form.InicializarEdicao(FornecedorSelecionado);
+            form.InicializarEdicao(fornecedor);
             if (ModalWindowHelper.ExibirDialogo(form) == true)
-                _ = CarregarAsync();
+                await CarregarAsync();
         }
         catch (Exception ex)
         {
             MostrarErro($"Erro ao abrir edição: {ex.Message}");
         }
-        return Task.CompletedTask;
+    }
+
+    public void ExecutarEdicaoSeSelecionado()
+    {
+        if (ValidarSelecao(FornecedorSelecionado, "fornecedor"))
+            EditarFornecedorCommand.Execute(null);
     }
 
     private async Task Excluir()
     {
-        if (FornecedorSelecionado is null) return;
-        if (!ConfirmarAcao($"Deseja excluir o fornecedor '{FornecedorSelecionado.Nome}'?")) return;
+        if (!ValidarSelecao(FornecedorSelecionado, "fornecedor"))
+            return;
+        if (!ConfirmarAcao($"Deseja excluir o fornecedor '{FornecedorSelecionado!.Nome}'?")) return;
         try
         {
-            await _fornecedorService.RemoverAsync(FornecedorSelecionado.Id);
+            await _fornecedorService.RemoverAsync(FornecedorSelecionado!.Id);
             MostrarSucesso("Fornecedor excluído!");
             await CarregarAsync();
         }

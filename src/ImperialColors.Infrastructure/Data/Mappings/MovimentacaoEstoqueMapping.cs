@@ -19,12 +19,14 @@ public class MovimentacaoEstoqueMapping : IEntityTypeConfiguration<MovimentacaoE
         builder.Property(m => m.Motivo).HasColumnName("motivo").HasMaxLength(500);
         builder.Property(m => m.Usuario).HasColumnName("usuario").HasMaxLength(100);
         builder.Property(m => m.VendaId).HasColumnName("venda_id");
+        builder.Property(m => m.VendaExternaId).HasColumnName("venda_externa_id");
         builder.Property(m => m.CriadoEm).HasColumnName("criado_em");
         builder.Property(m => m.AtualizadoEm).HasColumnName("atualizado_em");
         builder.Property(m => m.Ativo).HasColumnName("ativo");
 
         builder.HasOne(m => m.Produto).WithMany(p => p.Movimentacoes).HasForeignKey(m => m.ProdutoId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(m => m.Venda).WithMany(v => v.Movimentacoes).HasForeignKey(m => m.VendaId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(m => m.VendaExterna).WithMany(v => v.Movimentacoes).HasForeignKey(m => m.VendaExternaId).OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(m => m.CriadoEm);
         builder.HasIndex(m => m.ProdutoId);

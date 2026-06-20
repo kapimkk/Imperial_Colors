@@ -18,7 +18,7 @@ public class AppConfigService : IAppConfigService
         IconPath = ResolverCaminhoRecurso(Obter("ICON_PATH", "icons/logoimperialcolors.ico"));
         LogoPath = ResolverCaminhoRecurso(Obter("LOGO_PATH", "icons/logoimperialcolors.png"));
         LogoSemFundoPath = ResolverCaminhoRecurso(Obter("LOGO_SEM_FUNDO_PATH", "icons/logoimperialcolors-nobg.png"));
-        BackupPath = Obter("BACKUP_PATH", string.Empty);
+        BackupPath = Obter("BACKUP_PATH", @"C:\backup_sistema");
     }
 
     public string ConnectionString { get; }

@@ -14,6 +14,8 @@ public partial class FornecedorFormView : Window
     private int? _fornecedorId;
     private bool _suprimirMascaraCnpj;
     private bool _suprimirMascaraCep;
+    private bool _suprimirMascaraTelefone;
+    private bool _suprimirMascaraWhatsApp;
     private bool _consultandoCep;
     private bool _consultandoCnpj;
     private CancellationTokenSource? _cepCts;
@@ -41,14 +43,20 @@ public partial class FornecedorFormView : Window
 
     public void InicializarEdicao(FornecedorDto fornecedor)
     {
+        ArgumentNullException.ThrowIfNull(fornecedor);
+
         TxtTitulo.Text = "Editar Fornecedor";
         _fornecedorId = fornecedor.Id;
         _suprimirMascaraCnpj = true;
         TxtCnpj.Text = DocumentoHelper.AplicarMascaraCnpj(fornecedor.Cnpj);
         _suprimirMascaraCnpj = false;
-        TxtNome.Text = fornecedor.Nome;
-        TxtTelefone.Text = fornecedor.Telefone ?? string.Empty;
-        TxtWhatsApp.Text = fornecedor.WhatsApp ?? string.Empty;
+        TxtNome.Text = fornecedor.Nome ?? string.Empty;
+        _suprimirMascaraTelefone = true;
+        TxtTelefone.Text = DocumentoHelper.AplicarMascaraCelular(fornecedor.Telefone);
+        _suprimirMascaraTelefone = false;
+        _suprimirMascaraWhatsApp = true;
+        TxtWhatsApp.Text = DocumentoHelper.AplicarMascaraCelular(fornecedor.WhatsApp);
+        _suprimirMascaraWhatsApp = false;
         TxtEmail.Text = fornecedor.Email ?? string.Empty;
         _suprimirMascaraCep = true;
         TxtCep.Text = DocumentoHelper.AplicarMascaraCep(fornecedor.Cep);
@@ -71,6 +79,25 @@ public partial class FornecedorFormView : Window
         TxtCnpj.Text = DocumentoHelper.AplicarMascaraCnpj(TxtCnpj.Text);
         TxtCnpj.SelectionStart = TxtCnpj.Text.Length;
         _suprimirMascaraCnpj = false;
+    }
+
+    private void TxtTelefone_TextChanged(object sender, TextChangedEventArgs e)
+        => AplicarMascaraCelular(TxtTelefone, ref _suprimirMascaraTelefone);
+
+    private void TxtWhatsApp_TextChanged(object sender, TextChangedEventArgs e)
+        => AplicarMascaraCelular(TxtWhatsApp, ref _suprimirMascaraWhatsApp);
+
+    private static void AplicarMascaraCelular(TextBox textBox, ref bool suprimirFlag)
+    {
+        if (suprimirFlag) return;
+
+        suprimirFlag = true;
+        var cursor = textBox.SelectionStart;
+        var textoAntes = textBox.Text[..Math.Min(cursor, textBox.Text.Length)];
+        var digitosAntes = DocumentoHelper.SomenteDigitos(textoAntes).Length;
+        textBox.Text = DocumentoHelper.AplicarMascaraCelular(textBox.Text);
+        textBox.SelectionStart = DocumentoHelper.CalcularPosicaoCursorCelular(textBox.Text, digitosAntes);
+        suprimirFlag = false;
     }
 
     private void TxtCep_TextChanged(object sender, TextChangedEventArgs e)
@@ -175,7 +202,11 @@ public partial class FornecedorFormView : Window
             TxtNome.Text = dados.RazaoSocial;
 
             if (!string.IsNullOrWhiteSpace(dados.Telefone))
-                TxtTelefone.Text = dados.Telefone;
+            {
+                _suprimirMascaraTelefone = true;
+                TxtTelefone.Text = DocumentoHelper.AplicarMascaraCelular(dados.Telefone);
+                _suprimirMascaraTelefone = false;
+            }
             if (!string.IsNullOrWhiteSpace(dados.Email))
                 TxtEmail.Text = dados.Email;
 

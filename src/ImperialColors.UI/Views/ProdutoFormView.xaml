@@ -124,7 +124,7 @@
                         <ColumnDefinition Width="15"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="15"/>
-                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="110"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Grid.Column="0">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Quantidade em Estoque"/>
@@ -137,15 +137,36 @@
                     </StackPanel>
                     <StackPanel Grid.Column="4">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Unidade"/>
-                        <ComboBox x:Name="CmbUnidade" Style="{StaticResource ComboBoxModerno}">
+                        <ComboBox x:Name="CmbUnidade" Style="{StaticResource ComboBoxModerno}"
+                                  SelectionChanged="CmbUnidade_SelectionChanged">
                             <ComboBoxItem Content="UN" IsSelected="True"/>
                             <ComboBoxItem Content="GL"/>
+                            <ComboBoxItem Content="BD"/>
                             <ComboBoxItem Content="LT"/>
                             <ComboBoxItem Content="RL"/>
                             <ComboBoxItem Content="CX"/>
                             <ComboBoxItem Content="PCT"/>
                         </ComboBox>
                     </StackPanel>
+                </Grid>
+
+                <!-- Litragem GL (visível somente quando Galão for selecionado) -->
+                <Grid x:Name="PainelLitragemGl" Margin="0,0,0,12" Visibility="Collapsed">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Litragem do Galão *"/>
+                        <ComboBox x:Name="CmbLitragemGl" Style="{StaticResource ComboBoxModerno}">
+                            <ComboBoxItem Content="3,6L" Tag="3.6" IsSelected="True"/>
+                            <ComboBoxItem Content="18L" Tag="18"/>
+                        </ComboBox>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" VerticalAlignment="Bottom" Margin="12,0,0,6"
+                               FontSize="12" Foreground="{StaticResource CinzaTextoBrush}"
+                               Text="Galão padrão tinta imobiliária (3,6L) ou galão industrial (18L)."
+                               TextWrapping="Wrap"/>
                 </Grid>
 
                 <!-- Custo e Preço de Venda -->

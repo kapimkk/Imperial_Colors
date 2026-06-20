@@ -72,10 +72,8 @@
 
                     <TextBlock Style="{StaticResource LabelCampo}" Text="Senha"/>
 
-                    <PasswordBox x:Name="TxtSenhaLogin" Margin="0,0,0,20" Padding="10,8"
-
+                    <PasswordBox x:Name="TxtSenhaLogin" Style="{StaticResource PasswordBoxModerno}" Margin="0,0,0,20"
                                  KeyDown="TxtSenhaLogin_KeyDown"
-
                                  PasswordChanged="TxtSenhaLogin_PasswordChanged"/>
 
 
@@ -128,16 +126,14 @@
 
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Senha"/>
 
-                        <PasswordBox x:Name="TxtSenhaCadastro" Margin="0,0,0,12" Padding="10,8"
-
+                        <PasswordBox x:Name="TxtSenhaCadastro" Style="{StaticResource PasswordBoxModerno}" Margin="0,0,0,12"
                                    PasswordChanged="TxtSenhaCadastro_PasswordChanged"/>
 
 
 
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Confirmar Senha"/>
 
-                        <PasswordBox x:Name="TxtConfirmarSenha" Margin="0,0,0,16" Padding="10,8"
-
+                        <PasswordBox x:Name="TxtConfirmarSenha" Style="{StaticResource PasswordBoxModerno}" Margin="0,0,0,16"
                                      PasswordChanged="TxtConfirmarSenha_PasswordChanged"/>
 
 

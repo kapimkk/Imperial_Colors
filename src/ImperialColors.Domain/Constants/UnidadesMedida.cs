@@ -2,7 +2,7 @@ namespace ImperialColors.Domain.Constants;
 
 public static class UnidadesMedida
 {
-    public static readonly string[] Todas = ["UN", "GL", "LT", "RL", "CX", "PCT"];
+    public static readonly string[] Todas = ["UN", "GL", "LT", "RL", "CX", "PCT", "BD"];
 
     public static bool EhValida(string? unidade)
         => !string.IsNullOrWhiteSpace(unidade) &&

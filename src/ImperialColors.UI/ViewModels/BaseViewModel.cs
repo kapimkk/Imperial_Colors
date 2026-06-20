@@ -2,6 +2,7 @@ using ImperialColors.UI.Helpers;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Input;
 
 namespace ImperialColors.UI.ViewModels;
 
@@ -13,7 +14,15 @@ public abstract class BaseViewModel : INotifyPropertyChanged
     public bool Carregando
     {
         get => _carregando;
-        set => SetProperty(ref _carregando, value);
+        set
+        {
+            if (EqualityComparer<bool>.Default.Equals(_carregando, value))
+                return;
+
+            _carregando = value;
+            OnPropertyChanged();
+            NotifyCanExecuteChanged();
+        }
     }
 
     private string _mensagemErro = string.Empty;
@@ -53,4 +62,26 @@ public abstract class BaseViewModel : INotifyPropertyChanged
             confirmou = MessageBox.Show(mensagem, "Confirmar", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes);
         return confirmou;
     }
+
+    protected void MostrarAvisoSelecao(string entidade = "item", string? mensagem = null)
+    {
+        UiDispatcher.ExecutarNaUi(() =>
+            MessageBox.Show(
+                mensagem ?? $"Por favor, selecione um {entidade} na lista para poder editar.",
+                "Aviso",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning));
+    }
+
+    protected bool ValidarSelecao(object? item, string entidade = "item", string? mensagem = null)
+    {
+        if (item is not null)
+            return true;
+
+        MostrarAvisoSelecao(entidade, mensagem);
+        return false;
+    }
+
+    protected void NotifyCanExecuteChanged()
+        => UiDispatcher.ExecutarNaUi(CommandManager.InvalidateRequerySuggested);
 }

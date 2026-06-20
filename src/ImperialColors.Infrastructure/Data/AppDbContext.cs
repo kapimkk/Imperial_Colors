@@ -18,6 +18,10 @@ public class AppDbContext : DbContext
     public DbSet<ListaCompra> ListasCompra { get; set; }
     public DbSet<ItemListaCompra> ItensListaCompra { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
+    public DbSet<Troca> Trocas { get; set; }
+    public DbSet<VendaExterna> VendasExternas { get; set; }
+    public DbSet<ItemVendaExterna> ItensVendaExterna { get; set; }
+    public DbSet<ParametroSistema> ParametrosSistema { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

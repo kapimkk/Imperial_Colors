@@ -4,6 +4,8 @@ using ImperialColors.UI.Services;
 
 using ImperialColors.UI.ViewModels;
 
+using ImperialColors.Application.Interfaces;
+
 using Microsoft.Extensions.DependencyInjection;
 
 using System.Windows;
@@ -32,6 +34,8 @@ public partial class MainWindow : Window
 
     private readonly IAppConfigService _config;
 
+    private readonly IBackupService _backupService;
+
     private readonly DispatcherTimer _relogio;
 
     private Button? _botaoMenuAtual;
@@ -42,7 +46,7 @@ public partial class MainWindow : Window
 
     public MainWindow(IServiceProvider serviceProvider, IServiceScopeFactory scopeFactory,
 
-        ISessaoService sessaoService, IAppConfigService config)
+        ISessaoService sessaoService, IAppConfigService config, IBackupService backupService)
 
     {
 
@@ -55,6 +59,8 @@ public partial class MainWindow : Window
         _sessaoService = sessaoService;
 
         _config = config;
+
+        _backupService = backupService;
 
 
 
@@ -85,6 +91,8 @@ public partial class MainWindow : Window
 
 
         NavigateToDashboard();
+
+        _backupService.IniciarVerificacaoEmSegundoPlano();
 
         Closed += (_, _) => _escopoPagina?.Dispose();
         PreviewKeyDown += JanelaPrincipal_PreviewKeyDown;
@@ -258,6 +266,24 @@ public partial class MainWindow : Window
         var vm = ObterServicosPagina().GetRequiredService<VendaViewModel>();
 
         ConteudoPrincipal.Content = new VendasView(vm);
+
+        _ = vm.CarregarAsync();
+
+    }
+
+
+
+    private void BtnVendasExternas_Click(object sender, RoutedEventArgs e)
+
+    {
+
+        DefinirMenuAtivo(BtnVendasExternas);
+
+        TxtTituloPagina.Text = "Vendas Externas";
+
+        var vm = ObterServicosPagina().GetRequiredService<VendaExternaViewModel>();
+
+        ConteudoPrincipal.Content = new VendasExternasView(vm);
 
         _ = vm.CarregarAsync();
 

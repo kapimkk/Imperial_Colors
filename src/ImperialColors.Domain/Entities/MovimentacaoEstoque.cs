@@ -12,7 +12,9 @@ public class MovimentacaoEstoque : BaseEntity
     public string Motivo { get; set; } = string.Empty;
     public string? Usuario { get; set; }
     public int? VendaId { get; set; }
+    public int? VendaExternaId { get; set; }
 
     public Produto Produto { get; set; } = null!;
     public Venda? Venda { get; set; }
+    public VendaExterna? VendaExterna { get; set; }
 }

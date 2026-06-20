@@ -48,20 +48,22 @@ public partial class ListaCompraFormView : Window
 
     public void InicializarEdicao(ListaCompraDto lista)
     {
+        ArgumentNullException.ThrowIfNull(lista);
+
         TxtTitulo.Text = "Editar Lista de Compras";
         _listaId = lista.Id;
-        TxtNome.Text = lista.Nome;
+        TxtNome.Text = lista.Nome ?? string.Empty;
         TxtObservacoes.Text = lista.Observacoes ?? string.Empty;
         _itens.Clear();
 
-        foreach (var item in lista.Itens)
+        foreach (var item in lista.Itens ?? [])
         {
             _itens.Add(new ItemListaCompraFormModel
             {
                 ProdutoId = item.ProdutoId,
-                NomeProduto = item.NomeProduto,
+                NomeProduto = item.NomeProduto ?? string.Empty,
                 EhManual = item.ItemManual,
-                Unidade = item.Unidade,
+                Unidade = item.Unidade ?? "UN",
                 QuantidadeDesejada = item.QuantidadeDesejada,
                 QuantidadeComprada = item.QuantidadeComprada,
                 Comprado = item.Comprado,

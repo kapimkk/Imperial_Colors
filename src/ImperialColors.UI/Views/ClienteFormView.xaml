@@ -52,11 +52,13 @@
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
                             <TextBlock Style="{StaticResource LabelCampo}" Text="Telefone"/>
-                            <TextBox x:Name="TxtTelefone" Style="{StaticResource TextBoxModerno}"/>
+                            <TextBox x:Name="TxtTelefone" Style="{StaticResource TextBoxModerno}"
+                                     MaxLength="16" TextChanged="TxtTelefone_TextChanged"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Style="{StaticResource LabelCampo}" Text="WhatsApp"/>
-                            <TextBox x:Name="TxtWhatsApp" Style="{StaticResource TextBoxModerno}"/>
+                            <TextBox x:Name="TxtWhatsApp" Style="{StaticResource TextBoxModerno}"
+                                     MaxLength="16" TextChanged="TxtWhatsApp_TextChanged"/>
                         </StackPanel>
                     </Grid>
 

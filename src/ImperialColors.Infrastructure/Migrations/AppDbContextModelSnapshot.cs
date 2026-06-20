@@ -362,6 +362,75 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.ToTable("itens_venda", (string)null);
                 });
 
+            modelBuilder.Entity("ImperialColors.Domain.Entities.ItemVendaExterna", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativo");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("atualizado_em");
+
+                    b.Property<string>("CodigoBarras")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("codigo_barras");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<string>("NomeProduto")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_produto");
+
+                    b.Property<decimal>("PrecoBase")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("preco_base");
+
+                    b.Property<decimal>("PrecoUnitario")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("preco_unitario");
+
+                    b.Property<int?>("ProdutoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("produto_id");
+
+                    b.Property<decimal>("Quantidade")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("quantidade");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("subtotal");
+
+                    b.Property<int>("VendaExternaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("venda_externa_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProdutoId");
+
+                    b.HasIndex("VendaExternaId");
+
+                    b.ToTable("itens_venda_externa", (string)null);
+                });
+
             modelBuilder.Entity("ImperialColors.Domain.Entities.ListaCompra", b =>
                 {
                     b.Property<int>("Id")
@@ -502,6 +571,10 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("usuario");
 
+                    b.Property<int?>("VendaExternaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("venda_externa_id");
+
                     b.Property<int?>("VendaId")
                         .HasColumnType("integer")
                         .HasColumnName("venda_id");
@@ -512,9 +585,51 @@ namespace ImperialColors.Infrastructure.Migrations
 
                     b.HasIndex("ProdutoId");
 
+                    b.HasIndex("VendaExternaId");
+
                     b.HasIndex("VendaId");
 
                     b.ToTable("movimentacoes_estoque", (string)null);
+                });
+
+            modelBuilder.Entity("ImperialColors.Domain.Entities.ParametroSistema", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("atualizado_em");
+
+                    b.Property<string>("Chave")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("chave");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<DateTime?>("ValorData")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("valor_data");
+
+                    b.Property<string>("ValorTexto")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("valor_texto");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Chave")
+                        .IsUnique();
+
+                    b.ToTable("parametros_sistema", (string)null);
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Produto", b =>
@@ -563,6 +678,11 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("numeric(10,3)")
                         .HasColumnName("estoque_minimo");
 
+                    b.Property<decimal?>("LitragemGl")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("numeric(6,2)")
+                        .HasColumnName("litragem_gl");
+
                     b.Property<int?>("MarcaId")
                         .HasColumnType("integer")
                         .HasColumnName("marca_id");
@@ -607,6 +727,92 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.HasIndex("Nome");
 
                     b.ToTable("produtos", (string)null);
+                });
+
+            modelBuilder.Entity("ImperialColors.Domain.Entities.Troca", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativo");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("atualizado_em");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<DateTime>("DataTroca")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_troca");
+
+                    b.Property<int?>("FormaPagamentoDiferenca")
+                        .HasColumnType("integer")
+                        .HasColumnName("forma_pagamento_diferenca");
+
+                    b.Property<string>("Observacoes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("observacoes");
+
+                    b.Property<int>("ProdutoDevolvidoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("produto_devolvido_id");
+
+                    b.Property<int>("ProdutoNovoId")
+                        .HasColumnType("integer")
+                        .HasColumnName("produto_novo_id");
+
+                    b.Property<decimal>("QuantidadeDevolvida")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("quantidade_devolvida");
+
+                    b.Property<decimal>("QuantidadeNova")
+                        .HasPrecision(10, 3)
+                        .HasColumnType("numeric(10,3)")
+                        .HasColumnName("quantidade_nova");
+
+                    b.Property<bool>("RetornarAoEstoque")
+                        .HasColumnType("boolean")
+                        .HasColumnName("retornar_ao_estoque");
+
+                    b.Property<string>("Usuario")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("usuario");
+
+                    b.Property<decimal>("ValorUnitarioDevolucao")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("valor_unitario_devolucao");
+
+                    b.Property<decimal>("ValorUnitarioNovo")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("valor_unitario_novo");
+
+                    b.Property<int>("VendaOrigemId")
+                        .HasColumnType("integer")
+                        .HasColumnName("venda_origem_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProdutoDevolvidoId");
+
+                    b.HasIndex("ProdutoNovoId");
+
+                    b.HasIndex("VendaOrigemId");
+
+                    b.ToTable("trocas", (string)null);
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Usuario", b =>
@@ -764,6 +970,67 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.ToTable("vendas", (string)null);
                 });
 
+            modelBuilder.Entity("ImperialColors.Domain.Entities.VendaExterna", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativo");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("atualizado_em");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<DateTime>("DataVenda")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_venda");
+
+                    b.Property<string>("NumeroVendaExterna")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("numero_venda_externa");
+
+                    b.Property<string>("Observacoes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("observacoes");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("subtotal");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)")
+                        .HasColumnName("total");
+
+                    b.Property<string>("Usuario")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("usuario");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DataVenda");
+
+                    b.HasIndex("NumeroVendaExterna")
+                        .IsUnique();
+
+                    b.ToTable("vendas_externas", (string)null);
+                });
+
             modelBuilder.Entity("ImperialColors.Domain.Entities.ItemListaCompra", b =>
                 {
                     b.HasOne("ImperialColors.Domain.Entities.ListaCompra", "ListaCompra")
@@ -801,6 +1068,24 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.Navigation("Venda");
                 });
 
+            modelBuilder.Entity("ImperialColors.Domain.Entities.ItemVendaExterna", b =>
+                {
+                    b.HasOne("ImperialColors.Domain.Entities.Produto", "Produto")
+                        .WithMany()
+                        .HasForeignKey("ProdutoId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ImperialColors.Domain.Entities.VendaExterna", "VendaExterna")
+                        .WithMany("Itens")
+                        .HasForeignKey("VendaExternaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Produto");
+
+                    b.Navigation("VendaExterna");
+                });
+
             modelBuilder.Entity("ImperialColors.Domain.Entities.ListaCompra", b =>
                 {
                     b.HasOne("ImperialColors.Domain.Entities.Fornecedor", "Fornecedor")
@@ -819,6 +1104,11 @@ namespace ImperialColors.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ImperialColors.Domain.Entities.VendaExterna", "VendaExterna")
+                        .WithMany("Movimentacoes")
+                        .HasForeignKey("VendaExternaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ImperialColors.Domain.Entities.Venda", "Venda")
                         .WithMany("Movimentacoes")
                         .HasForeignKey("VendaId")
@@ -827,6 +1117,8 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.Navigation("Produto");
 
                     b.Navigation("Venda");
+
+                    b.Navigation("VendaExterna");
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Produto", b =>
@@ -844,6 +1136,33 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.Navigation("Categoria");
 
                     b.Navigation("Marca");
+                });
+
+            modelBuilder.Entity("ImperialColors.Domain.Entities.Troca", b =>
+                {
+                    b.HasOne("ImperialColors.Domain.Entities.Produto", "ProdutoDevolvido")
+                        .WithMany()
+                        .HasForeignKey("ProdutoDevolvidoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ImperialColors.Domain.Entities.Produto", "ProdutoNovo")
+                        .WithMany()
+                        .HasForeignKey("ProdutoNovoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ImperialColors.Domain.Entities.Venda", "VendaOrigem")
+                        .WithMany()
+                        .HasForeignKey("VendaOrigemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProdutoDevolvido");
+
+                    b.Navigation("ProdutoNovo");
+
+                    b.Navigation("VendaOrigem");
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Venda", b =>
@@ -891,6 +1210,13 @@ namespace ImperialColors.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Venda", b =>
+                {
+                    b.Navigation("Itens");
+
+                    b.Navigation("Movimentacoes");
+                });
+
+            modelBuilder.Entity("ImperialColors.Domain.Entities.VendaExterna", b =>
                 {
                     b.Navigation("Itens");
 
