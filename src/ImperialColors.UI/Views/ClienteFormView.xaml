@@ -36,14 +36,49 @@
             <ScrollViewer Grid.Row="1" Padding="24,8,24,8" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <StackPanel Margin="0,0,0,12">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Tipo de Pessoa"/>
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton x:Name="RbPf" GroupName="TipoPessoaCliente" Content="Pessoa Física (PF)"
+                                         Margin="0,0,20,0"
+                                         Checked="TipoPessoaCliente_Changed" Unchecked="TipoPessoaCliente_Changed"/>
+                            <RadioButton x:Name="RbPj" GroupName="TipoPessoaCliente" Content="Pessoa Jurídica (PJ)"
+                                         Checked="TipoPessoaCliente_Changed" Unchecked="TipoPessoaCliente_Changed"/>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Margin="0,0,0,12">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="Nome *"/>
                         <TextBox x:Name="TxtNome" Style="{StaticResource TextBoxModerno}"/>
                     </StackPanel>
 
-                    <StackPanel Margin="0,0,0,12">
+                    <StackPanel x:Name="PanelPf" Margin="0,0,0,12">
                         <TextBlock Style="{StaticResource LabelCampo}" Text="CPF"/>
                         <TextBox x:Name="TxtCpf" Style="{StaticResource TextBoxModerno}"
                                  MaxLength="14" TextChanged="TxtCpf_TextChanged"/>
+                    </StackPanel>
+
+                    <StackPanel x:Name="PanelPj" Margin="0,0,0,12" Visibility="Collapsed">
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/><ColumnDefinition Width="12"/><ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Style="{StaticResource LabelCampo}" Text="CNPJ"/>
+                                <TextBox x:Name="TxtCnpj" Style="{StaticResource TextBoxModerno}"
+                                         MaxLength="18" TextChanged="TxtCnpj_TextChanged"/>
+                            </StackPanel>
+                            <Button Grid.Column="2" VerticalAlignment="Bottom" Style="{StaticResource BotaoSecundario}"
+                                    Padding="16,10" Click="BtnBuscarCnpj_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🔍" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Buscar"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource LabelCampo}" Text="Inscrição Estadual"/>
+                            <TextBox x:Name="TxtInscricaoEstadual" Style="{StaticResource TextBoxModerno}" MaxLength="20"/>
+                        </StackPanel>
                     </StackPanel>
 
                     <Grid Margin="0,0,0,12">

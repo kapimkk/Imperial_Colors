@@ -3,6 +3,7 @@ using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Enums;
 using ImperialColors.Domain.Exceptions;
 using ImperialColors.UI.Helpers;
+using ImperialColors.UI.Models;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -15,8 +16,10 @@ public partial class TrocaFormView : Window
     private readonly ITrocaService _trocaService;
     private readonly IProdutoService _produtoService;
 
-    private VendaDto? _venda;
-    private List<ItemVendaDto> _itensVenda = new();
+    private bool _modoVendaExterna;
+    private int _vendaOrigemId;
+    private string? _usuario;
+    private List<TrocaItemOrigemModel> _itensOrigem = new();
     private ProdutoDto? _produtoNovoSelecionado;
     private List<ProdutoDto> _resultadosBusca = new();
     private CancellationTokenSource? _buscaCts;
@@ -30,22 +33,68 @@ public partial class TrocaFormView : Window
         _produtoService = produtoService;
     }
 
-    public void Inicializar(VendaDto venda, IReadOnlyList<ItemVendaDto>? itens)
+    public void Inicializar(VendaDto venda, IReadOnlyList<ItemVendaDto>? itens, string? usuario = null)
     {
         ArgumentNullException.ThrowIfNull(venda);
 
-        _venda = venda;
-        _itensVenda = itens?
+        _modoVendaExterna = false;
+        _vendaOrigemId = venda.Id;
+        _usuario = usuario ?? "Operador";
+
+        _itensOrigem = itens?
             .Where(i => i is not null)
+            .Select(i => new TrocaItemOrigemModel
+            {
+                Id = i.Id,
+                NomeExibicao = i.DescricaoTroca,
+                Quantidade = i.Quantidade,
+                PrecoUnitario = i.PrecoUnitario,
+                ProdutoId = i.ProdutoId
+            })
             .ToList() ?? [];
 
-        if (_itensVenda.Count == 0)
+        if (_itensOrigem.Count == 0)
             throw new InvalidOperationException("A venda selecionada não possui itens disponíveis para troca.");
 
         TxtSubtitulo.Text = $"Venda #{venda.NumeroVenda} — {venda.DataVenda:dd/MM/yyyy HH:mm}";
 
-        CmbItemOrigem.ItemsSource = _itensVenda;
-        CmbItemOrigem.SelectedIndex = _itensVenda.Count > 0 ? 0 : -1;
+        CmbItemOrigem.ItemsSource = _itensOrigem;
+        CmbItemOrigem.SelectedIndex = _itensOrigem.Count > 0 ? 0 : -1;
+
+        AtualizarInfoItemDevolvido();
+        AtualizarResumo();
+    }
+
+    public void InicializarVendaExterna(
+        VendaExternaDto venda,
+        IReadOnlyList<ItemVendaExternaDto>? itens,
+        string? usuario = null)
+    {
+        ArgumentNullException.ThrowIfNull(venda);
+
+        _modoVendaExterna = true;
+        _vendaOrigemId = venda.Id;
+        _usuario = usuario ?? "Operador";
+
+        _itensOrigem = itens?
+            .Where(i => i is not null && i.ProdutoId.HasValue)
+            .Select(i => new TrocaItemOrigemModel
+            {
+                Id = i.Id,
+                NomeExibicao = i.DescricaoTroca,
+                Quantidade = i.Quantidade,
+                PrecoUnitario = i.PrecoUnitario,
+                ProdutoId = i.ProdutoId
+            })
+            .ToList() ?? [];
+
+        if (_itensOrigem.Count == 0)
+            throw new InvalidOperationException("A venda externa não possui itens vinculados ao estoque para troca.");
+
+        TxtSubtitulo.Text = $"Venda Externa {venda.NumeroVendaExterna} — {venda.DataVenda:dd/MM/yyyy HH:mm}";
+
+        CmbItemOrigem.ItemsSource = _itensOrigem;
+        CmbItemOrigem.SelectedIndex = _itensOrigem.Count > 0 ? 0 : -1;
 
         AtualizarInfoItemDevolvido();
         AtualizarResumo();
@@ -62,7 +111,7 @@ public partial class TrocaFormView : Window
         if (TxtInfoItemDevolvido is null || CmbItemOrigem is null)
             return;
 
-        if (CmbItemOrigem.SelectedItem is not ItemVendaDto item)
+        if (CmbItemOrigem.SelectedItem is not TrocaItemOrigemModel item)
         {
             TxtInfoItemDevolvido.Text = string.Empty;
             return;
@@ -165,7 +214,7 @@ public partial class TrocaFormView : Window
             PainelFormaPagamento is null)
             return;
 
-        var itemDev = CmbItemOrigem.SelectedItem as ItemVendaDto;
+        var itemDev = CmbItemOrigem.SelectedItem as TrocaItemOrigemModel;
 
         FormattingHelper.TryParseQuantidade(TxtQtdDevolvida.Text, out var qtdDev);
         FormattingHelper.TryParseQuantidade(TxtQtdNova.Text, out var qtdNova);
@@ -212,32 +261,49 @@ public partial class TrocaFormView : Window
         LimparErro();
         if (!ValidarFormulario()) return;
 
-        var itemDev = (ItemVendaDto)CmbItemOrigem.SelectedItem!;
+        var itemDev = (TrocaItemOrigemModel)CmbItemOrigem.SelectedItem!;
         FormattingHelper.TryParseQuantidade(TxtQtdDevolvida.Text, out var qtdDev);
         FormattingHelper.TryParseQuantidade(TxtQtdNova.Text, out var qtdNova);
         FormattingHelper.TryParseMoeda(TxtPrecoNovoProduto.Text, out var precoNovo);
 
         var formaPagamento = ObterFormaPagamentoSelecionada();
 
-        var dto = new RegistrarTrocaDto
-        {
-            VendaOrigemId = _venda!.Id,
-            ItemVendaOrigemId = itemDev.Id,
-            QuantidadeDevolvida = qtdDev,
-            RetornarAoEstoque = ChkRetornarEstoque.IsChecked == true,
-            ProdutoNovoId = _produtoNovoSelecionado!.Id,
-            QuantidadeNova = qtdNova,
-            PrecoUnitarioNovo = precoNovo,
-            FormaPagamentoDiferenca = formaPagamento,
-            Usuario = "Operador"
-        };
-
         BtnConfirmar.IsEnabled = false;
         BtnConfirmar.Content = "Processando...";
 
         try
         {
-            await _trocaService.RegistrarAsync(dto);
+            if (_modoVendaExterna)
+            {
+                await _trocaService.RegistrarVendaExternaAsync(new RegistrarTrocaVendaExternaDto
+                {
+                    VendaExternaOrigemId = _vendaOrigemId,
+                    ItemVendaExternaOrigemId = itemDev.Id,
+                    QuantidadeDevolvida = qtdDev,
+                    RetornarAoEstoque = ChkRetornarEstoque.IsChecked == true,
+                    ProdutoNovoId = _produtoNovoSelecionado!.Id,
+                    QuantidadeNova = qtdNova,
+                    PrecoUnitarioNovo = precoNovo,
+                    FormaPagamentoDiferenca = formaPagamento,
+                    Usuario = _usuario
+                });
+            }
+            else
+            {
+                await _trocaService.RegistrarAsync(new RegistrarTrocaDto
+                {
+                    VendaOrigemId = _vendaOrigemId,
+                    ItemVendaOrigemId = itemDev.Id,
+                    QuantidadeDevolvida = qtdDev,
+                    RetornarAoEstoque = ChkRetornarEstoque.IsChecked == true,
+                    ProdutoNovoId = _produtoNovoSelecionado!.Id,
+                    QuantidadeNova = qtdNova,
+                    PrecoUnitarioNovo = precoNovo,
+                    FormaPagamentoDiferenca = formaPagamento,
+                    Usuario = _usuario
+                });
+            }
+
             DialogResult = true;
             Close();
         }
@@ -258,7 +324,7 @@ public partial class TrocaFormView : Window
 
     private bool ValidarFormulario()
     {
-        if (CmbItemOrigem.SelectedItem is not ItemVendaDto itemDev)
+        if (CmbItemOrigem.SelectedItem is not TrocaItemOrigemModel itemDev)
         {
             ExibirErro("Selecione o item que está sendo devolvido.");
             return false;

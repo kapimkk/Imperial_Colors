@@ -5,12 +5,19 @@ namespace ImperialColors.UI.Models;
 
 public class ItemVendaExternaFormModel : INotifyPropertyChanged
 {
+    private int _id;
     private int? _produtoId;
     private string? _codigoBarras;
     private string _nomeProduto = string.Empty;
     private decimal _quantidade = 1;
     private decimal _precoBase;
     private decimal _precoUnitario;
+
+    public int Id
+    {
+        get => _id;
+        set { if (_id != value) { _id = value; Notify(); } }
+    }
 
     public int? ProdutoId
     {

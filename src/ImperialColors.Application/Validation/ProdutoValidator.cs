@@ -37,6 +37,20 @@ public static class ProdutoValidator
 
         if (!UnidadesMedida.EhValida(dto.Unidade))
             throw new DomainException("Unidade de medida inválida. Use: UN, GL, LT, RL, CX ou PCT.");
+
+        ValidarPromocao(dto.PromocaoAtiva, dto.PrecoPromocional, dto.PrecoVenda);
+    }
+
+    private static void ValidarPromocao(bool promocaoAtiva, decimal? precoPromocional, decimal precoVenda)
+    {
+        if (!promocaoAtiva)
+            return;
+
+        if (!precoPromocional.HasValue || precoPromocional.Value <= 0)
+            throw new DomainException("Informe o preço promocional quando o modo promocional estiver ativo.");
+
+        if (precoPromocional.Value > precoVenda)
+            throw new DomainException("O preço promocional não pode ser maior que o preço de venda padrão.");
     }
 
     public static void Validar(AtualizarProdutoDto dto) => Validar((CriarProdutoDto)dto);

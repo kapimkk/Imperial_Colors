@@ -93,6 +93,11 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("cidade");
 
+                    b.Property<string>("Cnpj")
+                        .HasMaxLength(18)
+                        .HasColumnType("character varying(18)")
+                        .HasColumnName("cnpj");
+
                     b.Property<string>("Complemento")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
@@ -116,6 +121,11 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)")
                         .HasColumnName("estado");
+
+                    b.Property<string>("InscricaoEstadual")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("inscricao_estadual");
 
                     b.Property<string>("Logradouro")
                         .HasMaxLength(200)
@@ -141,6 +151,12 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("telefone");
+
+                    b.Property<int>("TipoPessoa")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("tipo_pessoa");
 
                     b.Property<string>("WhatsApp")
                         .HasMaxLength(20)
@@ -208,6 +224,11 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("character varying(2)")
                         .HasColumnName("estado");
 
+                    b.Property<string>("InscricaoEstadual")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("inscricao_estadual");
+
                     b.Property<string>("Logradouro")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -232,6 +253,12 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("telefone");
+
+                    b.Property<int>("TipoPessoa")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(2)
+                        .HasColumnName("tipo_pessoa");
 
                     b.Property<string>("WhatsApp")
                         .HasMaxLength(20)
@@ -466,6 +493,15 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nome");
 
+                    b.Property<byte[]>("NotaFiscalConteudo")
+                        .HasColumnType("bytea")
+                        .HasColumnName("nota_fiscal_conteudo");
+
+                    b.Property<string>("NotaFiscalNomeArquivo")
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)")
+                        .HasColumnName("nota_fiscal_nome_arquivo");
+
                     b.Property<string>("Observacoes")
                         .HasColumnType("text")
                         .HasColumnName("observacoes");
@@ -673,10 +709,18 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("custo");
 
+                    b.Property<DateTime?>("DataValidade")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_validade");
+
                     b.Property<decimal>("EstoqueMinimo")
                         .HasPrecision(10, 3)
                         .HasColumnType("numeric(10,3)")
                         .HasColumnName("estoque_minimo");
+
+                    b.Property<int?>("FornecedorId")
+                        .HasColumnType("integer")
+                        .HasColumnName("fornecedor_id");
 
                     b.Property<decimal?>("LitragemGl")
                         .HasPrecision(6, 2)
@@ -697,10 +741,19 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("observacoes");
 
+                    b.Property<decimal?>("PrecoPromocional")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("preco_promocional");
+
                     b.Property<decimal>("PrecoVenda")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("preco_venda");
+
+                    b.Property<bool>("PromocaoAtiva")
+                        .HasColumnType("boolean")
+                        .HasColumnName("promocao_ativa");
 
                     b.Property<decimal>("QuantidadeEstoque")
                         .HasPrecision(10, 3)
@@ -722,9 +775,13 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.HasIndex("CodigoInterno")
                         .IsUnique();
 
+                    b.HasIndex("FornecedorId");
+
                     b.HasIndex("MarcaId");
 
                     b.HasIndex("Nome");
+
+                    b.HasIndex("PromocaoAtiva");
 
                     b.ToTable("produtos", (string)null);
                 });
@@ -800,7 +857,11 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("valor_unitario_novo");
 
-                    b.Property<int>("VendaOrigemId")
+                    b.Property<int?>("VendaExternaOrigemId")
+                        .HasColumnType("integer")
+                        .HasColumnName("venda_externa_origem_id");
+
+                    b.Property<int?>("VendaOrigemId")
                         .HasColumnType("integer")
                         .HasColumnName("venda_origem_id");
 
@@ -809,6 +870,8 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.HasIndex("ProdutoDevolvidoId");
 
                     b.HasIndex("ProdutoNovoId");
+
+                    b.HasIndex("VendaExternaOrigemId");
 
                     b.HasIndex("VendaOrigemId");
 
@@ -909,9 +972,19 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("desconto");
 
+                    b.Property<string>("DocumentoCompradorCupom")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("documento_comprador_cupom");
+
                     b.Property<int>("FormaPagamento")
                         .HasColumnType("integer")
                         .HasColumnName("forma_pagamento");
+
+                    b.Property<string>("NomeCompradorCupom")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_comprador_cupom");
 
                     b.Property<string>("NumeroVenda")
                         .IsRequired()
@@ -937,6 +1010,10 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)")
                         .HasColumnName("subtotal");
+
+                    b.Property<int?>("TipoPessoaComprador")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipo_pessoa_comprador");
 
                     b.Property<decimal>("Total")
                         .HasPrecision(10, 2)
@@ -1029,6 +1106,62 @@ namespace ImperialColors.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("vendas_externas", (string)null);
+                });
+
+            modelBuilder.Entity("ImperialColors.Domain.Entities.VendaPagamento", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityAlwaysColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativo");
+
+                    b.Property<DateTime?>("AtualizadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("atualizado_em");
+
+                    b.Property<DateTime>("CriadoEm")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("criado_em");
+
+                    b.Property<int>("FormaPagamento")
+                        .HasColumnType("integer")
+                        .HasColumnName("forma_pagamento");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordem");
+
+                    b.Property<int>("QuantidadeParcelas")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("quantidade_parcelas");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("valor");
+
+                    b.Property<decimal?>("ValorRecebido")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)")
+                        .HasColumnName("valor_recebido");
+
+                    b.Property<int>("VendaId")
+                        .HasColumnType("integer")
+                        .HasColumnName("venda_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VendaId");
+
+                    b.ToTable("venda_pagamentos", (string)null);
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.ItemListaCompra", b =>
@@ -1128,12 +1261,19 @@ namespace ImperialColors.Infrastructure.Migrations
                         .HasForeignKey("CategoriaId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("ImperialColors.Domain.Entities.Fornecedor", "Fornecedor")
+                        .WithMany("Produtos")
+                        .HasForeignKey("FornecedorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ImperialColors.Domain.Entities.Marca", "Marca")
                         .WithMany("Produtos")
                         .HasForeignKey("MarcaId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Categoria");
+
+                    b.Navigation("Fornecedor");
 
                     b.Navigation("Marca");
                 });
@@ -1152,15 +1292,21 @@ namespace ImperialColors.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ImperialColors.Domain.Entities.VendaExterna", "VendaExternaOrigem")
+                        .WithMany()
+                        .HasForeignKey("VendaExternaOrigemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("ImperialColors.Domain.Entities.Venda", "VendaOrigem")
                         .WithMany()
                         .HasForeignKey("VendaOrigemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ProdutoDevolvido");
 
                     b.Navigation("ProdutoNovo");
+
+                    b.Navigation("VendaExternaOrigem");
 
                     b.Navigation("VendaOrigem");
                 });
@@ -1173,6 +1319,17 @@ namespace ImperialColors.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Cliente");
+                });
+
+            modelBuilder.Entity("ImperialColors.Domain.Entities.VendaPagamento", b =>
+                {
+                    b.HasOne("ImperialColors.Domain.Entities.Venda", "Venda")
+                        .WithMany("Pagamentos")
+                        .HasForeignKey("VendaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Venda");
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.Categoria", b =>
@@ -1188,6 +1345,8 @@ namespace ImperialColors.Infrastructure.Migrations
             modelBuilder.Entity("ImperialColors.Domain.Entities.Fornecedor", b =>
                 {
                     b.Navigation("ListasCompra");
+
+                    b.Navigation("Produtos");
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.ListaCompra", b =>
@@ -1214,6 +1373,8 @@ namespace ImperialColors.Infrastructure.Migrations
                     b.Navigation("Itens");
 
                     b.Navigation("Movimentacoes");
+
+                    b.Navigation("Pagamentos");
                 });
 
             modelBuilder.Entity("ImperialColors.Domain.Entities.VendaExterna", b =>

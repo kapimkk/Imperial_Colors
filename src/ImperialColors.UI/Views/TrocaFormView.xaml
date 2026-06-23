@@ -53,7 +53,7 @@
                                           SelectionChanged="CmbItemOrigem_SelectionChanged">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding DescricaoTroca}" FontSize="13"
+                                            <TextBlock Text="{Binding NomeExibicao}" FontSize="13"
                                                        TextWrapping="Wrap"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>

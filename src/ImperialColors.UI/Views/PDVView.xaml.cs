@@ -1,6 +1,7 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.Domain.Enums;
 using ImperialColors.UI.Helpers;
 using ImperialColors.UI.Services;
 using System.Collections.ObjectModel;
@@ -9,18 +10,26 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 
 namespace ImperialColors.UI.Views;
 
 public partial class PDVView : Window, INotifyPropertyChanged
 {
+    private enum EtapaPdv { Produtos, Cliente, Pagamento }
+
     private readonly IProdutoService _produtoService;
     private readonly IVendaService _vendaService;
+    private readonly IClienteService _clienteService;
     private readonly IServiceProvider _serviceProvider;
     private readonly ISessaoService _sessaoService;
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    private EtapaPdv _etapaAtual = EtapaPdv.Produtos;
+    private bool _suprimirTrocaEtapa;
+    private bool _uiPronta;
 
     private TipoDescontoVenda _tipoDesconto = TipoDescontoVenda.Valor;
     private decimal _descontoEmReais;
@@ -42,25 +51,56 @@ public partial class PDVView : Window, INotifyPropertyChanged
     public int TotalItens { get => _totalItens; set { _totalItens = value; NotifyPropertyChanged(); } }
 
     private List<ProdutoDto> _produtosEncontrados = new();
-    private string _numeroVenda = string.Empty;
+    private List<ClienteDto> _clientesEncontrados = new();
+    private ClienteDto? _clienteSelecionado;
     private CancellationTokenSource? _leitorBarrasCts;
     private bool _suprimirBuscaTextChanged;
+    private bool _suprimirMascaraDocumento;
+
+    private readonly ObservableCollection<PagamentoLinhaUi> _pagamentos = new();
+    private FormaPagamento _formaPagamentoSelecionada = FormaPagamento.Dinheiro;
 
     private const int AtrasoLeitorBarrasMs = 150;
 
-    public PDVView(IProdutoService produtoService, IVendaService vendaService,
-                   IServiceProvider serviceProvider, ISessaoService sessaoService)
+    public PDVView(
+        IProdutoService produtoService,
+        IVendaService vendaService,
+        IClienteService clienteService,
+        IServiceProvider serviceProvider,
+        ISessaoService sessaoService)
     {
         InitializeComponent();
         DataContext = this;
         _produtoService = produtoService;
         _vendaService = vendaService;
+        _clienteService = clienteService;
         _serviceProvider = serviceProvider;
         _sessaoService = sessaoService;
+
+        DgPagamentos.ItemsSource = _pagamentos;
+        for (var i = 1; i <= 12; i++)
+            CmbParcelas.Items.Add($"{i}x");
+        CmbParcelas.SelectedIndex = 0;
+
+        Loaded += (_, _) =>
+        {
+            _uiPronta = true;
+            _suprimirTrocaEtapa = true;
+            RbEtapaProdutos.IsChecked = true;
+            RbConsumidorFinal.IsChecked = true;
+            _suprimirTrocaEtapa = false;
+
+            SelecionarFormaPagamento(FormaPagamento.Dinheiro, BtnDinheiro);
+            IrParaEtapa(EtapaPdv.Produtos, forcar: true);
+            AtualizarResumoCliente();
+        };
     }
 
     public void PrepararFocoBusca()
     {
+        if (_etapaAtual != EtapaPdv.Produtos)
+            return;
+
         void Focar()
         {
             TxtBuscaProduto.Focus();
@@ -73,9 +113,167 @@ public partial class PDVView : Window, INotifyPropertyChanged
             Loaded += (_, _) => Dispatcher.BeginInvoke(Focar, System.Windows.Threading.DispatcherPriority.Input);
     }
 
+    #region Navegação entre etapas
+
+    private void EtapaPdv_Checked(object sender, RoutedEventArgs e)
+    {
+        if (!_uiPronta || _suprimirTrocaEtapa || sender is not RadioButton rb || rb.IsChecked != true)
+            return;
+
+        var destino = rb.Name switch
+        {
+            nameof(RbEtapaProdutos) => EtapaPdv.Produtos,
+            nameof(RbEtapaCliente) => EtapaPdv.Cliente,
+            nameof(RbEtapaPagamento) => EtapaPdv.Pagamento,
+            _ => _etapaAtual
+        };
+
+        if (!TentarIrParaEtapa(destino))
+        {
+            _suprimirTrocaEtapa = true;
+            SelecionarRadioEtapa(_etapaAtual);
+            _suprimirTrocaEtapa = false;
+        }
+    }
+
+    private void BtnAcaoPrincipal_Click(object sender, RoutedEventArgs e)
+    {
+        AtualizarTotais();
+
+        switch (_etapaAtual)
+        {
+            case EtapaPdv.Produtos:
+                IrParaEtapa(EtapaPdv.Cliente);
+                break;
+            case EtapaPdv.Cliente:
+                if (!ValidarIdentificacaoCliente())
+                    return;
+                IrParaEtapa(EtapaPdv.Pagamento);
+                break;
+        }
+    }
+
+    private bool TentarIrParaEtapa(EtapaPdv destino)
+    {
+        if (destino != EtapaPdv.Produtos && !ItensVenda.Any())
+        {
+            MessageBox.Show("Adicione pelo menos um produto antes de avançar.", "Aviso",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        if (destino == EtapaPdv.Pagamento && _etapaAtual == EtapaPdv.Cliente && !ValidarIdentificacaoCliente())
+            return false;
+
+        IrParaEtapa(destino);
+        return true;
+    }
+
+    private void IrParaEtapa(EtapaPdv etapa, bool forcar = false)
+    {
+        if (!forcar && etapa != EtapaPdv.Produtos && !ItensVenda.Any())
+            return;
+
+        _etapaAtual = etapa;
+
+        if (PainelEtapaProdutos is not null)
+            PainelEtapaProdutos.Visibility = etapa == EtapaPdv.Produtos ? Visibility.Visible : Visibility.Collapsed;
+        if (PainelEtapaCliente is not null)
+            PainelEtapaCliente.Visibility = etapa == EtapaPdv.Cliente ? Visibility.Visible : Visibility.Collapsed;
+        if (PainelEtapaPagamento is not null)
+            PainelEtapaPagamento.Visibility = etapa == EtapaPdv.Pagamento ? Visibility.Visible : Visibility.Collapsed;
+
+        PopupResultados.IsOpen = false;
+
+        _suprimirTrocaEtapa = true;
+        SelecionarRadioEtapa(etapa);
+        _suprimirTrocaEtapa = false;
+
+        AtualizarBotoesEtapa();
+        AtualizarResumoEtapa();
+
+        if (etapa == EtapaPdv.Pagamento)
+        {
+            AtualizarTotais();
+            TxtPagamentoTotal.Text = FormattingHelper.FormatarMoeda(Total);
+            AtualizarResumoPagamentos();
+            PreencherValorPagamentoSugerido();
+        }
+        else if (etapa == EtapaPdv.Produtos)
+        {
+            PrepararFocoBusca();
+        }
+    }
+
+    private void SelecionarRadioEtapa(EtapaPdv etapa)
+    {
+        if (RbEtapaProdutos is null || RbEtapaCliente is null || RbEtapaPagamento is null)
+            return;
+
+        RbEtapaProdutos.IsChecked = etapa == EtapaPdv.Produtos;
+        RbEtapaCliente.IsChecked = etapa == EtapaPdv.Cliente;
+        RbEtapaPagamento.IsChecked = etapa == EtapaPdv.Pagamento;
+    }
+
+    private void AtualizarBotoesEtapa()
+    {
+        if (BtnAcaoPrincipal is null || BtnConcluirVenda is null)
+            return;
+
+        BtnAcaoPrincipal.Visibility = _etapaAtual == EtapaPdv.Pagamento
+            ? Visibility.Collapsed
+            : Visibility.Visible;
+
+        BtnConcluirVenda.Visibility = _etapaAtual == EtapaPdv.Pagamento
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        BtnAcaoPrincipal.Content = _etapaAtual switch
+        {
+            EtapaPdv.Produtos => "Continuar → Cliente",
+            EtapaPdv.Cliente => "Continuar → Pagamento",
+            _ => "Continuar"
+        };
+    }
+
+    private void AtualizarResumoEtapa()
+    {
+        if (TxtResumoEtapa is null)
+            return;
+
+        TxtResumoEtapa.Text = _etapaAtual switch
+        {
+            EtapaPdv.Produtos => "Bipe ou busque os produtos da venda",
+            EtapaPdv.Cliente => ObterResumoClienteCurto(),
+            EtapaPdv.Pagamento => _pagamentos.Count > 0
+                ? $"{_pagamentos.Count} forma(s) de pagamento lançada(s)"
+                : "Nenhum pagamento lançado ainda",
+            _ => string.Empty
+        };
+    }
+
+    private string ObterResumoClienteCurto()
+    {
+        if (RbConsumidorFinal?.IsChecked == true)
+            return "Cliente: Consumidor Final";
+
+        if (RbClienteCadastrado?.IsChecked == true && _clienteSelecionado is not null)
+            return $"Cliente: {_clienteSelecionado.Nome ?? "Cliente"}";
+
+        if (RbDadosCupom?.IsChecked == true && TxtNomeCupom is not null
+            && !string.IsNullOrWhiteSpace(TxtNomeCupom.Text))
+            return $"Cliente: {TxtNomeCupom.Text.Trim()}";
+
+        return "Defina o comprador";
+    }
+
+    #endregion
+
+    #region Produtos
+
     private async void TxtBuscaProduto_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (_suprimirBuscaTextChanged)
+        if (_suprimirBuscaTextChanged || _etapaAtual != EtapaPdv.Produtos)
             return;
 
         var termo = TxtBuscaProduto.Text.Trim();
@@ -119,9 +317,6 @@ public partial class PDVView : Window, INotifyPropertyChanged
     private async void BtnAdicionarProduto_Click(object sender, RoutedEventArgs e)
         => await ProcessarEntradaBuscaAsync();
 
-    /// <summary>
-    /// Leitores USB digitam o código rapidamente e enviam Enter; busca exata evita popup e confirmação.
-    /// </summary>
     private async Task ProcessarEntradaBuscaAsync()
     {
         CancelarLeituraBarrasPendente();
@@ -185,7 +380,6 @@ public partial class PDVView : Window, INotifyPropertyChanged
         try
         {
             await Task.Delay(AtrasoLeitorBarrasMs, token);
-
             if (token.IsCancellationRequested)
                 return;
 
@@ -203,10 +397,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
             if (PareceCodigoBarras(termoAtual))
                 NotificarProdutoNaoEncontrado();
         }
-        catch (OperationCanceledException)
-        {
-            // Nova digitação ou Enter cancelou a leitura pendente.
-        }
+        catch (OperationCanceledException) { }
     }
 
     private void CancelarLeituraBarrasPendente()
@@ -219,7 +410,6 @@ public partial class PDVView : Window, INotifyPropertyChanged
     private static bool PareceCodigoBarras(string termo)
         => termo.Length >= 4 && termo.All(char.IsDigit);
 
-    private void LstResultados_SelectionChanged(object sender, SelectionChangedEventArgs e) { }
     private void LstResultados_MouseDoubleClick(object sender, MouseButtonEventArgs e)
     {
         if (LstResultados.SelectedItem is ProdutoDto produto)
@@ -229,11 +419,19 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
     }
 
-    private void AdicionarItemVenda(ProdutoDto produto)
+    private void AdicionarItemVenda(ProdutoDto? produto)
     {
+        if (produto is null)
+            return;
+
+        var nomeProduto = string.IsNullOrWhiteSpace(produto.Nome) ? "Produto" : produto.Nome;
+        var unidade = string.IsNullOrWhiteSpace(produto.Unidade) ? "UN" : produto.Unidade;
+        var precoEfetivo = produto.PrecoEfetivo > 0 ? produto.PrecoEfetivo : produto.PrecoVenda;
+
         if (produto.SemEstoque)
         {
-            MessageBox.Show($"Produto '{produto.Nome}' sem estoque!", "Sem Estoque", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show($"Produto '{nomeProduto}' sem estoque!", "Sem Estoque",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -242,12 +440,14 @@ public partial class PDVView : Window, INotifyPropertyChanged
         {
             if (itemExistente.Quantidade + 1 > produto.QuantidadeEstoque)
             {
-                MessageBox.Show($"Estoque insuficiente! Disponível: {produto.QuantidadeEstoque} {produto.Unidade}", "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show($"Estoque insuficiente! Disponível: {produto.QuantidadeEstoque} {unidade}",
+                    "Aviso", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
             itemExistente.Quantidade += 1;
             itemExistente.Subtotal = itemExistente.Quantidade * itemExistente.PrecoUnitario - itemExistente.Desconto;
-            DgItens.Items.Refresh();
+            DgItens?.Items.Refresh();
             ReindexarItensVenda();
         }
         else
@@ -255,13 +455,15 @@ public partial class PDVView : Window, INotifyPropertyChanged
             ItensVenda.Add(new ItemVendaDto
             {
                 ProdutoId = produto.Id,
-                NomeProduto = produto.Nome,
-                CodigoInterno = produto.CodigoInterno,
+                NomeProduto = nomeProduto,
+                CodigoInterno = produto.CodigoInterno ?? string.Empty,
                 Quantidade = 1,
-                PrecoUnitario = produto.PrecoVenda,
+                PrecoUnitario = precoEfetivo,
+                PrecoOriginal = produto.EmPromocao ? produto.PrecoVenda : null,
+                EmPromocao = produto.EmPromocao,
                 Desconto = 0,
-                Subtotal = produto.PrecoVenda,
-                Unidade = produto.Unidade
+                Subtotal = precoEfetivo,
+                Unidade = unidade
             });
             ReindexarItensVenda();
         }
@@ -311,21 +513,20 @@ public partial class PDVView : Window, INotifyPropertyChanged
                 item.Subtotal = item.Quantidade * item.PrecoUnitario - item.Desconto;
                 DgItens.Items.Refresh();
             }
+
             AtualizarTotais();
         }
     }
 
     private void TxtQtdItem_LostFocus(object sender, RoutedEventArgs e)
     {
-        if ((sender as TextBox)?.Tag is ItemVendaDto item)
+        if ((sender as TextBox)?.Tag is ItemVendaDto item
+            && decimal.TryParse(((TextBox)sender).Text, out var qtd) && qtd > 0)
         {
-            if (decimal.TryParse(((TextBox)sender).Text, out decimal qtd) && qtd > 0)
-            {
-                item.Quantidade = qtd;
-                item.Subtotal = item.Quantidade * item.PrecoUnitario - item.Desconto;
-                DgItens.Items.Refresh();
-                AtualizarTotais();
-            }
+            item.Quantidade = qtd;
+            item.Subtotal = item.Quantidade * item.PrecoUnitario - item.Desconto;
+            DgItens.Items.Refresh();
+            AtualizarTotais();
         }
     }
 
@@ -340,11 +541,293 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
     }
 
+    #endregion
+
+    #region Cliente
+
+    private void ModoCliente_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_uiPronta || PainelClienteCadastrado is null || PainelDadosCupom is null
+            || RbClienteCadastrado is null || RbDadosCupom is null)
+            return;
+
+        PainelClienteCadastrado.Visibility = RbClienteCadastrado.IsChecked == true
+            ? Visibility.Visible : Visibility.Collapsed;
+        PainelDadosCupom.Visibility = RbDadosCupom.IsChecked == true
+            ? Visibility.Visible : Visibility.Collapsed;
+
+        AtualizarResumoCliente();
+        AtualizarResumoEtapa();
+    }
+
+    private async void TxtBuscaCliente_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (RbClienteCadastrado.IsChecked != true)
+            return;
+
+        var termo = TxtBuscaCliente.Text.Trim();
+        if (termo.Length < 2)
+        {
+            LstClientes.ItemsSource = null;
+            _clientesEncontrados.Clear();
+            _clienteSelecionado = null;
+            AtualizarResumoCliente();
+            return;
+        }
+
+        _clientesEncontrados = (await _clienteService.BuscarAsync(termo)).ToList();
+        LstClientes.ItemsSource = _clientesEncontrados;
+    }
+
+    private void LstClientes_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        _clienteSelecionado = LstClientes.SelectedItem as ClienteDto;
+        AtualizarResumoCliente();
+        AtualizarResumoEtapa();
+    }
+
+    private void TipoPessoaCupom_Changed(object sender, RoutedEventArgs e)
+    {
+        if (LblDocumentoCupom is null || LblNomeCupom is null)
+            return;
+
+        var pj = RbPessoaJuridica.IsChecked == true;
+        LblNomeCupom.Text = pj ? "Razão Social *" : "Nome *";
+        LblDocumentoCupom.Text = pj ? "CNPJ" : "CPF";
+        TxtDocumentoCupom.MaxLength = pj ? 18 : 14;
+    }
+
+    private void TxtDocumentoCupom_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suprimirMascaraDocumento)
+            return;
+
+        _suprimirMascaraDocumento = true;
+        TxtDocumentoCupom.Text = RbPessoaJuridica.IsChecked == true
+            ? DocumentoHelper.AplicarMascaraCnpj(TxtDocumentoCupom.Text)
+            : DocumentoHelper.AplicarMascaraCpf(TxtDocumentoCupom.Text);
+        TxtDocumentoCupom.SelectionStart = TxtDocumentoCupom.Text.Length;
+        _suprimirMascaraDocumento = false;
+        AtualizarResumoCliente();
+    }
+
+    private void AtualizarResumoCliente()
+    {
+        if (TxtResumoCliente is null)
+            return;
+
+        TxtResumoCliente.Text = ObterResumoClienteCurto();
+    }
+
+    private bool ValidarIdentificacaoCliente()
+    {
+        if (RbConsumidorFinal.IsChecked == true)
+            return true;
+
+        if (RbClienteCadastrado.IsChecked == true)
+        {
+            if (_clienteSelecionado is null)
+            {
+                MessageBox.Show("Selecione um cliente da lista.", "Validação",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+
+            return true;
+        }
+
+        if (string.IsNullOrWhiteSpace(TxtNomeCupom.Text))
+        {
+            MessageBox.Show("Informe o nome ou razão social do comprador.", "Validação",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        return true;
+    }
+
+    private IdentificacaoClientePdvDto MontarIdentificacaoCliente()
+    {
+        if (RbConsumidorFinal.IsChecked == true)
+            return new IdentificacaoClientePdvDto { ConsumidorFinal = true };
+
+        if (RbClienteCadastrado.IsChecked == true && _clienteSelecionado is not null)
+            return new IdentificacaoClientePdvDto { ConsumidorFinal = false, ClienteId = _clienteSelecionado.Id };
+
+        var pj = RbPessoaJuridica.IsChecked == true;
+        return new IdentificacaoClientePdvDto
+        {
+            ConsumidorFinal = false,
+            NomeCompradorAvulso = TxtNomeCupom.Text.Trim(),
+            DocumentoCompradorAvulso = string.IsNullOrWhiteSpace(TxtDocumentoCupom.Text)
+                ? null : TxtDocumentoCupom.Text.Trim(),
+            TipoPessoaCompradorAvulso = pj ? TipoPessoa.Juridica : TipoPessoa.Fisica
+        };
+    }
+
+    #endregion
+
+    #region Pagamento
+
+    private void FormaPagamento_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ToggleButton botao || botao.Tag is not string tag)
+            return;
+
+        if (!Enum.TryParse<FormaPagamento>(tag, out var forma))
+            return;
+
+        SelecionarFormaPagamento(forma, botao);
+    }
+
+    private void SelecionarFormaPagamento(FormaPagamento forma, ToggleButton? botaoAtivo)
+    {
+        _formaPagamentoSelecionada = forma;
+
+        if (GridFormasPagamento is not null)
+        {
+            foreach (var child in GridFormasPagamento.Children.OfType<ToggleButton>())
+                child.IsChecked = ReferenceEquals(child, botaoAtivo);
+        }
+
+        if (PainelRecebido is not null)
+            PainelRecebido.Visibility = PagamentoHelper.UsaTroco(forma) ? Visibility.Visible : Visibility.Collapsed;
+        if (PainelParcelas is not null)
+            PainelParcelas.Visibility = PagamentoHelper.PermiteParcelamento(forma) ? Visibility.Visible : Visibility.Collapsed;
+
+        PreencherValorPagamentoSugerido();
+        AtualizarInfoTrocoPagamento();
+    }
+
+    private void PreencherValorPagamentoSugerido()
+    {
+        var saldo = CalcularSaldoRestantePagamento();
+        TxtValorPagamento.Text = FormattingHelper.FormatarMoedaEntrada(saldo > 0 ? saldo : 0m);
+
+        if (PagamentoHelper.UsaTroco(_formaPagamentoSelecionada))
+            TxtValorRecebido.Text = TxtValorPagamento.Text;
+    }
+
+    private void TxtValorPagamento_TextChanged(object sender, TextChangedEventArgs e)
+        => AtualizarInfoTrocoPagamento();
+
+    private void TxtValorRecebido_TextChanged(object sender, TextChangedEventArgs e)
+        => AtualizarInfoTrocoPagamento();
+
+    private void AtualizarInfoTrocoPagamento()
+    {
+        if (!PagamentoHelper.UsaTroco(_formaPagamentoSelecionada))
+        {
+            TxtInfoTroco.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        FormattingHelper.TryParseMoeda(TxtValorPagamento.Text, out var valorPagamento);
+        FormattingHelper.TryParseMoeda(TxtValorRecebido.Text, out var recebido);
+
+        if (recebido > valorPagamento && valorPagamento > 0)
+        {
+            TxtInfoTroco.Text = $"Troco deste pagamento: {FormattingHelper.FormatarMoeda(recebido - valorPagamento)}";
+            TxtInfoTroco.Visibility = Visibility.Visible;
+        }
+        else
+        {
+            TxtInfoTroco.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void BtnAdicionarPagamento_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!FormattingHelper.TryParseMoeda(TxtValorPagamento.Text, out var valor) || valor <= 0)
+            {
+                MessageBox.Show("Informe um valor válido para o pagamento.", "Validação",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var saldo = CalcularSaldoRestantePagamento();
+            if (valor > saldo)
+            {
+                MessageBox.Show($"O valor não pode exceder o saldo restante ({FormattingHelper.FormatarMoeda(saldo)}).",
+                    "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            decimal? valorRecebido = null;
+            var parcelas = 1;
+
+            if (PagamentoHelper.UsaTroco(_formaPagamentoSelecionada))
+            {
+                if (!FormattingHelper.TryParseMoeda(TxtValorRecebido.Text, out var recebido) || recebido < valor)
+                {
+                    MessageBox.Show("Valor recebido em espécie insuficiente.", "Validação",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                valorRecebido = recebido;
+            }
+            else if (PagamentoHelper.PermiteParcelamento(_formaPagamentoSelecionada))
+            {
+                parcelas = CmbParcelas.SelectedIndex >= 0 ? CmbParcelas.SelectedIndex + 1 : 1;
+            }
+
+            _pagamentos.Add(new PagamentoLinhaUi
+            {
+                Forma = _formaPagamentoSelecionada,
+                Valor = valor,
+                ValorRecebido = valorRecebido,
+                Parcelas = parcelas
+            });
+
+            AtualizarResumoPagamentos();
+            PreencherValorPagamentoSugerido();
+            AtualizarResumoEtapa();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Validação", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+    }
+
+    private void BtnRemoverPagamento_Click(object sender, RoutedEventArgs e)
+    {
+        if ((sender as Button)?.Tag is PagamentoLinhaUi linha)
+        {
+            _pagamentos.Remove(linha);
+            AtualizarResumoPagamentos();
+            PreencherValorPagamentoSugerido();
+            AtualizarResumoEtapa();
+        }
+    }
+
+    private decimal CalcularSaldoRestantePagamento()
+        => Math.Max(0, Total - _pagamentos.Sum(p => p.Valor));
+
+    private void AtualizarResumoPagamentos()
+    {
+        var totalPago = _pagamentos.Sum(p => p.Valor);
+        var saldo = Math.Max(0, Total - totalPago);
+
+        TxtPagamentoTotal.Text = FormattingHelper.FormatarMoeda(Total);
+        TxtTotalPago.Text = FormattingHelper.FormatarMoeda(totalPago);
+        TxtSaldoRestante.Text = FormattingHelper.FormatarMoeda(saldo);
+        BtnConcluirVenda.IsEnabled = saldo == 0 && _pagamentos.Count > 0;
+    }
+
+    #endregion
+
+    #region Totais e finalização
+
     private void TxtDesconto_TextChanged(object sender, TextChangedEventArgs e) => AtualizarTotais();
 
     private void CmbTipoDesconto_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (CmbTipoDesconto?.SelectedItem is not ComboBoxItem item) return;
+        if (CmbTipoDesconto?.SelectedItem is not ComboBoxItem item)
+            return;
+
         _tipoDesconto = item.Content?.ToString() == "%" ? TipoDescontoVenda.Percentual : TipoDescontoVenda.Valor;
         AtualizarTotais();
     }
@@ -361,11 +844,15 @@ public partial class PDVView : Window, INotifyPropertyChanged
         Total = DescontoHelper.CalcularTotalLiquido(Subtotal, _descontoEmReais);
         TotalItens = ItensVenda.Count;
 
-        if (TxtDescontoEquivalente is null) return;
+        if (TxtDescontoEquivalente is not null)
+        {
+            TxtDescontoEquivalente.Text = _tipoDesconto == TipoDescontoVenda.Percentual && Subtotal > 0
+                ? $"Equivale a {FormattingHelper.FormatarMoeda(_descontoEmReais)}"
+                : string.Empty;
+        }
 
-        TxtDescontoEquivalente.Text = _tipoDesconto == TipoDescontoVenda.Percentual && Subtotal > 0
-            ? $"Equivale a {FormattingHelper.FormatarMoeda(_descontoEmReais)}"
-            : string.Empty;
+        if (_etapaAtual == EtapaPdv.Pagamento)
+            AtualizarResumoPagamentos();
     }
 
     private decimal ObterValorDescontoInformado()
@@ -383,7 +870,8 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
         return 0m;
     }
-    private async void BtnFinalizarVenda_Click(object sender, RoutedEventArgs e)
+
+    private async void BtnConcluirVenda_Click(object sender, RoutedEventArgs e)
     {
         if (!ItensVenda.Any())
         {
@@ -391,24 +879,38 @@ public partial class PDVView : Window, INotifyPropertyChanged
             return;
         }
 
+        if (!ValidarIdentificacaoCliente())
+        {
+            IrParaEtapa(EtapaPdv.Cliente);
+            return;
+        }
+
         try
         {
             AtualizarTotais();
-            var desconto = _descontoEmReais;
-            var fechamento = new FechamentoVendaView(Total);
-            if (ModalWindowHelper.ExibirDialogo(fechamento, Owner) != true || fechamento.Pagamento is null)
-                return;
 
+            var pagamentos = _pagamentos.Select(p => new CriarVendaPagamentoDto
+            {
+                FormaPagamento = p.Forma,
+                Valor = p.Valor,
+                ValorRecebido = p.ValorRecebido,
+                QuantidadeParcelas = p.Parcelas
+            }).ToList();
+
+            PagamentoHelper.ValidarPagamentosCompostos(Total, pagamentos);
+
+            var idCliente = MontarIdentificacaoCliente();
             var dto = new CriarVendaDto
             {
-                ClienteId = null,
-                Desconto = desconto,
+                ClienteId = idCliente.ClienteId,
+                ConsumidorFinal = idCliente.ConsumidorFinal,
+                NomeCompradorAvulso = idCliente.NomeCompradorAvulso,
+                DocumentoCompradorAvulso = idCliente.DocumentoCompradorAvulso,
+                TipoPessoaCompradorAvulso = idCliente.TipoPessoaCompradorAvulso,
+                Desconto = _descontoEmReais,
                 Observacoes = TxtObservacoes.Text,
                 Usuario = _sessaoService.ObterNomeUsuario(),
-                FormaPagamento = fechamento.Pagamento.FormaPagamento,
-                QuantidadeParcelas = fechamento.Pagamento.QuantidadeParcelas,
-                ValorPago = fechamento.Pagamento.ValorPago,
-                Troco = fechamento.Pagamento.Troco,
+                Pagamentos = pagamentos,
                 Itens = ItensVenda.Select(i => new CriarItemVendaDto
                 {
                     ProdutoId = i.ProdutoId,
@@ -419,8 +921,6 @@ public partial class PDVView : Window, INotifyPropertyChanged
             };
 
             var venda = await _vendaService.CriarAsync(dto);
-
-            // Exibir cupom ANTES de fechar o PDV e usar Owner da janela principal (nunca a janela que será fechada)
             await WindowHelper.ExibirCupomAsync(_serviceProvider, venda, Owner);
 
             DialogResult = true;
@@ -428,7 +928,8 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Erro ao finalizar venda: {ex.Message}", "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"Erro ao finalizar venda: {ex.Message}", "Erro",
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -442,6 +943,8 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
     }
 
+    #endregion
+
     private void ReindexarItensVenda()
         => _indiceItensPorProdutoId = BinarySearchCollectionHelper.OrdenarPorId(ItensVenda, i => i.ProdutoId);
 
@@ -450,4 +953,24 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
     private void NotifyPropertyChanged([CallerMemberName] string name = "")
         => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+
+    private sealed class PagamentoLinhaUi
+    {
+        public FormaPagamento Forma { get; init; }
+        public decimal Valor { get; init; }
+        public decimal? ValorRecebido { get; init; }
+        public int Parcelas { get; init; } = 1;
+        public string Descricao => PagamentoHelper.ObterDescricao(Forma, Parcelas);
+        public string ValorFormatado => FormattingHelper.FormatarMoeda(Valor);
+        public string TrocoFormatado
+        {
+            get
+            {
+                if (!PagamentoHelper.UsaTroco(Forma))
+                    return "—";
+                var troco = Math.Max(0, (ValorRecebido ?? Valor) - Valor);
+                return troco > 0 ? FormattingHelper.FormatarMoeda(troco) : "—";
+            }
+        }
+    }
 }

@@ -18,6 +18,7 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
         return await context.Set<Venda>()
             .AsNoTracking()
             .Include(v => v.Cliente)
+            .Include(v => v.Pagamentos)
             .Include(v => v.Itens).ThenInclude(i => i.Produto)
             .FirstOrDefaultAsync(v => v.Id == id);
     }

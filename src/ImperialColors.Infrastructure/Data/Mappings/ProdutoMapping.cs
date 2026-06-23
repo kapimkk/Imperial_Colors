@@ -22,7 +22,12 @@ public class ProdutoMapping : IEntityTypeConfiguration<Produto>
         builder.Property(p => p.LitragemGl).HasColumnName("litragem_gl").HasPrecision(6, 2).IsRequired(false);
         builder.Property(p => p.Custo).HasColumnName("custo").HasPrecision(10, 2).IsRequired(false);
         builder.Property(p => p.PrecoVenda).HasColumnName("preco_venda").HasPrecision(10, 2);
+        builder.Property(p => p.PromocaoAtiva).HasColumnName("promocao_ativa");
+        builder.Property(p => p.PrecoPromocional).HasColumnName("preco_promocional").HasPrecision(10, 2);
+        builder.Property(p => p.DataValidade).HasColumnName("data_validade");
+        builder.Property(p => p.FornecedorId).HasColumnName("fornecedor_id");
         builder.Property(p => p.Observacoes).HasColumnName("observacoes");
+
         builder.Property(p => p.CriadoEm).HasColumnName("criado_em");
         builder.Property(p => p.AtualizadoEm).HasColumnName("atualizado_em");
         builder.Property(p => p.Ativo).HasColumnName("ativo");
@@ -30,9 +35,12 @@ public class ProdutoMapping : IEntityTypeConfiguration<Produto>
         builder.HasIndex(p => p.CodigoInterno).IsUnique();
         builder.HasIndex(p => p.CodigoBarras);
         builder.HasIndex(p => p.Nome);
+        builder.HasIndex(p => p.FornecedorId);
+        builder.HasIndex(p => p.PromocaoAtiva);
 
         builder.HasOne(p => p.Categoria).WithMany(c => c.Produtos).HasForeignKey(p => p.CategoriaId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(p => p.Marca).WithMany(m => m.Produtos).HasForeignKey(p => p.MarcaId).OnDelete(DeleteBehavior.SetNull);
+        builder.HasOne(p => p.Fornecedor).WithMany(f => f.Produtos).HasForeignKey(p => p.FornecedorId).OnDelete(DeleteBehavior.SetNull);
 
         builder.Ignore(p => p.EstoqueBaixo);
         builder.Ignore(p => p.SemEstoque);

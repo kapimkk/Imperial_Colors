@@ -1,5 +1,6 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.Domain.Enums;
 using ImperialColors.UI.Helpers;
 using System.Windows;
 using System.Windows.Controls;
@@ -10,21 +11,36 @@ public partial class ClienteFormView : Window
 {
     private readonly IClienteService _clienteService;
     private readonly IViaCepService _viaCepService;
+    private readonly ICnpjConsultaService _cnpjConsultaService;
     private int? _clienteId;
     private bool _suprimirMascaraCpf;
+    private bool _suprimirMascaraCnpj;
     private bool _suprimirMascaraCep;
     private bool _suprimirMascaraTelefone;
     private bool _suprimirMascaraWhatsApp;
     private bool _consultandoCep;
+    private bool _consultandoCnpj;
     private CancellationTokenSource? _cepCts;
+    private CancellationTokenSource? _cnpjCts;
 
-    public ClienteFormView(IClienteService clienteService, IViaCepService viaCepService)
+    public ClienteFormView(
+        IClienteService clienteService,
+        IViaCepService viaCepService,
+        ICnpjConsultaService cnpjConsultaService)
     {
         InitializeComponent();
         ModalWindowHelper.AplicarEstiloModerno(this);
         _clienteService = clienteService;
         _viaCepService = viaCepService;
+        _cnpjConsultaService = cnpjConsultaService;
         EnderecoFormHelper.AplicarMascaraUf(TxtEstado);
+
+        Loaded += (_, _) =>
+        {
+            if (RbPf.IsChecked != true && RbPj.IsChecked != true)
+                RbPf.IsChecked = true;
+            AtualizarPainelTipoPessoa();
+        };
     }
 
     public void InicializarNovo()
@@ -32,6 +48,8 @@ public partial class ClienteFormView : Window
         TxtTitulo.Text = "Novo Cliente";
         _clienteId = null;
         TxtStatus.Text = string.Empty;
+        RbPf.IsChecked = true;
+        AtualizarPainelTipoPessoa();
     }
 
     public void InicializarEdicao(ClienteDto cliente)
@@ -40,10 +58,22 @@ public partial class ClienteFormView : Window
 
         TxtTitulo.Text = "Editar Cliente";
         _clienteId = cliente.Id;
+
+        if (cliente.TipoPessoa == TipoPessoa.Juridica)
+            RbPj.IsChecked = true;
+        else
+            RbPf.IsChecked = true;
+
+        AtualizarPainelTipoPessoa();
+
         TxtNome.Text = cliente.Nome ?? string.Empty;
         _suprimirMascaraCpf = true;
         TxtCpf.Text = DocumentoHelper.AplicarMascaraCpf(cliente.Cpf);
         _suprimirMascaraCpf = false;
+        _suprimirMascaraCnpj = true;
+        TxtCnpj.Text = DocumentoHelper.AplicarMascaraCnpj(cliente.Cnpj);
+        _suprimirMascaraCnpj = false;
+        TxtInscricaoEstadual.Text = cliente.InscricaoEstadual ?? string.Empty;
         _suprimirMascaraTelefone = true;
         TxtTelefone.Text = DocumentoHelper.AplicarMascaraCelular(cliente.Telefone);
         _suprimirMascaraTelefone = false;
@@ -64,6 +94,24 @@ public partial class ClienteFormView : Window
         TxtStatus.Text = string.Empty;
     }
 
+    private void TipoPessoaCliente_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded || PanelPf is null || PanelPj is null)
+            return;
+
+        AtualizarPainelTipoPessoa();
+    }
+
+    private void AtualizarPainelTipoPessoa()
+    {
+        if (PanelPf is null || PanelPj is null || RbPj is null)
+            return;
+
+        var isPj = RbPj.IsChecked == true;
+        PanelPf.Visibility = isPj ? Visibility.Collapsed : Visibility.Visible;
+        PanelPj.Visibility = isPj ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void TxtCpf_TextChanged(object sender, TextChangedEventArgs e)
     {
         if (_suprimirMascaraCpf) return;
@@ -74,6 +122,16 @@ public partial class ClienteFormView : Window
         TxtCpf.Text = DocumentoHelper.AplicarMascaraCpf(TxtCpf.Text);
         TxtCpf.SelectionStart = Math.Min(TxtCpf.Text.Length, digitsAntes + (digitsAntes > 3 ? 1 : 0) + (digitsAntes > 6 ? 1 : 0) + (digitsAntes > 9 ? 1 : 0));
         _suprimirMascaraCpf = false;
+    }
+
+    private void TxtCnpj_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suprimirMascaraCnpj) return;
+
+        _suprimirMascaraCnpj = true;
+        TxtCnpj.Text = DocumentoHelper.AplicarMascaraCnpj(TxtCnpj.Text);
+        TxtCnpj.SelectionStart = TxtCnpj.Text.Length;
+        _suprimirMascaraCnpj = false;
     }
 
     private void TxtTelefone_TextChanged(object sender, TextChangedEventArgs e)
@@ -107,6 +165,9 @@ public partial class ClienteFormView : Window
 
     private async void BtnBuscarCep_Click(object sender, RoutedEventArgs e)
         => await ConsultarCepAsync(exigirCepCompleto: true);
+
+    private async void BtnBuscarCnpj_Click(object sender, RoutedEventArgs e)
+        => await ConsultarCnpjAsync();
 
     private async Task ConsultarCepAsync(bool exigirCepCompleto = false)
     {
@@ -160,6 +221,82 @@ public partial class ClienteFormView : Window
         }
     }
 
+    private async Task ConsultarCnpjAsync()
+    {
+        if (_consultandoCnpj)
+            return;
+
+        if (!DocumentoHelper.CnpjCompleto(TxtCnpj.Text))
+        {
+            TxtStatus.Text = "Informe um CNPJ válido com 14 dígitos.";
+            TxtCnpj.Focus();
+            return;
+        }
+
+        _cnpjCts?.Cancel();
+        _cnpjCts?.Dispose();
+        _cnpjCts = new CancellationTokenSource();
+        var token = _cnpjCts.Token;
+
+        _consultandoCnpj = true;
+        TxtStatus.Text = "Consultando CNPJ na Receita...";
+
+        try
+        {
+            var dados = await _cnpjConsultaService.ConsultarAsync(TxtCnpj.Text, token);
+            if (token.IsCancellationRequested) return;
+
+            if (dados is null)
+            {
+                TxtStatus.Text = "CNPJ não encontrado.";
+                return;
+            }
+
+            TxtNome.Text = dados.RazaoSocial;
+
+            if (!string.IsNullOrWhiteSpace(dados.Telefone))
+            {
+                _suprimirMascaraTelefone = true;
+                TxtTelefone.Text = DocumentoHelper.AplicarMascaraCelular(dados.Telefone);
+                _suprimirMascaraTelefone = false;
+            }
+            if (!string.IsNullOrWhiteSpace(dados.Email))
+                TxtEmail.Text = dados.Email;
+
+            if (!string.IsNullOrWhiteSpace(dados.Cep))
+            {
+                _suprimirMascaraCep = true;
+                TxtCep.Text = dados.Cep;
+                _suprimirMascaraCep = false;
+            }
+            if (!string.IsNullOrWhiteSpace(dados.Logradouro))
+                TxtLogradouro.Text = dados.Logradouro;
+            if (!string.IsNullOrWhiteSpace(dados.Numero))
+                TxtNumero.Text = dados.Numero;
+            if (!string.IsNullOrWhiteSpace(dados.Complemento))
+                TxtComplemento.Text = dados.Complemento;
+            if (!string.IsNullOrWhiteSpace(dados.Bairro))
+                TxtBairro.Text = dados.Bairro;
+            if (!string.IsNullOrWhiteSpace(dados.Cidade))
+                TxtCidade.Text = dados.Cidade;
+            if (!string.IsNullOrWhiteSpace(dados.Uf))
+                TxtEstado.Text = dados.Uf;
+
+            TxtStatus.Text = "Dados da empresa preenchidos automaticamente.";
+            if (string.IsNullOrWhiteSpace(TxtNumero.Text))
+                TxtNumero.Focus();
+        }
+        catch (OperationCanceledException) { }
+        catch
+        {
+            TxtStatus.Text = "Não foi possível consultar o CNPJ.";
+        }
+        finally
+        {
+            _consultandoCnpj = false;
+        }
+    }
+
     private async void BtnSalvar_Click(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(TxtNome.Text))
@@ -170,10 +307,14 @@ public partial class ClienteFormView : Window
 
         try
         {
+            var isPj = RbPj.IsChecked == true;
             var dto = new ClienteDto
             {
+                TipoPessoa = isPj ? TipoPessoa.Juridica : TipoPessoa.Fisica,
                 Nome = TxtNome.Text.Trim(),
-                Cpf = DocumentoHelper.AplicarMascaraCpf(TxtCpf.Text),
+                Cpf = isPj ? null : DocumentoHelper.AplicarMascaraCpf(TxtCpf.Text),
+                Cnpj = isPj ? DocumentoHelper.AplicarMascaraCnpj(TxtCnpj.Text) : null,
+                InscricaoEstadual = isPj ? TxtInscricaoEstadual.Text.Trim() : null,
                 Telefone = TxtTelefone.Text.Trim(),
                 WhatsApp = TxtWhatsApp.Text.Trim(),
                 Email = TxtEmail.Text.Trim(),
@@ -211,6 +352,8 @@ public partial class ClienteFormView : Window
     {
         _cepCts?.Cancel();
         _cepCts?.Dispose();
+        _cnpjCts?.Cancel();
+        _cnpjCts?.Dispose();
         base.OnClosed(e);
     }
 }

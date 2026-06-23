@@ -14,6 +14,12 @@ namespace ImperialColors.Application.Services;
 
 public class ProdutoService : IProdutoService
 {
+    public const string MensagemExclusaoBloqueadaPorHistorico =
+        "Este produto não pode ser excluído permanentemente porque já possui movimentações ou vendas registradas no sistema.";
+
+    public const string MensagemCodigoBarrasDuplicado =
+        "Este código de barras já está cadastrado para outro produto.";
+
     private readonly IProdutoRepository _produtoRepository;
     private readonly IMovimentacaoEstoqueRepository _movimentacaoRepository;
     private readonly IRepository<Categoria> _categoriaRepository;
@@ -44,10 +50,11 @@ public class ProdutoService : IProdutoService
         int pagina,
         int itensPorPagina,
         string? termoBusca = null,
+        bool apenasPromocao = false,
         CancellationToken cancellationToken = default)
     {
         var (itens, total) = await _produtoRepository.ObterPaginadoAsync(
-            pagina, itensPorPagina, termoBusca, cancellationToken);
+            pagina, itensPorPagina, termoBusca, apenasPromocao, cancellationToken);
 
         return new PaginacaoResultadoDto<ProdutoDto>
         {
@@ -98,6 +105,7 @@ public class ProdutoService : IProdutoService
     {
         ProdutoValidator.Validar(dto);
         await ValidarReferenciasCatalogoAsync(dto.CategoriaId!.Value, dto.MarcaId!.Value);
+        await ValidarCodigoBarrasUnicoAsync(dto.CodigoBarras);
 
         var codigoInterno = InputSanitizer.SanitizarTexto(dto.CodigoInterno, 50);
         var codigoManual = dto.CodigoInternoDefinidoManualmente;
@@ -124,13 +132,17 @@ public class ProdutoService : IProdutoService
             LitragemGl = unidade == "GL" ? dto.LitragemGl : null,
             Custo = dto.Custo,
             PrecoVenda = dto.PrecoVenda,
+            PromocaoAtiva = dto.PromocaoAtiva,
+            PrecoPromocional = dto.PromocaoAtiva ? dto.PrecoPromocional : null,
+            DataValidade = dto.DataValidade?.Date,
+            FornecedorId = dto.FornecedorId,
             Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500)
         };
 
         var criado = await _produtoRepository.InserirProdutoAsync(
             produto,
             permitirRegenerarCodigoInterno: !codigoManual,
-            obterProximoCodigoInternoAsync: GerarProximoCodigoInternoDisponivelAsync);
+            obterProximoCodigoInternoAsync: () => RegenerarCodigoInternoAsync(produto.Nome, produto.CodigoInterno));
 
         if (dto.QuantidadeEstoque > 0)
         {
@@ -153,6 +165,7 @@ public class ProdutoService : IProdutoService
     {
         ProdutoValidator.Validar(dto);
         await ValidarReferenciasCatalogoAsync(dto.CategoriaId!.Value, dto.MarcaId!.Value);
+        await ValidarCodigoBarrasUnicoAsync(dto.CodigoBarras, id);
 
         var produto = await _produtoRepository.ObterPorIdAsync(id)
             ?? throw new DomainException($"Produto com Id {id} não encontrado.");
@@ -171,6 +184,10 @@ public class ProdutoService : IProdutoService
         produto.LitragemGl = unidadeAtualizada == "GL" ? dto.LitragemGl : null;
         produto.Custo = dto.Custo;
         produto.PrecoVenda = dto.PrecoVenda;
+        produto.PromocaoAtiva = dto.PromocaoAtiva;
+        produto.PrecoPromocional = dto.PromocaoAtiva ? dto.PrecoPromocional : null;
+        produto.DataValidade = dto.DataValidade?.Date;
+        produto.FornecedorId = dto.FornecedorId;
         produto.Observacoes = InputSanitizer.SanitizarTexto(dto.Observacoes, 500);
 
         var quantidadeAnterior = produto.QuantidadeEstoque;
@@ -198,16 +215,30 @@ public class ProdutoService : IProdutoService
 
     public async Task RemoverAsync(int id)
     {
-        var produto = await _produtoRepository.ObterPorIdAsync(id)
+        _ = await _produtoRepository.ObterPorIdAsync(id)
             ?? throw new DomainException($"Produto com Id {id} não encontrado.");
 
-        await _produtoRepository.RemoverAsync(id);
+        if (await _produtoRepository.PossuiHistoricoComercialAsync(id))
+            throw new DomainException(MensagemExclusaoBloqueadaPorHistorico);
 
-        var aindaAtivo = await _produtoRepository.ObterPorIdAsync(id);
-        if (aindaAtivo is not null)
+        await _produtoRepository.RemoverFisicamenteAsync(id);
+
+        if (await _produtoRepository.ExisteFisicamenteAsync(id))
             throw new DomainException("Não foi possível excluir o produto. Tente novamente.");
 
-        _logger.LogInformation("Produto excluído (soft delete): {Nome} ({Id})", produto.Nome, id);
+        _logger.LogInformation("Produto excluído (hard delete): Id={Id}", id);
+    }
+
+    public async Task<bool> CodigoBarrasExisteAsync(
+        string codigoBarras,
+        int? ignorarProdutoId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizado = InputSanitizer.SanitizarTexto(codigoBarras, 50);
+        if (string.IsNullOrWhiteSpace(normalizado))
+            return false;
+
+        return await _produtoRepository.CodigoBarrasExisteAsync(normalizado, ignorarProdutoId, cancellationToken);
     }
 
     public async Task<IEnumerable<ProdutoDto>> ObterComEstoqueBaixoAsync()
@@ -265,10 +296,39 @@ public class ProdutoService : IProdutoService
     public async Task<string> GerarProximoCodigoInternoAsync()
         => await GerarProximoCodigoInternoDisponivelAsync();
 
+    public async Task<string> GerarCodigoInternoPorNomeAsync(string nome, CancellationToken cancellationToken = default)
+    {
+        var sigla = ProdutoCodigoIniciaisHelper.ExtrairSigla(nome);
+        if (string.IsNullOrWhiteSpace(sigla))
+            return await GerarProximoCodigoInternoDisponivelAsync();
+
+        var maiorSequencia = await _produtoRepository.ObterMaiorSequenciaPorSiglaAsync(sigla, cancellationToken);
+        return ProdutoCodigoIniciaisHelper.FormatarCodigo(sigla, maiorSequencia + 1);
+    }
+
+    private async Task<string> RegenerarCodigoInternoAsync(string nome, string? codigoAtual)
+    {
+        if (!string.IsNullOrWhiteSpace(codigoAtual)
+            && ProdutoCodigoIniciaisHelper.EhCodigoPorIniciais(codigoAtual))
+        {
+            var sigla = codigoAtual[..^3].ToUpperInvariant();
+            var maiorSequencia = await _produtoRepository.ObterMaiorSequenciaPorSiglaAsync(sigla);
+            return ProdutoCodigoIniciaisHelper.FormatarCodigo(sigla, maiorSequencia + 1);
+        }
+
+        return await GerarCodigoInternoPorNomeAsync(nome);
+    }
+
     private async Task<string> GerarProximoCodigoInternoDisponivelAsync()
     {
         var maiorSequencia = await _produtoRepository.ObterMaiorSequenciaCodigoInternoAsync();
         return ProdutoCodigoInternoHelper.FormatarSequencia(maiorSequencia + 1);
+    }
+
+    private async Task ValidarCodigoBarrasUnicoAsync(string? codigoBarras, int? ignorarProdutoId = null)
+    {
+        if (await CodigoBarrasExisteAsync(codigoBarras ?? string.Empty, ignorarProdutoId))
+            throw new DomainException(MensagemCodigoBarrasDuplicado);
     }
 
     private async Task ValidarReferenciasCatalogoAsync(int categoriaId, int marcaId)
@@ -303,6 +363,11 @@ public class ProdutoService : IProdutoService
         LitragemGl = p.LitragemGl,
         Custo = p.Custo,
         PrecoVenda = p.PrecoVenda,
+        PromocaoAtiva = p.PromocaoAtiva,
+        PrecoPromocional = p.PrecoPromocional,
+        DataValidade = p.DataValidade,
+        FornecedorId = p.FornecedorId,
+        FornecedorNome = p.Fornecedor?.Nome,
         Observacoes = p.Observacoes
     };
 }

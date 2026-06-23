@@ -245,6 +245,7 @@ public class ProdutoViewModel : BaseViewModel
                 PaginaAtual,
                 ItensPorPaginaPadrao,
                 string.IsNullOrWhiteSpace(TermoBusca) ? null : TermoBusca.Trim(),
+                false,
                 token).ConfigureAwait(false);
 
             if (token.IsCancellationRequested)
@@ -395,7 +396,7 @@ public class ProdutoViewModel : BaseViewModel
 
         var produto = ProdutoSelecionado!;
 
-        if (!ConfirmarAcao($"Deseja excluir o produto '{produto.Nome}'?")) return;
+        if (!ConfirmarAcao($"Deseja excluir permanentemente o produto '{produto.Nome}'?\n\nEsta ação remove o registro do banco e não pode ser desfeita.")) return;
 
 
 

@@ -3,7 +3,9 @@ using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.UI.Helpers;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Win32;
 using System.Collections.ObjectModel;
+using System.IO;
 
 namespace ImperialColors.UI.ViewModels;
 
@@ -27,6 +29,7 @@ public class ListaCompraViewModel : BaseViewModel
             OnPropertyChanged(nameof(PodeFinalizar));
             OnPropertyChanged(nameof(PodeReabrir));
             OnPropertyChanged(nameof(PodeEnviarWhatsApp));
+            OnPropertyChanged(nameof(PodeVisualizarNota));
             NotifyCanExecuteChanged();
         }
     }
@@ -37,6 +40,7 @@ public class ListaCompraViewModel : BaseViewModel
     public bool PodeEnviarWhatsApp => TemSelecao
         && ListaSelecionada!.FornecedorId is > 0
         && ListaSelecionada.TotalItens > 0;
+    public bool PodeVisualizarNota => TemSelecao && ListaSelecionada!.PossuiNotaFiscal;
 
     private string _termoBusca = string.Empty;
     public string TermoBusca
@@ -56,6 +60,8 @@ public class ListaCompraViewModel : BaseViewModel
     public AsyncRelayCommand FinalizarListaCommand { get; }
     public AsyncRelayCommand ReabrirListaCommand { get; }
     public AsyncRelayCommand EnviarWhatsAppCommand { get; }
+    public AsyncRelayCommand AnexarNotaCommand { get; }
+    public AsyncRelayCommand VisualizarNotaCommand { get; }
 
     public ListaCompraViewModel(
         IListaCompraService listaCompraService,
@@ -73,6 +79,8 @@ public class ListaCompraViewModel : BaseViewModel
         FinalizarListaCommand = new AsyncRelayCommand(Finalizar, () => PodeFinalizar && !Carregando);
         ReabrirListaCommand = new AsyncRelayCommand(Reabrir, () => PodeReabrir && !Carregando);
         EnviarWhatsAppCommand = new AsyncRelayCommand(EnviarWhatsApp, () => PodeEnviarWhatsApp && !Carregando);
+        AnexarNotaCommand = new AsyncRelayCommand(AnexarNota, () => TemSelecao && !Carregando);
+        VisualizarNotaCommand = new AsyncRelayCommand(VisualizarNota, () => PodeVisualizarNota && !Carregando);
     }
 
     public async Task CarregarAsync()
@@ -242,6 +250,67 @@ public class ListaCompraViewModel : BaseViewModel
         catch (Exception ex)
         {
             MostrarErro($"Erro ao preparar envio pelo WhatsApp: {ex.Message}");
+        }
+    }
+
+    private async Task AnexarNota()
+    {
+        if (!ValidarSelecao(ListaSelecionada, "lista de compras"))
+            return;
+
+        var dialog = new OpenFileDialog
+        {
+            Title = "Anexar Nota da Compra",
+            Filter = "Documentos e imagens|*.pdf;*.png;*.jpg;*.jpeg|PDF (*.pdf)|*.pdf|Imagens (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        try
+        {
+            Carregando = true;
+            var listaId = ListaSelecionada!.Id;
+            var bytes = await File.ReadAllBytesAsync(dialog.FileName);
+            await _listaCompraService.AnexarNotaFiscalAsync(listaId, bytes, Path.GetFileName(dialog.FileName));
+            MostrarSucesso("Nota fiscal anexada com sucesso!");
+            await CarregarAsync();
+            ListaSelecionada = Listas.FirstOrDefault(l => l.Id == listaId);
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao anexar nota fiscal: {ex.Message}");
+        }
+        finally
+        {
+            Carregando = false;
+        }
+    }
+
+    private async Task VisualizarNota()
+    {
+        if (!ValidarSelecao(ListaSelecionada, "lista de compras"))
+            return;
+
+        try
+        {
+            Carregando = true;
+            var nota = await _listaCompraService.ObterNotaFiscalAsync(ListaSelecionada!.Id);
+            if (nota is null)
+            {
+                MostrarErro("Esta lista não possui nota fiscal anexada.");
+                return;
+            }
+
+            await ArquivoAnexoHelper.AbrirNoVisualizadorPadraoAsync(nota.Conteudo, nota.NomeArquivo);
+        }
+        catch (Exception ex)
+        {
+            MostrarErro($"Erro ao visualizar nota fiscal: {ex.Message}");
+        }
+        finally
+        {
+            Carregando = false;
         }
     }
 

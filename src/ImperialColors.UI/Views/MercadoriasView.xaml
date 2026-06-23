@@ -81,6 +81,10 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Style="{StaticResource BotaoSecundario}" Command="{Binding AnexarNotaCommand}"
+                                Margin="0,0,10,0" Content="📎  Anexar Nota da Compra"/>
+                        <Button Style="{StaticResource BotaoSecundario}" Command="{Binding VisualizarNotaCommand}"
+                                Margin="0,0,10,0" Content="📄  Visualizar Nota"/>
                         <Button Style="{StaticResource BotaoWhatsApp}" Command="{Binding EnviarWhatsAppCommand}"
                                 Margin="0,0,10,0" Content="💬  Enviar WhatsApp"/>
                         <Button Style="{StaticResource BotaoSecundario}" Command="{Binding FinalizarListaCommand}"
@@ -109,6 +113,7 @@
                                 <DataGridTextColumn Header="Fornecedor" Binding="{Binding FornecedorNome}" Width="180"/>
                                 <DataGridTextColumn Header="Progresso" Binding="{Binding ProgressoDescricao}" Width="140"/>
                                 <DataGridTextColumn Header="Status" Binding="{Binding StatusDescricao}" Width="120"/>
+                                <DataGridTextColumn Header="Nota NF" Binding="{Binding NotaFiscalDescricao}" Width="80"/>
                                 <DataGridTextColumn Header="Criada em" Binding="{Binding CriadoEm, StringFormat=dd/MM/yyyy}" Width="110"/>
                             </DataGrid.Columns>
                         </DataGrid>

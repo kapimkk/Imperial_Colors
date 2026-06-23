@@ -19,6 +19,8 @@ public partial class VendaExternaFormView : Window
     private readonly IVendaExternaService _vendaExternaService;
     private readonly IProdutoService _produtoService;
     private string? _usuario;
+    private int _vendaId;
+    private bool _modoEdicao;
     private List<ProdutoDto> _produtosEncontrados = new();
     private readonly ObservableCollection<ItemVendaExternaFormModel> _itens = new();
 
@@ -36,10 +38,50 @@ public partial class VendaExternaFormView : Window
 
     public void InicializarNova(string? usuario)
     {
+        _modoEdicao = false;
+        _vendaId = 0;
         _usuario = usuario;
+        Title = "Registrar Venda Externa";
+        TxtTituloModulo.Text = "Registrar Venda Externa";
+        TxtSubtituloModulo.Text = "Adicione itens do estoque, digite manualmente ou importe uma lista TXT para conferência";
+        BtnAprovar.Content = "Aprovar e Concluir Venda";
         TxtObservacoes.Text = string.Empty;
         RbModoEstoque.IsChecked = true;
         _itens.Clear();
+        LimparCamposItem();
+        LimparErroValidacao();
+        AtualizarTotal();
+    }
+
+    public void InicializarEdicao(VendaExternaDto venda, string? usuario)
+    {
+        ArgumentNullException.ThrowIfNull(venda);
+
+        _modoEdicao = true;
+        _vendaId = venda.Id;
+        _usuario = usuario;
+        Title = $"Editar Venda Externa — {venda.NumeroVendaExterna}";
+        TxtTituloModulo.Text = "Editar Venda Externa";
+        TxtSubtituloModulo.Text = $"Venda {venda.NumeroVendaExterna} — ajuste quantidades, preços ou itens. O estoque será recalculado ao salvar.";
+        BtnAprovar.Content = "Salvar Alterações";
+        TxtObservacoes.Text = venda.Observacoes ?? string.Empty;
+        RbModoEstoque.IsChecked = true;
+        _itens.Clear();
+
+        foreach (var item in venda.Itens)
+        {
+            _itens.Add(new ItemVendaExternaFormModel
+            {
+                Id = item.Id,
+                ProdutoId = item.ProdutoId,
+                CodigoBarras = item.CodigoBarras,
+                NomeProduto = item.NomeProduto,
+                Quantidade = item.Quantidade,
+                PrecoBase = item.PrecoBase,
+                PrecoUnitario = item.PrecoUnitario
+            });
+        }
+
         LimparCamposItem();
         LimparErroValidacao();
         AtualizarTotal();
@@ -340,28 +382,58 @@ public partial class VendaExternaFormView : Window
         BtnAprovar.IsEnabled = false;
         try
         {
-            var dto = new RegistrarVendaExternaDto
+            if (_modoEdicao)
             {
-                Observacoes = TxtObservacoes.Text.Trim(),
-                Usuario = _usuario,
-                Itens = _itens.Select(i => new RegistrarItemVendaExternaDto
+                var dtoEdicao = new AtualizarVendaExternaDto
                 {
-                    ProdutoId = i.ProdutoId,
-                    NomeProduto = i.NomeProduto,
-                    CodigoBarras = i.CodigoBarras,
-                    Quantidade = i.Quantidade,
-                    PrecoBase = i.PrecoBase,
-                    PrecoUnitario = i.PrecoUnitario
-                }).ToList()
-            };
+                    Id = _vendaId,
+                    Observacoes = TxtObservacoes.Text.Trim(),
+                    Usuario = _usuario,
+                    Itens = _itens.Select(i => new AtualizarItemVendaExternaDto
+                    {
+                        Id = i.Id,
+                        ProdutoId = i.ProdutoId,
+                        NomeProduto = i.NomeProduto,
+                        CodigoBarras = i.CodigoBarras,
+                        Quantidade = i.Quantidade,
+                        PrecoBase = i.PrecoBase,
+                        PrecoUnitario = i.PrecoUnitario
+                    }).ToList()
+                };
 
-            var venda = await _vendaExternaService.RegistrarAsync(dto);
+                var vendaAtualizada = await _vendaExternaService.AtualizarAsync(dtoEdicao);
 
-            MessageBox.Show(
-                $"Venda externa #{venda.NumeroVendaExterna} registrada com sucesso!\nTotal: {FormattingHelper.FormatarMoeda(venda.Total)}",
-                "Venda concluída",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                MessageBox.Show(
+                    $"Venda externa #{vendaAtualizada.NumeroVendaExterna} atualizada!\nTotal: {FormattingHelper.FormatarMoeda(vendaAtualizada.Total)}",
+                    "Alterações salvas",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            else
+            {
+                var dto = new RegistrarVendaExternaDto
+                {
+                    Observacoes = TxtObservacoes.Text.Trim(),
+                    Usuario = _usuario,
+                    Itens = _itens.Select(i => new RegistrarItemVendaExternaDto
+                    {
+                        ProdutoId = i.ProdutoId,
+                        NomeProduto = i.NomeProduto,
+                        CodigoBarras = i.CodigoBarras,
+                        Quantidade = i.Quantidade,
+                        PrecoBase = i.PrecoBase,
+                        PrecoUnitario = i.PrecoUnitario
+                    }).ToList()
+                };
+
+                var venda = await _vendaExternaService.RegistrarAsync(dto);
+
+                MessageBox.Show(
+                    $"Venda externa #{venda.NumeroVendaExterna} registrada com sucesso!\nTotal: {FormattingHelper.FormatarMoeda(venda.Total)}",
+                    "Venda concluída",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
 
             DialogResult = true;
             Close();
@@ -372,7 +444,9 @@ public partial class VendaExternaFormView : Window
         }
         catch (Exception ex)
         {
-            ExibirErroValidacao($"Erro ao registrar venda externa: {ex.Message}");
+            ExibirErroValidacao(_modoEdicao
+                ? $"Erro ao salvar alterações: {ex.Message}"
+                : $"Erro ao registrar venda externa: {ex.Message}");
         }
         finally
         {

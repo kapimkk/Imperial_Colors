@@ -140,4 +140,119 @@ public class VendaExternaIntegrationTests
         var prodBanco = await ctx.Set<Domain.Entities.Produto>().FirstAsync(p => p.Id == produto.Id);
         Assert.Equal(1m, prodBanco.QuantidadeEstoque);
     }
+
+    [Fact]
+    public async Task EditarVendaExterna_DiminuirQuantidade_DeveReporDiferencaNoEstoque()
+    {
+        if (!TryConfigurar(out var provider)) return;
+        await using var scope = provider.CreateAsyncScope();
+
+        var produtoService = scope.ServiceProvider.GetRequiredService<IProdutoService>();
+        var vendaExternaService = scope.ServiceProvider.GetRequiredService<IVendaExternaService>();
+        var contextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+
+        var sufixo = Guid.NewGuid().ToString("N")[..8];
+        var produto = await produtoService.CriarAsync(new CriarProdutoDto
+        {
+            Nome = $"Galão Externo {sufixo}",
+            CodigoInterno = $"GAL-{sufixo}",
+            CodigoInternoDefinidoManualmente = true,
+            PrecoVenda = 80m,
+            QuantidadeEstoque = 20,
+            EstoqueMinimo = 1,
+            Unidade = "GL"
+        });
+
+        const decimal qtdInicial = 5m;
+        const decimal qtdFinal = 3m;
+
+        var venda = await vendaExternaService.RegistrarAsync(new RegistrarVendaExternaDto
+        {
+            Usuario = "Teste",
+            Itens =
+            [
+                new RegistrarItemVendaExternaDto
+                {
+                    ProdutoId = produto.Id,
+                    NomeProduto = produto.Nome,
+                    Quantidade = qtdInicial,
+                    PrecoBase = produto.PrecoVenda,
+                    PrecoUnitario = produto.PrecoVenda
+                }
+            ]
+        });
+
+        var itemId = venda.Itens.Single().Id;
+
+        await vendaExternaService.AtualizarAsync(new AtualizarVendaExternaDto
+        {
+            Id = venda.Id,
+            Usuario = "Teste",
+            Itens =
+            [
+                new AtualizarItemVendaExternaDto
+                {
+                    Id = itemId,
+                    ProdutoId = produto.Id,
+                    NomeProduto = produto.Nome,
+                    Quantidade = qtdFinal,
+                    PrecoBase = produto.PrecoVenda,
+                    PrecoUnitario = produto.PrecoVenda
+                }
+            ]
+        });
+
+        await using var ctx = await contextFactory.CreateDbContextAsync();
+        var prodBanco = await ctx.Set<Domain.Entities.Produto>().FirstAsync(p => p.Id == produto.Id);
+        Assert.Equal(20m - qtdFinal, prodBanco.QuantidadeEstoque);
+    }
+
+    [Fact]
+    public async Task ExcluirVendaExterna_DeveRemoverDoBancoEReporEstoque()
+    {
+        if (!TryConfigurar(out var provider)) return;
+        await using var scope = provider.CreateAsyncScope();
+
+        var produtoService = scope.ServiceProvider.GetRequiredService<IProdutoService>();
+        var vendaExternaService = scope.ServiceProvider.GetRequiredService<IVendaExternaService>();
+        var contextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<AppDbContext>>();
+
+        var sufixo = Guid.NewGuid().ToString("N")[..8];
+        var produto = await produtoService.CriarAsync(new CriarProdutoDto
+        {
+            Nome = $"Prod Exclusão {sufixo}",
+            CodigoInterno = $"DEL-{sufixo}",
+            CodigoInternoDefinidoManualmente = true,
+            PrecoVenda = 60m,
+            QuantidadeEstoque = 15,
+            EstoqueMinimo = 0
+        });
+
+        const decimal qtdVendida = 4m;
+        var venda = await vendaExternaService.RegistrarAsync(new RegistrarVendaExternaDto
+        {
+            Itens =
+            [
+                new RegistrarItemVendaExternaDto
+                {
+                    ProdutoId = produto.Id,
+                    NomeProduto = produto.Nome,
+                    Quantidade = qtdVendida,
+                    PrecoBase = produto.PrecoVenda,
+                    PrecoUnitario = produto.PrecoVenda
+                }
+            ]
+        });
+
+        await vendaExternaService.ExcluirFisicamenteAsync(venda.Id);
+
+        await using var ctx = await contextFactory.CreateDbContextAsync();
+        var vendaNoBanco = await ctx.Set<Domain.Entities.VendaExterna>()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(v => v.Id == venda.Id);
+        Assert.Null(vendaNoBanco);
+
+        var prodBanco = await ctx.Set<Domain.Entities.Produto>().FirstAsync(p => p.Id == produto.Id);
+        Assert.Equal(15m, prodBanco.QuantidadeEstoque);
+    }
 }

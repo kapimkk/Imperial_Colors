@@ -14,17 +14,20 @@ public class VendaService : IVendaService
     private readonly IVendaRepository _vendaRepository;
     private readonly IProdutoRepository _produtoRepository;
     private readonly IMovimentacaoEstoqueRepository _movimentacaoRepository;
+    private readonly IClienteRepository _clienteRepository;
     private readonly ILogger<VendaService> _logger;
 
     public VendaService(
         IVendaRepository vendaRepository,
         IProdutoRepository produtoRepository,
         IMovimentacaoEstoqueRepository movimentacaoRepository,
+        IClienteRepository clienteRepository,
         ILogger<VendaService> logger)
     {
         _vendaRepository = vendaRepository;
         _produtoRepository = produtoRepository;
         _movimentacaoRepository = movimentacaoRepository;
+        _clienteRepository = clienteRepository;
         _logger = logger;
     }
 
@@ -114,15 +117,26 @@ public class VendaService : IVendaService
         };
 
         venda.CalcularTotais();
+        await ResolverIdentificacaoCompradorAsync(venda, dto);
 
-        PagamentoHelper.ValidarPagamento(dto.FormaPagamento, venda.Total, dto.ValorPago, dto.QuantidadeParcelas);
-        var (valorPago, troco, parcelas) = PagamentoHelper.CalcularPagamento(
-            dto.FormaPagamento, venda.Total, dto.ValorPago, dto.QuantidadeParcelas);
+        var pagamentos = PagamentoHelper.NormalizarPagamentos(dto, venda.Total);
+        PagamentoHelper.ValidarPagamentosCompostos(venda.Total, pagamentos);
 
-        venda.FormaPagamento = dto.FormaPagamento;
-        venda.QuantidadeParcelas = parcelas;
-        venda.ValorPago = valorPago;
-        venda.Troco = troco;
+        var (formaResumo, parcelasResumo, valorPagoResumo, trocoTotal) =
+            PagamentoHelper.ResumirPagamentosLegado(pagamentos);
+
+        venda.FormaPagamento = pagamentos.Count > 1 ? formaResumo : pagamentos[0].FormaPagamento;
+        venda.QuantidadeParcelas = parcelasResumo;
+        venda.ValorPago = valorPagoResumo;
+        venda.Troco = trocoTotal;
+        venda.Pagamentos = pagamentos.Select((p, index) => new VendaPagamento
+        {
+            FormaPagamento = p.FormaPagamento,
+            Valor = p.Valor,
+            ValorRecebido = p.ValorRecebido,
+            QuantidadeParcelas = p.QuantidadeParcelas,
+            Ordem = index + 1
+        }).ToList();
 
         var vendaCriada = await _vendaRepository.AdicionarAsync(venda);
 
@@ -150,6 +164,38 @@ public class VendaService : IVendaService
 
         var vendaCompleta = await _vendaRepository.ObterComItensAsync(vendaCriada.Id);
         return MapParaDto(vendaCompleta!);
+    }
+
+    private async Task ResolverIdentificacaoCompradorAsync(Venda venda, CriarVendaDto dto)
+    {
+        if (dto.ClienteId is > 0)
+        {
+            var cliente = await _clienteRepository.ObterPorIdAsync(dto.ClienteId.Value)
+                ?? throw new DomainException("Cliente selecionado não encontrado.");
+
+            venda.ClienteId = cliente.Id;
+            venda.NomeCompradorCupom = cliente.Nome;
+            venda.TipoPessoaComprador = cliente.TipoPessoa;
+            venda.DocumentoCompradorCupom = cliente.TipoPessoa == TipoPessoa.Juridica
+                ? cliente.Cnpj
+                : cliente.Cpf;
+            return;
+        }
+
+        if (dto.ConsumidorFinal)
+        {
+            venda.NomeCompradorCupom = "Consumidor Final";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.NomeCompradorAvulso))
+            throw new DomainException("Informe o nome do comprador ou selecione Consumidor Final.");
+
+        venda.NomeCompradorCupom = dto.NomeCompradorAvulso.Trim();
+        venda.DocumentoCompradorCupom = string.IsNullOrWhiteSpace(dto.DocumentoCompradorAvulso)
+            ? null
+            : dto.DocumentoCompradorAvulso.Trim();
+        venda.TipoPessoaComprador = dto.TipoPessoaCompradorAvulso;
     }
 
     public async Task<VendaDto> FinalizarAsync(int id)
@@ -193,6 +239,9 @@ public class VendaService : IVendaService
         NumeroVenda = v.NumeroVenda,
         ClienteId = v.ClienteId,
         ClienteNome = v.Cliente?.Nome,
+        NomeCompradorCupom = v.NomeCompradorCupom,
+        DocumentoCompradorCupom = v.DocumentoCompradorCupom,
+        TipoPessoaComprador = v.TipoPessoaComprador,
         Status = v.Status,
         Subtotal = v.Subtotal,
         Desconto = v.Desconto,
@@ -201,6 +250,17 @@ public class VendaService : IVendaService
         QuantidadeParcelas = v.QuantidadeParcelas,
         ValorPago = v.ValorPago,
         Troco = v.Troco,
+        Pagamentos = v.Pagamentos?
+            .OrderBy(p => p.Ordem)
+            .Select(p => new VendaPagamentoDto
+            {
+                Id = p.Id,
+                FormaPagamento = p.FormaPagamento,
+                Valor = p.Valor,
+                ValorRecebido = p.ValorRecebido,
+                QuantidadeParcelas = p.QuantidadeParcelas,
+                Ordem = p.Ordem
+            }).ToList() ?? new(),
         Observacoes = v.Observacoes,
         Usuario = v.Usuario,
         DataVenda = v.DataVenda,

@@ -68,6 +68,46 @@ public class VendaExternaService : IVendaExternaService
         return MapearParaDto(registrada);
     }
 
+    public async Task<VendaExternaDto> AtualizarAsync(AtualizarVendaExternaDto dto, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+
+        if (dto.Id <= 0)
+            throw new DomainException("Informe a venda externa a ser editada.");
+
+        if (dto.Itens is null || dto.Itens.Count == 0)
+            throw new DomainException("Adicione pelo menos um item à venda externa.");
+
+        ValidarItensAtualizacao(dto.Itens);
+
+        var itens = dto.Itens.Select(i => new ItemVendaExterna
+        {
+            Id = i.Id,
+            ProdutoId = i.ProdutoId,
+            NomeProduto = i.NomeProduto.Trim(),
+            CodigoBarras = string.IsNullOrWhiteSpace(i.CodigoBarras) ? null : i.CodigoBarras.Trim(),
+            Quantidade = i.Quantidade,
+            PrecoBase = i.PrecoBase,
+            PrecoUnitario = i.PrecoUnitario
+        }).ToList();
+
+        foreach (var item in itens)
+            item.CalcularSubtotal();
+
+        var atualizada = await _vendaExternaRepository.AtualizarTransacionalAsync(
+            dto.Id, dto.Observacoes, itens, dto.Usuario, cancellationToken);
+
+        return MapearParaDto(atualizada);
+    }
+
+    public async Task ExcluirFisicamenteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        _ = await _vendaExternaRepository.ObterComItensAsync(id, cancellationToken)
+            ?? throw new DomainException($"Venda externa com Id {id} não encontrada.");
+
+        await _vendaExternaRepository.ExcluirFisicamenteTransacionalAsync(id, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<LinhaImportacaoVendaExternaDto>> ProcessarImportacaoTxtAsync(
         string conteudoArquivo,
         CancellationToken cancellationToken = default)
@@ -93,6 +133,21 @@ public class VendaExternaService : IVendaExternaService
     }
 
     private static void ValidarItens(IReadOnlyList<RegistrarItemVendaExternaDto> itens)
+    {
+        foreach (var item in itens)
+        {
+            if (string.IsNullOrWhiteSpace(item.NomeProduto))
+                throw new DomainException("Todos os itens devem ter um nome de produto.");
+
+            if (item.Quantidade <= 0)
+                throw new DomainException($"Quantidade inválida para '{item.NomeProduto}'.");
+
+            if (item.PrecoUnitario < 0)
+                throw new DomainException($"Preço unitário inválido para '{item.NomeProduto}'.");
+        }
+    }
+
+    private static void ValidarItensAtualizacao(IReadOnlyList<AtualizarItemVendaExternaDto> itens)
     {
         foreach (var item in itens)
         {

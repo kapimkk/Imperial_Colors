@@ -200,7 +200,7 @@ public class FornecedorViewModel : BaseViewModel
     {
         if (!ValidarSelecao(FornecedorSelecionado, "fornecedor"))
             return;
-        if (!ConfirmarAcao($"Deseja excluir o fornecedor '{FornecedorSelecionado!.Nome}'?")) return;
+        if (!ConfirmarAcao($"Deseja excluir permanentemente o fornecedor '{FornecedorSelecionado!.Nome}'?\n\nEsta ação remove o registro do banco e não pode ser desfeita.")) return;
         try
         {
             await _fornecedorService.RemoverAsync(FornecedorSelecionado!.Id);

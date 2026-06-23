@@ -819,4 +819,62 @@
         </Setter>
     </Style>
 
+    <!-- Relatórios — navegação lateral -->
+    <Style x:Key="RelatorioCategoriaHeader" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="10"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="Foreground" Value="{StaticResource CinzaTextoBrush}"/>
+        <Setter Property="Margin" Value="16,14,16,6"/>
+    </Style>
+
+    <Style x:Key="RelatorioNavItem" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="16,11"/>
+        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="ItemBorder" Background="Transparent"
+                            BorderThickness="3,0,0,0" BorderBrush="Transparent"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource CinzaClaroBrush}"/>
+                        </Trigger>
+                        <DataTrigger Binding="{Binding Path=(helpers:NavMenuHelper.IsActive), RelativeSource={RelativeSource Self}}" Value="True">
+                            <Setter TargetName="ItemBorder" Property="Background" Value="#FFFEF5"/>
+                            <Setter TargetName="ItemBorder" Property="BorderBrush" Value="{StaticResource AmareloPrimarioBrush}"/>
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RelatorioNavTitulo" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource FontePrimaria}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{StaticResource PretoPrimarioBrush}"/>
+    </Style>
+
+    <Style x:Key="ToggleFormatoExportacao" TargetType="ToggleButton" BasedOn="{StaticResource TogglePagamento}">
+        <Setter Property="MinWidth" Value="72"/>
+        <Setter Property="Padding" Value="14,7"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <Style x:Key="PainelFiltroRelatorio" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource CinzaClaroBrush}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="18,16"/>
+        <Setter Property="BorderBrush" Value="{StaticResource CinzaMedioBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
 </ResourceDictionary>

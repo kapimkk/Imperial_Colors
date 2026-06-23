@@ -58,6 +58,11 @@
                         <TextBox x:Name="TxtNome" Style="{StaticResource TextBoxModerno}"/>
                     </StackPanel>
 
+                    <StackPanel Margin="0,0,0,12">
+                        <TextBlock Style="{StaticResource LabelCampo}" Text="Inscrição Estadual"/>
+                        <TextBox x:Name="TxtInscricaoEstadual" Style="{StaticResource TextBoxModerno}" MaxLength="20"/>
+                    </StackPanel>
+
                     <Grid Margin="0,0,0,12">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition/><ColumnDefinition Width="15"/><ColumnDefinition/><ColumnDefinition Width="15"/><ColumnDefinition/>

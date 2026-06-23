@@ -40,4 +40,44 @@ public class PagamentoHelperTests
 
         Assert.Equal("Cartão de Crédito - 3x", descricao);
     }
+
+    [Fact]
+    public void ValidarPagamentosCompostos_SomaCorreta_NaoLancaExcecao()
+    {
+        var pagamentos = new List<ImperialColors.Application.DTOs.CriarVendaPagamentoDto>
+        {
+            new() { FormaPagamento = FormaPagamento.Dinheiro, Valor = 50m, ValorRecebido = 50m },
+            new() { FormaPagamento = FormaPagamento.Pix, Valor = 100m }
+        };
+
+        ImperialColors.Application.Helpers.PagamentoHelper.ValidarPagamentosCompostos(150m, pagamentos);
+    }
+
+    [Fact]
+    public void ValidarPagamentosCompostos_SomaIncorreta_LancaDomainException()
+    {
+        var pagamentos = new List<ImperialColors.Application.DTOs.CriarVendaPagamentoDto>
+        {
+            new() { FormaPagamento = FormaPagamento.Dinheiro, Valor = 50m, ValorRecebido = 50m }
+        };
+
+        Assert.Throws<DomainException>(() =>
+            ImperialColors.Application.Helpers.PagamentoHelper.ValidarPagamentosCompostos(150m, pagamentos));
+    }
+
+    [Fact]
+    public void NormalizarPagamentos_LegacySinglePayment_RetornaUmItem()
+    {
+        var dto = new ImperialColors.Application.DTOs.CriarVendaDto
+        {
+            FormaPagamento = FormaPagamento.Pix,
+            ValorPago = 100m
+        };
+
+        var pagamentos = ImperialColors.Application.Helpers.PagamentoHelper.NormalizarPagamentos(dto, 100m);
+
+        Assert.Single(pagamentos);
+        Assert.Equal(FormaPagamento.Pix, pagamentos[0].FormaPagamento);
+        Assert.Equal(100m, pagamentos[0].Valor);
+    }
 }

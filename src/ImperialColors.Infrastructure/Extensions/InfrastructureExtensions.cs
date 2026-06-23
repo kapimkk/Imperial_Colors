@@ -34,6 +34,7 @@ public static class InfrastructureExtensions
         services.AddSingleton<IUsuarioRepository, UsuarioRepository>();
         services.AddSingleton<ITrocaRepository, TrocaRepository>();
         services.AddSingleton<IVendaExternaRepository, VendaExternaRepository>();
+        services.AddSingleton<IRelatorioAnalyticsRepository, RelatorioAnalyticsRepository>();
 
         services.AddSingleton<IPrinterService, PrinterService>();
         services.AddSingleton<ILocalConfigService, LocalConfigService>();

@@ -26,6 +26,26 @@ public class ItemVendaExternaDto
     public decimal Subtotal { get; set; }
     public bool ItemManual => !ProdutoId.HasValue;
     public string TipoDescricao => ItemManual ? "Manual" : "Estoque";
+    public string DescricaoTroca => $"{NomeProduto} — Qtd: {Quantidade} @ R$ {PrecoUnitario:N2}";
+}
+
+public class AtualizarVendaExternaDto
+{
+    public int Id { get; set; }
+    public string? Observacoes { get; set; }
+    public string? Usuario { get; set; }
+    public List<AtualizarItemVendaExternaDto> Itens { get; set; } = new();
+}
+
+public class AtualizarItemVendaExternaDto
+{
+    public int Id { get; set; }
+    public int? ProdutoId { get; set; }
+    public string NomeProduto { get; set; } = string.Empty;
+    public string? CodigoBarras { get; set; }
+    public decimal Quantidade { get; set; }
+    public decimal PrecoBase { get; set; }
+    public decimal PrecoUnitario { get; set; }
 }
 
 public class RegistrarVendaExternaDto

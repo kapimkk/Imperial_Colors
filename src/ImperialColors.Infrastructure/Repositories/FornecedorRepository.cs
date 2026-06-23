@@ -43,4 +43,45 @@ public class FornecedorRepository : RepositoryBase<Fornecedor>, IFornecedorRepos
 
         return (itens, total);
     }
+
+    public async Task<bool> PossuiVinculosAsync(int fornecedorId, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+
+        if (await context.Set<Produto>()
+                .IgnoreQueryFilters()
+                .AnyAsync(p => p.FornecedorId == fornecedorId, cancellationToken))
+            return true;
+
+        return await context.Set<ListaCompra>()
+            .IgnoreQueryFilters()
+            .AnyAsync(l => l.FornecedorId == fornecedorId, cancellationToken);
+    }
+
+    public async Task RemoverFisicamenteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        var fornecedor = await context.Set<Fornecedor>()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+
+        if (fornecedor is null)
+            return;
+
+        context.Set<Fornecedor>().Remove(fornecedor);
+        await SalvarAlteracoesAsync(context);
+    }
+
+    public async Task<bool> ExisteFisicamenteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Fornecedor>()
+            .IgnoreQueryFilters()
+            .AnyAsync(f => f.Id == id, cancellationToken);
+    }
+
+    public override async Task RemoverAsync(int id)
+    {
+        await RemoverFisicamenteAsync(id);
+    }
 }

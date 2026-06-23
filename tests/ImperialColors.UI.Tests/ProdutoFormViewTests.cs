@@ -57,15 +57,11 @@ public class ProdutoFormViewTests
     [StaFact]
     public void ProdutoFormView_AbrirEFecharCincoVezesSemExcecao()
     {
-        var produtoService = CriarProdutoServiceMock();
-        var categoriaService = CriarCategoriaServiceMock();
-        var marcaService = CriarMarcaServiceMock();
-
         for (var i = 0; i < 5; i++)
         {
             var excecao = Record.Exception(() =>
             {
-                var form = new ProdutoFormView(produtoService.Object, categoriaService.Object, marcaService.Object);
+                var form = CriarForm();
                 form.InicializarNovo();
                 form.InicializarEdicao(CriarProdutoExemplo());
                 form.Close();
@@ -78,10 +74,7 @@ public class ProdutoFormViewTests
     [StaFact]
     public void ProdutoFormView_ComboBoxesNaoUsamDisplayMemberPathComItemTemplate()
     {
-        var form = new ProdutoFormView(
-            CriarProdutoServiceMock().Object,
-            CriarCategoriaServiceMock().Object,
-            CriarMarcaServiceMock().Object);
+        var form = CriarForm();
 
         form.InicializarNovo();
         form.Show();
@@ -107,10 +100,7 @@ public class ProdutoFormViewTests
     [StaFact]
     public void ProdutoFormView_EdicaoExibeMoedaFormatada()
     {
-        var form = new ProdutoFormView(
-            CriarProdutoServiceMock().Object,
-            CriarCategoriaServiceMock().Object,
-            CriarMarcaServiceMock().Object);
+        var form = CriarForm();
 
         form.InicializarEdicao(CriarProdutoExemplo());
 
@@ -122,10 +112,7 @@ public class ProdutoFormViewTests
     [StaFact]
     public void ProdutoFormView_ComboBoxesNaoContemPlaceholderIdZero()
     {
-        var form = new ProdutoFormView(
-            CriarProdutoServiceMock().Object,
-            CriarCategoriaServiceMock().Object,
-            CriarMarcaServiceMock().Object);
+        var form = CriarForm();
 
         form.InicializarNovo();
         form.Show();
@@ -148,6 +135,10 @@ public class ProdutoFormViewTests
     {
         var mock = new Mock<IProdutoService>();
         mock.Setup(s => s.GerarProximoCodigoInternoAsync()).ReturnsAsync("P00001");
+        mock.Setup(s => s.GerarCodigoInternoPorNomeAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("MCC001");
+        mock.Setup(s => s.CodigoBarrasExisteAsync(It.IsAny<string>(), It.IsAny<int?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false);
         return mock;
     }
 
@@ -172,6 +163,20 @@ public class ProdutoFormViewTests
         mock.Setup(s => s.CriarAsync(It.IsAny<string>())).ReturnsAsync(new MarcaDto { Id = 2, Nome = "Nova" });
         return mock;
     }
+
+    private static Mock<IFornecedorService> CriarFornecedorServiceMock()
+    {
+        var mock = new Mock<IFornecedorService>();
+        mock.Setup(s => s.ObterTodosAsync()).ReturnsAsync(new List<FornecedorDto>());
+        return mock;
+    }
+
+    private static ProdutoFormView CriarForm()
+        => new(
+            CriarProdutoServiceMock().Object,
+            CriarCategoriaServiceMock().Object,
+            CriarMarcaServiceMock().Object,
+            CriarFornecedorServiceMock().Object);
 
     private static ProdutoDto CriarProdutoExemplo() => new()
     {

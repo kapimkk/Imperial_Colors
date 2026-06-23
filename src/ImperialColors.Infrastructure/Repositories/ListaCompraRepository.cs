@@ -17,6 +17,20 @@ public class ListaCompraRepository : RepositoryBase<ListaCompra>, IListaCompraRe
             .Include(l => l.Fornecedor)
             .Include(l => l.Itens).ThenInclude(i => i.Produto)
             .OrderByDescending(l => l.CriadoEm)
+            .Select(l => new ListaCompra
+            {
+                Id = l.Id,
+                Nome = l.Nome,
+                FornecedorId = l.FornecedorId,
+                Finalizada = l.Finalizada,
+                Observacoes = l.Observacoes,
+                NotaFiscalNomeArquivo = l.NotaFiscalNomeArquivo,
+                CriadoEm = l.CriadoEm,
+                AtualizadoEm = l.AtualizadoEm,
+                Ativo = l.Ativo,
+                Fornecedor = l.Fornecedor,
+                Itens = l.Itens.ToList()
+            })
             .ToListAsync(cancellationToken);
     }
 
@@ -27,7 +41,22 @@ public class ListaCompraRepository : RepositoryBase<ListaCompra>, IListaCompraRe
             .AsNoTracking()
             .Include(l => l.Fornecedor)
             .Include(l => l.Itens).ThenInclude(i => i.Produto)
-            .FirstOrDefaultAsync(l => l.Id == id, cancellationToken);
+            .Where(l => l.Id == id)
+            .Select(l => new ListaCompra
+            {
+                Id = l.Id,
+                Nome = l.Nome,
+                FornecedorId = l.FornecedorId,
+                Finalizada = l.Finalizada,
+                Observacoes = l.Observacoes,
+                NotaFiscalNomeArquivo = l.NotaFiscalNomeArquivo,
+                CriadoEm = l.CriadoEm,
+                AtualizadoEm = l.AtualizadoEm,
+                Ativo = l.Ativo,
+                Fornecedor = l.Fornecedor,
+                Itens = l.Itens.ToList()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<ListaCompra> SalvarComItensAsync(
@@ -111,4 +140,38 @@ public class ListaCompraRepository : RepositoryBase<ListaCompra>, IListaCompraRe
 
     public override async Task<IEnumerable<ListaCompra>> ObterTodosAsync()
         => await ObterTodosComItensAsync();
+
+    public async Task AnexarNotaFiscalAsync(
+        int id,
+        byte[] conteudo,
+        string nomeArquivo,
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        var lista = await context.Set<ListaCompra>()
+            .FirstOrDefaultAsync(l => l.Id == id, cancellationToken)
+            ?? throw new InvalidOperationException($"Lista de compra com Id {id} não encontrada.");
+
+        lista.NotaFiscalConteudo = conteudo;
+        lista.NotaFiscalNomeArquivo = nomeArquivo;
+        lista.AtualizadoEm = DateTime.UtcNow;
+        await SalvarAlteracoesAsync(context);
+    }
+
+    public async Task<(byte[] Conteudo, string NomeArquivo)?> ObterNotaFiscalAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        var nota = await context.Set<ListaCompra>()
+            .AsNoTracking()
+            .Where(l => l.Id == id)
+            .Select(l => new { l.NotaFiscalConteudo, l.NotaFiscalNomeArquivo })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (nota?.NotaFiscalConteudo is null || string.IsNullOrWhiteSpace(nota.NotaFiscalNomeArquivo))
+            return null;
+
+        return (nota.NotaFiscalConteudo, nota.NotaFiscalNomeArquivo);
+    }
 }

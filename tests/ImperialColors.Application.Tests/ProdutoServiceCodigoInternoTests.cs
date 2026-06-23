@@ -67,6 +67,19 @@ public class ProdutoServiceCodigoInternoTests
         Assert.Equal("P00026", codigo);
     }
 
+    [Fact]
+    public async Task GerarCodigoInternoPorNomeAsync_DeveUsarSiglaESequencial()
+    {
+        _produtoRepository
+            .Setup(r => r.ObterMaiorSequenciaPorSiglaAsync("MCC", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var service = CriarService();
+        var codigo = await service.GerarCodigoInternoPorNomeAsync("Massa Corrida Coral");
+
+        Assert.Equal("MCC003", codigo);
+    }
+
     private ProdutoService CriarService() => new(
         _produtoRepository.Object,
         _movimentacaoRepository.Object,

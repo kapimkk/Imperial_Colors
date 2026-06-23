@@ -4,7 +4,8 @@ namespace ImperialColors.Domain.Entities;
 
 public class Troca : BaseEntity
 {
-    public int VendaOrigemId { get; set; }
+    public int? VendaOrigemId { get; set; }
+    public int? VendaExternaOrigemId { get; set; }
 
     public int ProdutoDevolvidoId { get; set; }
     public decimal QuantidadeDevolvida { get; set; }
@@ -20,7 +21,8 @@ public class Troca : BaseEntity
     public string? Usuario { get; set; }
     public DateTime DataTroca { get; set; } = DateTime.UtcNow;
 
-    public Venda VendaOrigem { get; set; } = null!;
+    public Venda? VendaOrigem { get; set; }
+    public VendaExterna? VendaExternaOrigem { get; set; }
     public Produto ProdutoDevolvido { get; set; } = null!;
     public Produto ProdutoNovo { get; set; } = null!;
 

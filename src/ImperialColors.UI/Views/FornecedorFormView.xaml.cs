@@ -1,5 +1,6 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.Domain.Enums;
 using ImperialColors.UI.Helpers;
 using System.Windows;
 using System.Windows.Controls;
@@ -47,10 +48,12 @@ public partial class FornecedorFormView : Window
 
         TxtTitulo.Text = "Editar Fornecedor";
         _fornecedorId = fornecedor.Id;
+
         _suprimirMascaraCnpj = true;
         TxtCnpj.Text = DocumentoHelper.AplicarMascaraCnpj(fornecedor.Cnpj);
         _suprimirMascaraCnpj = false;
         TxtNome.Text = fornecedor.Nome ?? string.Empty;
+        TxtInscricaoEstadual.Text = fornecedor.InscricaoEstadual ?? string.Empty;
         _suprimirMascaraTelefone = true;
         TxtTelefone.Text = DocumentoHelper.AplicarMascaraCelular(fornecedor.Telefone);
         _suprimirMascaraTelefone = false;
@@ -256,8 +259,10 @@ public partial class FornecedorFormView : Window
         {
             var dto = new FornecedorDto
             {
+                TipoPessoa = TipoPessoa.Juridica,
                 Nome = TxtNome.Text.Trim(),
                 Cnpj = DocumentoHelper.AplicarMascaraCnpj(TxtCnpj.Text),
+                InscricaoEstadual = TxtInscricaoEstadual.Text.Trim(),
                 Telefone = TxtTelefone.Text.Trim(),
                 WhatsApp = TxtWhatsApp.Text.Trim(),
                 Email = TxtEmail.Text.Trim(),

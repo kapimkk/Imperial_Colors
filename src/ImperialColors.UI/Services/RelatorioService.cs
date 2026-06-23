@@ -557,6 +557,238 @@ public class RelatorioService : IRelatorioService
         });
     }
 
+    public Task GerarRelatorioVendasExternasPdfAsync(
+        IEnumerable<LinhaRelatorioVendaExternaDto> linhas, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var writer = new PdfWriter(caminhoArquivo);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf, iText.Kernel.Geom.PageSize.A4);
+            document.SetMargins(30, 30, 30, 30);
+
+            AdicionarCabecalhoRelatorio(document, "Relatorio de Vendas Externas",
+                $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy}");
+
+            var tabela = new ITextTable(new float[] { 1.8f, 1.8f, 3f, 1.2f, 1.5f, 1.5f }).UseAllAvailableWidth();
+            AdicionarCabecalhoTabela(tabela, "Data Venda", "Cod. Venda", "Produto/Item", "Qtd", "Vlr Unit.", "Vlr Total");
+
+            var cultura = new System.Globalization.CultureInfo("pt-BR");
+            var lista = linhas.ToList();
+            foreach (var linha in lista)
+            {
+                tabela.AddCell(CelulaTabela(linha.DataVenda.ToString("dd/MM/yyyy HH:mm")));
+                tabela.AddCell(CelulaTabela(linha.CodigoVenda));
+                tabela.AddCell(CelulaTabela(linha.ProdutoItem));
+                tabela.AddCell(CelulaTabela(linha.QuantidadeVendida.ToString("G", cultura), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(linha.ValorUnitario.ToString("C2", cultura), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(linha.ValorTotal.ToString("C2", cultura), TextAlignment.RIGHT));
+            }
+
+            document.Add(tabela);
+            var total = lista.Sum(l => l.ValorTotal);
+            document.Add(new ITextParagraph($"\nTotal do Periodo: {total.ToString("C2", cultura)} | {lista.Count} linha(s)")
+                .SetFont(ObterFonte(true)).SetFontSize(13).SetTextAlignment(TextAlignment.RIGHT));
+        });
+    }
+
+    public Task GerarRelatorioVendasExternasExcelAsync(
+        IEnumerable<LinhaRelatorioVendaExternaDto> linhas, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Vendas Externas");
+
+            ws.Cell(1, 1).Value = $"{_config.EmpresaNome} - Relatorio de Vendas Externas";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+            ws.Range(1, 1, 1, 6).Merge();
+
+            ws.Cell(2, 1).Value = $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy}";
+            ws.Range(2, 1, 2, 6).Merge();
+
+            var headers = new[] { "Data Venda", "Cod. Venda", "Produto/Item", "Qtd Vendida", "Valor Unitario", "Valor Total" };
+            for (var i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(4, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Fill.BackgroundColor = XLColor.FromArgb(245, 194, 0);
+                cell.Style.Font.Bold = true;
+            }
+
+            var row = 5;
+            foreach (var linha in linhas)
+            {
+                ws.Cell(row, 1).Value = linha.DataVenda.ToString("dd/MM/yyyy HH:mm");
+                ws.Cell(row, 2).Value = linha.CodigoVenda;
+                ws.Cell(row, 3).Value = linha.ProdutoItem;
+                ws.Cell(row, 4).Value = linha.QuantidadeVendida;
+                ws.Cell(row, 5).Value = linha.ValorUnitario;
+                ws.Cell(row, 5).Style.NumberFormat.Format = "R$ #,##0.00";
+                ws.Cell(row, 6).Value = linha.ValorTotal;
+                ws.Cell(row, 6).Style.NumberFormat.Format = "R$ #,##0.00";
+                if (row % 2 == 0)
+                    ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);
+                row++;
+            }
+
+            ws.Columns().AdjustToContents();
+            workbook.SaveAs(caminhoArquivo);
+        });
+    }
+
+    public Task GerarRelatorioRankingProdutosPdfAsync(
+        IEnumerable<ProdutoRankingDto> ranking, string titulo, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var writer = new PdfWriter(caminhoArquivo);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf, iText.Kernel.Geom.PageSize.A4);
+            document.SetMargins(30, 30, 30, 30);
+
+            AdicionarCabecalhoRelatorio(document, titulo, $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy} — Balcao + Vendas Externas");
+
+            var tabela = new ITextTable(new float[] { 0.8f, 1.5f, 3.5f, 1.5f, 2f }).UseAllAvailableWidth();
+            AdicionarCabecalhoTabela(tabela, "Pos.", "Codigo", "Nome do Produto", "Unidades", "Faturamento");
+
+            var cultura = new System.Globalization.CultureInfo("pt-BR");
+            foreach (var item in ranking)
+            {
+                tabela.AddCell(CelulaTabela(item.Posicao.ToString(), TextAlignment.CENTER));
+                tabela.AddCell(CelulaTabela(item.CodigoInterno));
+                tabela.AddCell(CelulaTabela(item.NomeProduto));
+                tabela.AddCell(CelulaTabela(item.QuantidadeTotal.ToString("G", cultura), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(item.FaturamentoGerado.ToString("C2", cultura), TextAlignment.RIGHT));
+            }
+
+            document.Add(tabela);
+            document.Add(new ITextParagraph($"\nProdutos listados: {ranking.Count()}")
+                .SetFont(ObterFonte()).SetFontSize(11));
+        });
+    }
+
+    public Task GerarRelatorioRankingProdutosExcelAsync(
+        IEnumerable<ProdutoRankingDto> ranking, string titulo, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Ranking");
+
+            ws.Cell(1, 1).Value = $"{_config.EmpresaNome} - {titulo}";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+            ws.Range(1, 1, 1, 5).Merge();
+
+            ws.Cell(2, 1).Value = $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy}";
+            ws.Range(2, 1, 2, 5).Merge();
+
+            var headers = new[] { "Posicao", "Codigo", "Nome do Produto", "Total Unidades Vendidas", "Faturamento Gerado" };
+            for (var i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(4, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Fill.BackgroundColor = XLColor.FromArgb(245, 194, 0);
+                cell.Style.Font.Bold = true;
+            }
+
+            var row = 5;
+            foreach (var item in ranking)
+            {
+                ws.Cell(row, 1).Value = item.Posicao;
+                ws.Cell(row, 2).Value = item.CodigoInterno;
+                ws.Cell(row, 3).Value = item.NomeProduto;
+                ws.Cell(row, 4).Value = item.QuantidadeTotal;
+                ws.Cell(row, 5).Value = item.FaturamentoGerado;
+                ws.Cell(row, 5).Style.NumberFormat.Format = "R$ #,##0.00";
+                if (row % 2 == 0)
+                    ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);
+                row++;
+            }
+
+            ws.Columns().AdjustToContents();
+            workbook.SaveAs(caminhoArquivo);
+        });
+    }
+
+    public Task GerarRelatorioProdutosEncalhadosPdfAsync(
+        IEnumerable<ProdutoEncalhadoDto> produtos, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var writer = new PdfWriter(caminhoArquivo);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf, iText.Kernel.Geom.PageSize.A4);
+            document.SetMargins(30, 30, 30, 30);
+
+            AdicionarCabecalhoRelatorio(document, "Produtos Nunca Vendidos (Encalhados)",
+                $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy} — Estoque com saldo e zero vendas");
+
+            var tabela = new ITextTable(new float[] { 1.5f, 4f, 1.5f, 2f }).UseAllAvailableWidth();
+            AdicionarCabecalhoTabela(tabela, "Codigo", "Nome do Produto", "Estoque Atual", "Valor Parado");
+
+            var cultura = new System.Globalization.CultureInfo("pt-BR");
+            var lista = produtos.ToList();
+            foreach (var item in lista)
+            {
+                tabela.AddCell(CelulaTabela(item.CodigoInterno));
+                tabela.AddCell(CelulaTabela(item.NomeProduto));
+                tabela.AddCell(CelulaTabela(item.EstoqueAtual.ToString("G", cultura), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(item.ValorTotalParado.ToString("C2", cultura), TextAlignment.RIGHT));
+            }
+
+            document.Add(tabela);
+            var totalParado = lista.Sum(p => p.ValorTotalParado);
+            document.Add(new ITextParagraph($"\nCapital parado estimado: {totalParado.ToString("C2", cultura)} | {lista.Count} produto(s)")
+                .SetFont(ObterFonte(true)).SetFontSize(13).SetTextAlignment(TextAlignment.RIGHT));
+        });
+    }
+
+    public Task GerarRelatorioProdutosEncalhadosExcelAsync(
+        IEnumerable<ProdutoEncalhadoDto> produtos, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Encalhados");
+
+            ws.Cell(1, 1).Value = $"{_config.EmpresaNome} - Produtos Nunca Vendidos";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+            ws.Range(1, 1, 1, 4).Merge();
+
+            ws.Cell(2, 1).Value = $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy}";
+            ws.Range(2, 1, 2, 4).Merge();
+
+            var headers = new[] { "Codigo", "Nome do Produto", "Estoque Atual", "Valor Total Parado" };
+            for (var i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(4, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Fill.BackgroundColor = XLColor.FromArgb(245, 194, 0);
+                cell.Style.Font.Bold = true;
+            }
+
+            var row = 5;
+            foreach (var item in produtos)
+            {
+                ws.Cell(row, 1).Value = item.CodigoInterno;
+                ws.Cell(row, 2).Value = item.NomeProduto;
+                ws.Cell(row, 3).Value = item.EstoqueAtual;
+                ws.Cell(row, 4).Value = item.ValorTotalParado;
+                ws.Cell(row, 4).Style.NumberFormat.Format = "R$ #,##0.00";
+                if (row % 2 == 0)
+                    ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);
+                row++;
+            }
+
+            ws.Columns().AdjustToContents();
+            workbook.SaveAs(caminhoArquivo);
+        });
+    }
+
     private void AdicionarCabecalhoRelatorio(Document document, string titulo, string subtitulo)
     {
         document.Add(new ITextParagraph(_config.EmpresaNome.ToUpperInvariant()).SetFont(ObterFonte(true)).SetFontSize(18)

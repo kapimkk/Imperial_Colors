@@ -1,5 +1,6 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.Application.Services;
 using ImperialColors.Domain.Exceptions;
 using ImperialColors.UI.Helpers;
 using System.Globalization;
@@ -13,35 +14,60 @@ public partial class ProdutoFormView : Window
     private readonly IProdutoService _produtoService;
     private readonly ICategoriaService _categoriaService;
     private readonly IMarcaService _marcaService;
+    private readonly IFornecedorService _fornecedorService;
     private int? _produtoId;
     private bool _codigoDefinidoManualmente;
+    private bool _codigoDesbloqueadoManualmente;
     private string? _ultimoCodigoGeradoAutomaticamente;
     private bool _ignorarAlteracaoCodigoInterno;
     private bool _modoCustoTotal;
     private bool _suprimirAtualizacaoCusto;
-
     private bool _suprimirEventosUi;
 
     public ProdutoFormView(
         IProdutoService produtoService,
         ICategoriaService categoriaService,
-        IMarcaService marcaService)
+        IMarcaService marcaService,
+        IFornecedorService fornecedorService)
     {
         InitializeComponent();
         ModalWindowHelper.AplicarEstiloModerno(this);
         _produtoService = produtoService;
         _categoriaService = categoriaService;
         _marcaService = marcaService;
-        Loaded += async (_, _) => await CarregarComboBoxesAsync();
+        _fornecedorService = fornecedorService;
+
+        SelecionarUnidadePadrao();
+        Loaded += OnLoadedInicial;
     }
 
-    private async Task CarregarComboBoxesAsync(int? categoriaId = null, int? marcaId = null)
+    private async void OnLoadedInicial(object sender, RoutedEventArgs e)
+    {
+        Loaded -= OnLoadedInicial;
+        await CarregarComboBoxesAsync();
+    }
+
+    private void SelecionarUnidadePadrao()
+    {
+        foreach (ComboBoxItem item in CmbUnidade.Items)
+        {
+            if (item.Content?.ToString() == "UN")
+            {
+                CmbUnidade.SelectedItem = item;
+                break;
+            }
+        }
+    }
+
+    private async Task CarregarComboBoxesAsync(int? categoriaId = null, int? marcaId = null, int? fornecedorId = null)
     {
         var categorias = (await _categoriaService.ObterTodosAsync()).ToList();
         var marcas = (await _marcaService.ObterTodosAsync()).ToList();
+        var fornecedores = (await _fornecedorService.ObterTodosAsync()).ToList();
 
         CmbCategoria.ItemsSource = categorias;
         CmbMarca.ItemsSource = marcas;
+        CmbFornecedor.ItemsSource = fornecedores;
 
         if (categoriaId.HasValue && categoriaId > 0)
             CmbCategoria.SelectedValue = categoriaId;
@@ -52,6 +78,8 @@ public partial class ProdutoFormView : Window
             CmbMarca.SelectedValue = marcaId;
         else if (marcas.Count > 0)
             CmbMarca.SelectedIndex = 0;
+
+        CmbFornecedor.SelectedValue = fornecedorId is > 0 ? fornecedorId : null;
     }
 
     public void InicializarNovo()
@@ -59,6 +87,7 @@ public partial class ProdutoFormView : Window
         TxtTitulo.Text = "Novo Produto";
         _produtoId = null;
         _codigoDefinidoManualmente = false;
+        _codigoDesbloqueadoManualmente = false;
         _ultimoCodigoGeradoAutomaticamente = null;
         LimparErroValidacao();
         ChkCustoTotal.IsChecked = false;
@@ -67,7 +96,15 @@ public partial class ProdutoFormView : Window
         TxtCusto.IsReadOnly = false;
         TxtCusto.Text = string.Empty;
         TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(0m);
-        _ = GerarCodigoAsync();
+        TxtNome.Text = string.Empty;
+        TxtCodigoBarras.Text = string.Empty;
+        TxtObservacoes.Text = string.Empty;
+        DpValidade.SelectedDate = null;
+        ChkPromocaoAtiva.IsChecked = false;
+        TxtPrecoPromocional.Text = string.Empty;
+        PainelPrecoPromocional.Visibility = Visibility.Collapsed;
+        DefinirCodigoInternoSemMarcarManual(string.Empty);
+        AplicarEstadoCampoCodigo();
     }
 
     public void InicializarEdicao(ProdutoDto produto)
@@ -80,13 +117,14 @@ public partial class ProdutoFormView : Window
             TxtTitulo.Text = "Editar Produto";
             _produtoId = produto.Id;
             _codigoDefinidoManualmente = true;
+            _codigoDesbloqueadoManualmente = false;
             LimparErroValidacao();
             ChkCustoTotal.IsChecked = false;
             TxtCustoTotal.Text = string.Empty;
             PainelCustoTotal.Visibility = Visibility.Collapsed;
             TxtCusto.IsReadOnly = false;
             DefinirCodigoInternoSemMarcarManual(produto.CodigoInterno ?? string.Empty);
-            TxtCodigoBarras.Text = produto.CodigoBarras ?? "";
+            TxtCodigoBarras.Text = produto.CodigoBarras ?? string.Empty;
             TxtNome.Text = produto.Nome ?? string.Empty;
             TxtQuantidade.Text = produto.QuantidadeEstoque.ToString(
                 produto.QuantidadeEstoque % 1m == 0m ? "N0" : "N1",
@@ -96,7 +134,11 @@ public partial class ProdutoFormView : Window
                 FormattingHelper.CulturaPtBr);
             TxtCusto.Text = FormattingHelper.FormatarMoedaEntrada(produto.Custo);
             TxtPrecoVenda.Text = FormattingHelper.FormatarMoedaEntrada(produto.PrecoVenda);
-            TxtObservacoes.Text = produto.Observacoes ?? "";
+            TxtObservacoes.Text = produto.Observacoes ?? string.Empty;
+            DpValidade.SelectedDate = produto.DataValidade;
+            ChkPromocaoAtiva.IsChecked = produto.PromocaoAtiva;
+            TxtPrecoPromocional.Text = FormattingHelper.FormatarMoedaEntrada(produto.PrecoPromocional);
+            PainelPrecoPromocional.Visibility = produto.PromocaoAtiva ? Visibility.Visible : Visibility.Collapsed;
 
             foreach (ComboBoxItem item in CmbUnidade.Items)
             {
@@ -116,15 +158,47 @@ public partial class ProdutoFormView : Window
             _suprimirEventosUi = false;
         }
 
-        _ = CarregarComboBoxesAsync(produto.CategoriaId, produto.MarcaId);
+        AplicarEstadoCampoCodigo();
+        _ = CarregarComboBoxesAsync(produto.CategoriaId, produto.MarcaId, produto.FornecedorId);
     }
 
-    private async Task GerarCodigoAsync()
+    private async void TxtNome_LostFocus(object sender, RoutedEventArgs e)
     {
-        var codigo = await _produtoService.GerarProximoCodigoInternoAsync();
+        if (_produtoId.HasValue || _codigoDefinidoManualmente || _codigoDesbloqueadoManualmente)
+            return;
+
+        var nome = TxtNome.Text.Trim();
+        if (string.IsNullOrWhiteSpace(nome))
+            return;
+
+        await GerarCodigoPorNomeAsync(nome);
+    }
+
+    private async Task GerarCodigoPorNomeAsync(string nome)
+    {
+        var codigo = await _produtoService.GerarCodigoInternoPorNomeAsync(nome);
         _codigoDefinidoManualmente = false;
         DefinirCodigoInternoSemMarcarManual(codigo);
         _ultimoCodigoGeradoAutomaticamente = codigo;
+    }
+
+    private void BtnAlternarCodigoManual_Click(object sender, RoutedEventArgs e)
+    {
+        _codigoDesbloqueadoManualmente = !_codigoDesbloqueadoManualmente;
+        if (!_codigoDesbloqueadoManualmente && !_produtoId.HasValue)
+            _codigoDefinidoManualmente = false;
+
+        AplicarEstadoCampoCodigo();
+    }
+
+    private void AplicarEstadoCampoCodigo()
+    {
+        var editavel = _codigoDesbloqueadoManualmente;
+        TxtCodigoInterno.IsReadOnly = !editavel;
+        BtnAlternarCodigoManual.Content = editavel ? "🔓" : "🔒";
+        BtnAlternarCodigoManual.ToolTip = editavel
+            ? "Bloquear e voltar à geração automática pelo nome"
+            : "Desbloquear edição manual do código";
     }
 
     private void DefinirCodigoInternoSemMarcarManual(string codigo)
@@ -136,7 +210,7 @@ public partial class ProdutoFormView : Window
 
     private void TxtCodigoInterno_TextChanged(object sender, TextChangedEventArgs e)
     {
-        if (_ignorarAlteracaoCodigoInterno || _produtoId.HasValue)
+        if (_ignorarAlteracaoCodigoInterno || _produtoId.HasValue || !_codigoDesbloqueadoManualmente)
             return;
 
         var textoAtual = TxtCodigoInterno.Text.Trim();
@@ -146,7 +220,15 @@ public partial class ProdutoFormView : Window
             StringComparison.OrdinalIgnoreCase);
     }
 
-    private void BtnGerarCodigo_Click(object sender, RoutedEventArgs e) => _ = GerarCodigoAsync();
+    private void ChkPromocaoAtiva_Changed(object sender, RoutedEventArgs e)
+    {
+        if (PainelPrecoPromocional is null || ChkPromocaoAtiva is null)
+            return;
+
+        PainelPrecoPromocional.Visibility = ChkPromocaoAtiva.IsChecked == true
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
 
     private void CmbUnidade_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -248,7 +330,7 @@ public partial class ProdutoFormView : Window
         try
         {
             var criada = await _categoriaService.CriarAsync(dialog.NomeInformado);
-            await CarregarComboBoxesAsync(criada.Id, ObterIdSelecionado(CmbMarca));
+            await CarregarComboBoxesAsync(criada.Id, ObterIdSelecionado(CmbMarca), ObterIdSelecionado(CmbFornecedor));
             LimparErroValidacao();
         }
         catch (Exception ex)
@@ -266,7 +348,7 @@ public partial class ProdutoFormView : Window
         try
         {
             var criada = await _marcaService.CriarAsync(dialog.NomeInformado);
-            await CarregarComboBoxesAsync(ObterIdSelecionado(CmbCategoria), criada.Id);
+            await CarregarComboBoxesAsync(ObterIdSelecionado(CmbCategoria), criada.Id, ObterIdSelecionado(CmbFornecedor));
             LimparErroValidacao();
         }
         catch (Exception ex)
@@ -282,6 +364,9 @@ public partial class ProdutoFormView : Window
         if (!ValidarFormulario())
             return;
 
+        if (!await ValidarCodigoBarrasDuplicadoAsync())
+            return;
+
         try
         {
             FormattingHelper.TryParseMoedaOpcional(TxtCusto.Text, out decimal? custo);
@@ -289,8 +374,22 @@ public partial class ProdutoFormView : Window
             FormattingHelper.TryParseQuantidade(TxtQuantidade.Text, out decimal quantidade);
             FormattingHelper.TryParseQuantidade(TxtEstoqueMinimo.Text, out decimal estoqueMin);
 
+            var promocaoAtiva = ChkPromocaoAtiva.IsChecked == true;
+            decimal? precoPromocional = null;
+            if (promocaoAtiva)
+            {
+                if (!FormattingHelper.TryParseMoeda(TxtPrecoPromocional.Text, out var promo) || promo <= 0)
+                {
+                    ExibirErroValidacao("Informe o preço promocional.");
+                    return;
+                }
+
+                precoPromocional = promo;
+            }
+
             var categoriaId = ObterIdSelecionado(CmbCategoria);
             var marcaId = ObterIdSelecionado(CmbMarca);
+            var fornecedorId = ObterIdSelecionado(CmbFornecedor);
             var unidade = (CmbUnidade.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "UN";
             var litragemGl = ObterLitragemGlSelecionada();
 
@@ -299,7 +398,7 @@ public partial class ProdutoFormView : Window
 
             if (_produtoId.HasValue)
             {
-                await _produtoService.AtualizarAsync(_produtoId.Value, new AtualizarProdutoDto
+                var dto = new AtualizarProdutoDto
                 {
                     Id = _produtoId.Value,
                     CodigoInterno = TxtCodigoInterno.Text.Trim(),
@@ -307,18 +406,23 @@ public partial class ProdutoFormView : Window
                     Nome = TxtNome.Text.Trim(),
                     CategoriaId = categoriaId,
                     MarcaId = marcaId,
+                    FornecedorId = fornecedorId,
+                    DataValidade = DpValidade.SelectedDate,
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
                     LitragemGl = litragemGl,
                     Custo = custo,
                     PrecoVenda = preco,
+                    PromocaoAtiva = promocaoAtiva,
+                    PrecoPromocional = precoPromocional,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
-                });
+                };
+                await _produtoService.AtualizarAsync(_produtoId.Value, dto);
             }
             else
             {
-                await _produtoService.CriarAsync(new CriarProdutoDto
+                var dto = new CriarProdutoDto
                 {
                     CodigoInterno = TxtCodigoInterno.Text.Trim(),
                     CodigoInternoDefinidoManualmente = _codigoDefinidoManualmente,
@@ -326,14 +430,19 @@ public partial class ProdutoFormView : Window
                     Nome = TxtNome.Text.Trim(),
                     CategoriaId = categoriaId,
                     MarcaId = marcaId,
+                    FornecedorId = fornecedorId,
+                    DataValidade = DpValidade.SelectedDate,
                     QuantidadeEstoque = quantidade,
                     EstoqueMinimo = estoqueMin,
                     Unidade = unidade,
                     LitragemGl = litragemGl,
                     Custo = custo,
                     PrecoVenda = preco,
+                    PromocaoAtiva = promocaoAtiva,
+                    PrecoPromocional = precoPromocional,
                     Observacoes = string.IsNullOrWhiteSpace(TxtObservacoes.Text) ? null : TxtObservacoes.Text.Trim()
-                });
+                };
+                await _produtoService.CriarAsync(dto);
             }
 
             DialogResult = true;
@@ -356,15 +465,15 @@ public partial class ProdutoFormView : Window
 
     private bool ValidarFormulario()
     {
-        if (string.IsNullOrWhiteSpace(TxtCodigoInterno.Text))
-        {
-            ExibirErroValidacao("Código interno é obrigatório. Aguarde a geração automática ou clique em Gerar.");
-            return false;
-        }
-
         if (string.IsNullOrWhiteSpace(TxtNome.Text))
         {
             ExibirErroValidacao("Nome do produto é obrigatório.");
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(TxtCodigoInterno.Text))
+        {
+            ExibirErroValidacao("Código do produto é obrigatório. Preencha o nome para gerar automaticamente ou desbloqueie o campo.");
             return false;
         }
 
@@ -419,6 +528,21 @@ public partial class ProdutoFormView : Window
             return false;
         }
 
+        if (ChkPromocaoAtiva.IsChecked == true)
+        {
+            if (!FormattingHelper.TryParseMoeda(TxtPrecoPromocional.Text, out var promo) || promo <= 0)
+            {
+                ExibirErroValidacao("Informe o preço promocional.");
+                return false;
+            }
+
+            if (promo > preco)
+            {
+                ExibirErroValidacao("O preço promocional não pode ser maior que o preço de venda padrão.");
+                return false;
+            }
+        }
+
         if (!FormattingHelper.TryParseQuantidade(TxtQuantidade.Text, out decimal quantidade) || quantidade < 0)
         {
             ExibirErroValidacao("Quantidade em estoque não pode ser negativa.");
@@ -434,6 +558,29 @@ public partial class ProdutoFormView : Window
         return true;
     }
 
+    private async void TxtCodigoBarras_LostFocus(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(TxtCodigoBarras.Text))
+            return;
+
+        await ValidarCodigoBarrasDuplicadoAsync();
+    }
+
+    private async Task<bool> ValidarCodigoBarrasDuplicadoAsync()
+    {
+        var codigo = TxtCodigoBarras.Text.Trim();
+        if (string.IsNullOrWhiteSpace(codigo))
+            return true;
+
+        var existe = await _produtoService.CodigoBarrasExisteAsync(codigo, _produtoId);
+        if (!existe)
+            return true;
+
+        ExibirErroValidacao(ProdutoService.MensagemCodigoBarrasDuplicado);
+        TxtCodigoBarras.Focus();
+        return false;
+    }
+
     private static int? ObterIdSelecionado(ComboBox combo)
     {
         return combo.SelectedValue switch
@@ -442,6 +589,7 @@ public partial class ProdutoFormView : Window
             long id when id > 0 => (int)id,
             _ when combo.SelectedItem is CategoriaDto c && c.Id > 0 => c.Id,
             _ when combo.SelectedItem is MarcaDto m && m.Id > 0 => m.Id,
+            _ when combo.SelectedItem is FornecedorDto f && f.Id > 0 => f.Id,
             _ => null
         };
     }

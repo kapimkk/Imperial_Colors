@@ -51,4 +51,39 @@ public class ClienteRepository : RepositoryBase<Cliente>, IClienteRepository
 
         return (itens, total);
     }
+
+    public async Task<bool> PossuiVinculosAsync(int clienteId, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Venda>()
+            .IgnoreQueryFilters()
+            .AnyAsync(v => v.ClienteId == clienteId, cancellationToken);
+    }
+
+    public async Task RemoverFisicamenteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        var cliente = await context.Set<Cliente>()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (cliente is null)
+            return;
+
+        context.Set<Cliente>().Remove(cliente);
+        await SalvarAlteracoesAsync(context);
+    }
+
+    public async Task<bool> ExisteFisicamenteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        return await context.Set<Cliente>()
+            .IgnoreQueryFilters()
+            .AnyAsync(c => c.Id == id, cancellationToken);
+    }
+
+    public override async Task RemoverAsync(int id)
+    {
+        await RemoverFisicamenteAsync(id);
+    }
 }

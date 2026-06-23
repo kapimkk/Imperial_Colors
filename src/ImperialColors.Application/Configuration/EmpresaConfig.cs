@@ -15,6 +15,8 @@ public class EmpresaConfig
 
     public string CNPJ { get; set; } = string.Empty;
 
+    public string InscricaoEstadual { get; set; } = string.Empty;
+
     public string Endereco { get; set; } = string.Empty;
 
     public string Telefone { get; set; } = string.Empty;

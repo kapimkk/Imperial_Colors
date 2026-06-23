@@ -21,6 +21,9 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
         builder.Property(v => v.QuantidadeParcelas).HasColumnName("quantidade_parcelas").HasDefaultValue(1);
         builder.Property(v => v.ValorPago).HasColumnName("valor_pago").HasPrecision(10, 2);
         builder.Property(v => v.Troco).HasColumnName("troco").HasPrecision(10, 2);
+        builder.Property(v => v.NomeCompradorCupom).HasColumnName("nome_comprador_cupom").HasMaxLength(200);
+        builder.Property(v => v.DocumentoCompradorCupom).HasColumnName("documento_comprador_cupom").HasMaxLength(20);
+        builder.Property(v => v.TipoPessoaComprador).HasColumnName("tipo_pessoa_comprador");
         builder.Property(v => v.Observacoes).HasColumnName("observacoes");
         builder.Property(v => v.Usuario).HasColumnName("usuario").HasMaxLength(100);
         builder.Property(v => v.DataVenda).HasColumnName("data_venda");

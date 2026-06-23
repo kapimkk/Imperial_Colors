@@ -18,6 +18,7 @@ public static class ApplicationExtensions
         services.AddSingleton<ITrocaService, TrocaService>();
         services.AddSingleton<IVendaExternaService, VendaExternaService>();
         services.AddSingleton<IDashboardService, DashboardService>();
+        services.AddSingleton<IRelatorioAnalyticsService, RelatorioAnalyticsService>();
         services.AddSingleton<IAuthService, AuthService>();
         services.AddSingleton<IUsuarioService, UsuarioService>();
         return services;

@@ -11,4 +11,10 @@ public interface ITrocaRepository : IRepository<Troca>
         Produto produtoNovo,
         bool retornarAoEstoque,
         CancellationToken cancellationToken = default);
+    Task RegistrarTrocaVendaExternaTransacionalAsync(
+        Troca troca,
+        Produto produtoDevolvido,
+        Produto produtoNovo,
+        bool retornarAoEstoque,
+        CancellationToken cancellationToken = default);
 }

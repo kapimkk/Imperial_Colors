@@ -12,9 +12,16 @@ public interface IProdutoService
     Task<ProdutoDto> CriarAsync(CriarProdutoDto dto);
     Task<ProdutoDto> AtualizarAsync(int id, AtualizarProdutoDto dto);
     Task RemoverAsync(int id);
-    Task<PaginacaoResultadoDto<ProdutoDto>> ObterPaginadoAsync(int pagina, int itensPorPagina, string? termoBusca = null, CancellationToken cancellationToken = default);
+    Task<bool> CodigoBarrasExisteAsync(string codigoBarras, int? ignorarProdutoId = null, CancellationToken cancellationToken = default);
+    Task<PaginacaoResultadoDto<ProdutoDto>> ObterPaginadoAsync(
+        int pagina,
+        int itensPorPagina,
+        string? termoBusca = null,
+        bool apenasPromocao = false,
+        CancellationToken cancellationToken = default);
     Task<IEnumerable<ProdutoDto>> ObterComEstoqueBaixoAsync();
     Task<IEnumerable<ProdutoDto>> ObterSemEstoqueAsync();
     Task RegistrarMovimentacaoAsync(MovimentacaoEstoqueDto dto);
     Task<string> GerarProximoCodigoInternoAsync();
+    Task<string> GerarCodigoInternoPorNomeAsync(string nome, CancellationToken cancellationToken = default);
 }

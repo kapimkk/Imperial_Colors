@@ -200,7 +200,7 @@ public class ClienteViewModel : BaseViewModel
     {
         if (!ValidarSelecao(ClienteSelecionado, "cliente"))
             return;
-        if (!ConfirmarAcao($"Deseja excluir o cliente '{ClienteSelecionado!.Nome}'?")) return;
+        if (!ConfirmarAcao($"Deseja excluir permanentemente o cliente '{ClienteSelecionado!.Nome}'?\n\nEsta ação remove o registro do banco e não pode ser desfeita.")) return;
         try
         {
             await _clienteService.RemoverAsync(ClienteSelecionado!.Id);

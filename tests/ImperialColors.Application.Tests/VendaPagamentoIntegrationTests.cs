@@ -5,8 +5,8 @@ using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Enums;
 using ImperialColors.Domain.Interfaces;
 using ImperialColors.Infrastructure.Data;
-using ImperialColors.Infrastructure.Extensions;
 using Microsoft.EntityFrameworkCore;
+using ImperialColors.Infrastructure.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -88,12 +88,19 @@ public class VendaPagamentoIntegrationTests
         {
             await using var db = await contextFactory.CreateDbContextAsync();
             var noBanco = await db.Vendas.AsNoTracking()
+                .Include(v => v.Pagamentos)
                 .FirstAsync(v => v.Id == venda.Id);
 
             Assert.Equal(venda.FormaPagamento, noBanco.FormaPagamento);
             Assert.Equal(venda.QuantidadeParcelas, noBanco.QuantidadeParcelas);
             Assert.Equal(venda.ValorPago, noBanco.ValorPago);
             Assert.Equal(venda.Troco, noBanco.Troco);
+
+            if (venda.Pagamentos.Count > 0)
+            {
+                Assert.Equal(venda.Pagamentos.Count, noBanco.Pagamentos.Count);
+                Assert.Equal(venda.Total, noBanco.Pagamentos.Sum(p => p.Valor));
+            }
         }
         finally
         {

@@ -112,6 +112,45 @@ public class ListaCompraService : IListaCompraService
         await _listaCompraRepository.AtualizarAsync(lista);
     }
 
+    public async Task AnexarNotaFiscalAsync(
+        int id,
+        byte[] conteudo,
+        string nomeArquivo,
+        CancellationToken cancellationToken = default)
+    {
+        if (conteudo.Length == 0)
+            throw new DomainException("O arquivo selecionado está vazio.");
+
+        const int tamanhoMaximoBytes = 15 * 1024 * 1024;
+        if (conteudo.Length > tamanhoMaximoBytes)
+            throw new DomainException("O arquivo excede o limite de 15 MB.");
+
+        var extensao = Path.GetExtension(nomeArquivo).ToLowerInvariant();
+        if (extensao is not (".pdf" or ".png" or ".jpg" or ".jpeg"))
+            throw new DomainException("Formato não suportado. Use PDF, PNG ou JPEG.");
+
+        _ = await _listaCompraRepository.ObterPorIdAsync(id)
+            ?? throw new DomainException($"Lista de compra com Id {id} não encontrada.");
+
+        await _listaCompraRepository.AnexarNotaFiscalAsync(id, conteudo, nomeArquivo, cancellationToken);
+        _logger.LogInformation("Nota fiscal anexada à lista {Id}: {Arquivo}", id, nomeArquivo);
+    }
+
+    public async Task<NotaFiscalListaCompraDto?> ObterNotaFiscalAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var nota = await _listaCompraRepository.ObterNotaFiscalAsync(id, cancellationToken);
+        if (nota is null)
+            return null;
+
+        return new NotaFiscalListaCompraDto
+        {
+            Conteudo = nota.Value.Conteudo,
+            NomeArquivo = nota.Value.NomeArquivo
+        };
+    }
+
     private static ListaCompraDto MapParaDto(ListaCompra lista)
     {
         var dto = new ListaCompraDto
@@ -123,6 +162,8 @@ public class ListaCompraService : IListaCompraService
             Finalizada = lista.Finalizada,
             Observacoes = lista.Observacoes,
             CriadoEm = lista.CriadoEm,
+            PossuiNotaFiscal = !string.IsNullOrWhiteSpace(lista.NotaFiscalNomeArquivo),
+            NotaFiscalNomeArquivo = lista.NotaFiscalNomeArquivo,
             Itens = lista.Itens.Select(i => new ItemListaCompraDto
             {
                 Id = i.Id,

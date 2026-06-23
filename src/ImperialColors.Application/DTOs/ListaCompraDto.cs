@@ -9,6 +9,9 @@ public class ListaCompraDto
     public bool Finalizada { get; set; }
     public string? Observacoes { get; set; }
     public DateTime CriadoEm { get; set; }
+    public bool PossuiNotaFiscal { get; set; }
+    public string? NotaFiscalNomeArquivo { get; set; }
+    public string NotaFiscalDescricao => PossuiNotaFiscal ? "Sim" : "Não";
     public List<ItemListaCompraDto> Itens { get; set; } = new();
     public int TotalItens => Itens.Count;
     public int ItensComprados => Itens.Count(i => i.Comprado);

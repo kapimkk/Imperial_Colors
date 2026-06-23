@@ -12,4 +12,12 @@ public interface IVendaExternaRepository : IRepository<VendaExterna>
         IReadOnlyList<ItemVendaExterna> itens,
         string? usuario,
         CancellationToken cancellationToken = default);
+    Task<VendaExterna> AtualizarTransacionalAsync(
+        int vendaId,
+        string? observacoes,
+        IReadOnlyList<ItemVendaExterna> itens,
+        string? usuario,
+        CancellationToken cancellationToken = default);
+    Task ExcluirFisicamenteTransacionalAsync(int id, CancellationToken cancellationToken = default);
+    Task<bool> PossuiTrocasAsync(int vendaExternaId, CancellationToken cancellationToken = default);
 }

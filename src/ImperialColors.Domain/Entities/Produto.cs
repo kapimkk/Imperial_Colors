@@ -14,10 +14,15 @@ public class Produto : BaseEntity
     public decimal? LitragemGl { get; set; }
     public decimal? Custo { get; set; }
     public decimal PrecoVenda { get; set; }
+    public bool PromocaoAtiva { get; set; }
+    public decimal? PrecoPromocional { get; set; }
+    public DateTime? DataValidade { get; set; }
+    public int? FornecedorId { get; set; }
     public string? Observacoes { get; set; }
 
     public Categoria? Categoria { get; set; }
     public Marca? Marca { get; set; }
+    public Fornecedor? Fornecedor { get; set; }
     public ICollection<MovimentacaoEstoque> Movimentacoes { get; set; } = new List<MovimentacaoEstoque>();
     public ICollection<ItemVenda> ItensVenda { get; set; } = new List<ItemVenda>();
     public ICollection<ItemListaCompra> ItensListaCompra { get; set; } = new List<ItemListaCompra>();

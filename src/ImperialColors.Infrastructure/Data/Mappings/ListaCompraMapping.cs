@@ -15,6 +15,8 @@ public class ListaCompraMapping : IEntityTypeConfiguration<ListaCompra>
         builder.Property(l => l.FornecedorId).HasColumnName("fornecedor_id");
         builder.Property(l => l.Finalizada).HasColumnName("finalizada");
         builder.Property(l => l.Observacoes).HasColumnName("observacoes");
+        builder.Property(l => l.NotaFiscalConteudo).HasColumnName("nota_fiscal_conteudo").HasColumnType("bytea");
+        builder.Property(l => l.NotaFiscalNomeArquivo).HasColumnName("nota_fiscal_nome_arquivo").HasMaxLength(260);
         builder.Property(l => l.CriadoEm).HasColumnName("criado_em");
         builder.Property(l => l.AtualizadoEm).HasColumnName("atualizado_em");
         builder.Property(l => l.Ativo).HasColumnName("ativo");

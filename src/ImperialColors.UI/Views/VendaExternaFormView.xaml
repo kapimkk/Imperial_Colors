@@ -23,9 +23,9 @@
 
         <Border Grid.Row="0" Background="White" Padding="24,18">
             <StackPanel>
-                <TextBlock Text="Registrar Venda Externa"
+                <TextBlock x:Name="TxtTituloModulo" Text="Registrar Venda Externa"
                            FontSize="18" FontWeight="Bold" Foreground="{StaticResource PretoPrimarioBrush}"/>
-                <TextBlock Text="Adicione itens do estoque, digite manualmente ou importe uma lista TXT para conferência"
+                <TextBlock x:Name="TxtSubtituloModulo" Text="Adicione itens do estoque, digite manualmente ou importe uma lista TXT para conferência"
                            FontSize="12" Foreground="{StaticResource CinzaTextoBrush}" Margin="0,3,0,0"/>
             </StackPanel>
         </Border>

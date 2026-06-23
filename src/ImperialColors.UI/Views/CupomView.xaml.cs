@@ -1,7 +1,6 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Helpers;
 using ImperialColors.Application.Interfaces;
-using ImperialColors.Domain.Enums;
 using ImperialColors.UI.Helpers;
 using ImperialColors.UI.Services;
 using System.Windows;
@@ -43,6 +42,11 @@ public partial class CupomView : Window
         else
             TxtEmpresaCnpj.Visibility = Visibility.Collapsed;
 
+        if (!string.IsNullOrWhiteSpace(empresa.InscricaoEstadual))
+            TxtEmpresaIe.Text = $"IE: {empresa.InscricaoEstadual}";
+        else
+            TxtEmpresaIe.Visibility = Visibility.Collapsed;
+
         if (!string.IsNullOrWhiteSpace(empresa.Endereco))
             TxtEmpresaEndereco.Text = empresa.Endereco;
         else
@@ -55,26 +59,52 @@ public partial class CupomView : Window
 
         TxtNumeroVenda.Text = venda.NumeroVenda;
         TxtData.Text = FormattingHelper.FormatarDataHora(venda.DataVenda);
+        TxtComprador.Text = MontarTextoComprador(venda);
+        PainelComprador.Visibility = Visibility.Visible;
+
         TxtSubtotal.Text = FormattingHelper.FormatarMoeda(venda.Subtotal);
         TxtDesconto.Text = FormattingHelper.FormatarMoeda(venda.Desconto);
         var totalItens = venda.Itens.Sum(i => i.Quantidade);
         TxtTotalItens.Text = FormattingHelper.FormatarQuantidade(totalItens);
         TxtTotal.Text = FormattingHelper.FormatarMoeda(venda.Total);
-        TxtFormaPagamento.Text = venda.FormaPagamentoDescricao;
 
-        if (venda.FormaPagamento == FormaPagamento.Dinheiro)
+        var pagamentosExibicao = venda.Pagamentos.Count > 0
+            ? venda.Pagamentos.Select(p => new PagamentoCupomUi(p)).ToList()
+            :
+            [
+                new PagamentoCupomUi(new VendaPagamentoDto
+                {
+                    FormaPagamento = venda.FormaPagamento,
+                    Valor = venda.Total,
+                    ValorRecebido = venda.ValorPago,
+                    QuantidadeParcelas = venda.QuantidadeParcelas
+                })
+            ];
+
+        LstPagamentos.ItemsSource = pagamentosExibicao;
+
+        if (venda.Troco > 0)
         {
-            PainelDinheiroCupom.Visibility = Visibility.Visible;
-            TxtValorPago.Text = FormattingHelper.FormatarMoeda(venda.ValorPago);
+            PainelTrocoCupom.Visibility = Visibility.Visible;
             TxtTroco.Text = FormattingHelper.FormatarMoeda(venda.Troco);
         }
         else
         {
-            PainelDinheiroCupom.Visibility = Visibility.Collapsed;
+            PainelTrocoCupom.Visibility = Visibility.Collapsed;
         }
 
         LstItens.ItemsSource = venda.Itens;
         AjustarAlturaJanela();
+    }
+
+    private static string MontarTextoComprador(VendaDto venda)
+    {
+        var nome = venda.NomeCompradorExibicao;
+        if (string.IsNullOrWhiteSpace(venda.DocumentoCompradorExibicao))
+            return nome;
+
+        var rotulo = venda.TipoPessoaComprador == Domain.Enums.TipoPessoa.Juridica ? "CNPJ" : "CPF";
+        return $"{nome} — {rotulo}: {venda.DocumentoCompradorExibicao}";
     }
 
     private void AjustarAlturaJanela()
@@ -124,4 +154,10 @@ public partial class CupomView : Window
     }
 
     private void BtnFechar_Click(object sender, RoutedEventArgs e) => Close();
+
+    private sealed class PagamentoCupomUi(VendaPagamentoDto pagamento)
+    {
+        public string Descricao => pagamento.Descricao;
+        public string ValorFormatado => FormattingHelper.FormatarMoeda(pagamento.Valor);
+    }
 }

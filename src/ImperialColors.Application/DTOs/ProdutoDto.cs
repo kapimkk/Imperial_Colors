@@ -1,3 +1,5 @@
+using ImperialColors.Application.Helpers;
+
 namespace ImperialColors.Application.DTOs;
 
 public class ProdutoDto
@@ -16,9 +18,17 @@ public class ProdutoDto
     public decimal? LitragemGl { get; set; }
     public decimal? Custo { get; set; }
     public decimal PrecoVenda { get; set; }
+    public bool PromocaoAtiva { get; set; }
+    public decimal? PrecoPromocional { get; set; }
+    public DateTime? DataValidade { get; set; }
+    public int? FornecedorId { get; set; }
+    public string? FornecedorNome { get; set; }
     public string? Observacoes { get; set; }
+
     public bool EstoqueBaixo => QuantidadeEstoque <= EstoqueMinimo && QuantidadeEstoque > 0;
     public bool SemEstoque => QuantidadeEstoque <= 0;
+    public bool EmPromocao => ProdutoPrecoHelper.EstaEmPromocao(PromocaoAtiva, PrecoPromocional, PrecoVenda);
+    public decimal PrecoEfetivo => ProdutoPrecoHelper.ObterPrecoEfetivo(PrecoVenda, PromocaoAtiva, PrecoPromocional);
 
     /// <summary>Nome para exibição com litragem (ex: "Tinta Coral - GL 18L")</summary>
     public string NomeExibicao => Unidade == "GL" && LitragemGl.HasValue
@@ -39,6 +49,10 @@ public class CriarProdutoDto
     public decimal? LitragemGl { get; set; }
     public decimal? Custo { get; set; }
     public decimal PrecoVenda { get; set; }
+    public bool PromocaoAtiva { get; set; }
+    public decimal? PrecoPromocional { get; set; }
+    public DateTime? DataValidade { get; set; }
+    public int? FornecedorId { get; set; }
     public string? Observacoes { get; set; }
     public bool CodigoInternoDefinidoManualmente { get; set; }
 }

@@ -12,7 +12,7 @@ using Xunit;
 namespace ImperialColors.Application.Tests;
 
 /// <summary>
-/// Homologação do módulo de estoque: busca paginada, buscas alternadas e soft delete.
+/// Homologação do módulo de estoque: busca paginada, buscas alternadas e hard delete.
 /// Requer RUN_INTEGRATION_TESTS=true e PostgreSQL acessível via .env.
 /// </summary>
 public class ProdutoEstoqueIntegrationTests
@@ -94,9 +94,9 @@ public class ProdutoEstoqueIntegrationTests
             Assert.Equal(2, aposExclusao.Itens.Count(p => p.Nome.Contains(termoBase, StringComparison.OrdinalIgnoreCase)));
 
             await using var db = await contextFactory.CreateDbContextAsync();
-            var noBanco = await db.Produtos.IgnoreQueryFilters()
-                .FirstAsync(p => p.Id == idExcluir);
-            Assert.False(noBanco.Ativo);
+            var existeNoBanco = await db.Produtos.IgnoreQueryFilters()
+                .AnyAsync(p => p.Id == idExcluir);
+            Assert.False(existeNoBanco);
 
             var obterPorId = await produtoService.ObterPorIdAsync(idExcluir);
             Assert.Null(obterPorId);

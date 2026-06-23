@@ -11,8 +11,11 @@ public class ClienteMapping : IEntityTypeConfiguration<Cliente>
         builder.ToTable("clientes");
         builder.HasKey(c => c.Id);
         builder.Property(c => c.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(c => c.TipoPessoa).HasColumnName("tipo_pessoa").HasDefaultValue(Domain.Enums.TipoPessoa.Fisica);
         builder.Property(c => c.Nome).HasColumnName("nome").HasMaxLength(200).IsRequired();
         builder.Property(c => c.Cpf).HasColumnName("cpf").HasMaxLength(14);
+        builder.Property(c => c.Cnpj).HasColumnName("cnpj").HasMaxLength(18);
+        builder.Property(c => c.InscricaoEstadual).HasColumnName("inscricao_estadual").HasMaxLength(20);
         builder.Property(c => c.Telefone).HasColumnName("telefone").HasMaxLength(20);
         builder.Property(c => c.WhatsApp).HasColumnName("whatsapp").HasMaxLength(20);
         builder.Property(c => c.Email).HasColumnName("email").HasMaxLength(200);

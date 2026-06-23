@@ -11,6 +11,7 @@ public static class EmpresaConfigEnvironmentOverrides
         AplicarSeDefinido("EMPRESA_RAZAO_SOCIAL", v => config.RazaoSocial = v);
         AplicarSeDefinido("EMPRESA_SUBTITULO", v => config.Subtitulo = v);
         AplicarSeDefinido("EMPRESA_CNPJ", v => config.CNPJ = v);
+        AplicarSeDefinido("EMPRESA_IE", v => config.InscricaoEstadual = v);
         AplicarSeDefinido("EMPRESA_ENDERECO", v => config.Endereco = v);
         AplicarSeDefinido("EMPRESA_TELEFONE", v => config.Telefone = v);
     }

@@ -104,4 +104,78 @@ public class TrocaRepository : RepositoryBase<Troca>, ITrocaRepository
             throw;
         }
     }
+
+    public async Task RegistrarTrocaVendaExternaTransacionalAsync(
+        Troca troca,
+        Produto produtoDevolvido,
+        Produto produtoNovo,
+        bool retornarAoEstoque,
+        CancellationToken cancellationToken = default)
+    {
+        await using var context = ContextFactory.CreateDbContext();
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
+        try
+        {
+            var prodDev = await context.Set<Produto>()
+                .FirstOrDefaultAsync(p => p.Id == produtoDevolvido.Id, cancellationToken)
+                ?? throw new Domain.Exceptions.DomainException($"Produto devolvido (Id={produtoDevolvido.Id}) não encontrado.");
+
+            var prodNovo = await context.Set<Produto>()
+                .FirstOrDefaultAsync(p => p.Id == produtoNovo.Id, cancellationToken)
+                ?? throw new Domain.Exceptions.DomainException($"Novo produto (Id={produtoNovo.Id}) não encontrado.");
+
+            var vendaExterna = await context.Set<VendaExterna>()
+                .FirstOrDefaultAsync(v => v.Id == troca.VendaExternaOrigemId, cancellationToken)
+                ?? throw new Domain.Exceptions.DomainException("Venda externa não encontrada.");
+
+            if (retornarAoEstoque)
+            {
+                var qtdAntesDev = prodDev.QuantidadeEstoque;
+                prodDev.QuantidadeEstoque += troca.QuantidadeDevolvida;
+
+                context.Set<MovimentacaoEstoque>().Add(new MovimentacaoEstoque
+                {
+                    ProdutoId = prodDev.Id,
+                    Tipo = TipoMovimentacao.Entrada,
+                    Quantidade = troca.QuantidadeDevolvida,
+                    QuantidadeAnterior = qtdAntesDev,
+                    QuantidadeAtual = prodDev.QuantidadeEstoque,
+                    Motivo = $"Troca - item devolvido da venda externa #{vendaExterna.NumeroVendaExterna}",
+                    VendaExternaId = troca.VendaExternaOrigemId
+                });
+            }
+
+            if (prodNovo.QuantidadeEstoque < troca.QuantidadeNova)
+                throw new Domain.Exceptions.DomainException(
+                    $"Estoque insuficiente para '{prodNovo.Nome}'. Disponível: {prodNovo.QuantidadeEstoque}.");
+
+            var qtdAntesNovo = prodNovo.QuantidadeEstoque;
+            prodNovo.QuantidadeEstoque -= troca.QuantidadeNova;
+
+            context.Set<MovimentacaoEstoque>().Add(new MovimentacaoEstoque
+            {
+                ProdutoId = prodNovo.Id,
+                Tipo = TipoMovimentacao.Saida,
+                Quantidade = troca.QuantidadeNova,
+                QuantidadeAnterior = qtdAntesNovo,
+                QuantidadeAtual = prodNovo.QuantidadeEstoque,
+                Motivo = $"Troca - novo item entregue - venda externa #{vendaExterna.NumeroVendaExterna}",
+                VendaExternaId = troca.VendaExternaOrigemId
+            });
+
+            troca.Observacoes = string.IsNullOrWhiteSpace(troca.Observacoes)
+                ? $"Troca vinculada à Venda Externa ID {troca.VendaExternaOrigemId}"
+                : $"{troca.Observacoes} | Troca vinculada à Venda Externa ID {troca.VendaExternaOrigemId}";
+
+            await context.Set<Troca>().AddAsync(troca, cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
 }

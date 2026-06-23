@@ -10,6 +10,9 @@ namespace ImperialColors.Application.Services;
 
 public class ClienteService : IClienteService
 {
+    public const string MensagemExclusaoBloqueadaPorHistorico =
+        "Este cliente não pode ser excluído permanentemente porque já possui vendas registradas no sistema.";
+
     private readonly IClienteRepository _clienteRepository;
     private readonly ILogger<ClienteService> _logger;
 
@@ -52,8 +55,11 @@ public class ClienteService : IClienteService
         var cliente = await _clienteRepository.ObterPorIdAsync(id)
             ?? throw new DomainException($"Cliente com Id {id} não encontrado.");
 
+        cliente.TipoPessoa = dto.TipoPessoa;
         cliente.Nome = dto.Nome;
         cliente.Cpf = dto.Cpf;
+        cliente.Cnpj = dto.Cnpj;
+        cliente.InscricaoEstadual = dto.InscricaoEstadual;
         cliente.Telefone = dto.Telefone;
         cliente.WhatsApp = dto.WhatsApp;
         cliente.Email = dto.Email;
@@ -72,9 +78,16 @@ public class ClienteService : IClienteService
 
     public async Task RemoverAsync(int id)
     {
-        if (!await _clienteRepository.ExisteAsync(id))
-            throw new DomainException($"Cliente com Id {id} não encontrado.");
-        await _clienteRepository.RemoverAsync(id);
+        _ = await _clienteRepository.ObterPorIdAsync(id)
+            ?? throw new DomainException($"Cliente com Id {id} não encontrado.");
+
+        if (await _clienteRepository.PossuiVinculosAsync(id))
+            throw new DomainException(MensagemExclusaoBloqueadaPorHistorico);
+
+        await _clienteRepository.RemoverFisicamenteAsync(id);
+
+        if (await _clienteRepository.ExisteFisicamenteAsync(id))
+            throw new DomainException("Não foi possível excluir o cliente. Tente novamente.");
     }
 
     public async Task<int> ContarAsync()
@@ -97,7 +110,8 @@ public class ClienteService : IClienteService
 
     private static ClienteDto MapParaDto(Cliente c) => new()
     {
-        Id = c.Id, Nome = c.Nome, Cpf = c.Cpf, Telefone = c.Telefone, WhatsApp = c.WhatsApp,
+        Id = c.Id, TipoPessoa = c.TipoPessoa, Nome = c.Nome, Cpf = c.Cpf,
+        Cnpj = c.Cnpj, InscricaoEstadual = c.InscricaoEstadual, Telefone = c.Telefone, WhatsApp = c.WhatsApp,
         Email = c.Email, Cep = c.Cep, Logradouro = c.Logradouro, Numero = c.Numero,
         Complemento = c.Complemento, Bairro = c.Bairro, Cidade = c.Cidade,
         Estado = c.Estado, Observacoes = c.Observacoes
@@ -105,8 +119,11 @@ public class ClienteService : IClienteService
 
     private static Cliente MapParaEntidade(ClienteDto dto) => new()
     {
+        TipoPessoa = dto.TipoPessoa,
         Nome = InputSanitizer.SanitizarTexto(dto.Nome, 200),
         Cpf = InputSanitizer.SanitizarTexto(dto.Cpf, 14),
+        Cnpj = InputSanitizer.SanitizarTexto(dto.Cnpj, 18),
+        InscricaoEstadual = InputSanitizer.SanitizarTexto(dto.InscricaoEstadual, 20),
         Telefone = InputSanitizer.SanitizarTexto(dto.Telefone, 20),
         WhatsApp = InputSanitizer.SanitizarTexto(dto.WhatsApp, 20),
         Email = InputSanitizer.SanitizarEmail(dto.Email),

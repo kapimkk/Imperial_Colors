@@ -644,6 +644,11 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - **Fluxo B – Item manual:** nome, quantidade e valor unitário livres, sem vínculo com produto — computado apenas no faturamento, sem baixa de estoque
 - **Importador TXT:** formato `CODIGO_DE_BARRAS;NOME_DO_PRODUTO;QUANTIDADE` — grade de conferência editável antes da aprovação
 - Botão **Aprovar e Concluir Venda** grava venda + baixas em uma única transação (`IDbContextTransaction`); falha de estoque ou validação faz rollback completo
+- **Pós-venda (gerenciamento completo):**
+  - **Editar:** reabre a grade de itens; altere quantidades, preços ou adicione novos itens — o estoque é recalculado automaticamente (aumento baixa diferença, redução repõe diferença; itens manuais só afetam faturamento)
+  - **Excluir:** hard delete com confirmação; repõe integralmente o estoque dos produtos vinculados antes de remover a venda do PostgreSQL
+  - **Registrar Troca:** modal em 3 etapas (Item Devolvido → Novo Item → Diferença Financeira), igual ao PDV, com checkbox opcional de retorno ao estoque
+- Todas as operações que alteram estoque (editar, excluir, trocar) rodam em `IDbContextTransaction` com rollback automático em caso de falha
 - Número da venda: `EXT-yyyyMMdd-0001`
 - Tabelas PostgreSQL: `vendas_externas`, `itens_venda_externa`; movimentações de estoque vinculadas via `venda_externa_id`
 
@@ -663,9 +668,17 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 - Acesse pelo menu **Mercadorias**
 - **Aba Fornecedores:** cadastro de fornecedores (CNPJ, CEP, contatos)
 - **Aba Listas de Compra:** monte listas de produtos para comprar, marque itens comprados e finalize a lista
+  - **Anexar Nota da Compra:** selecione PDF ou imagem (PNG/JPG) via assistente do Windows; o arquivo é convertido em `byte[]` e salvo na coluna `BYTEA` (`nota_fiscal_conteudo`) do PostgreSQL — centralizado e protegido no banco
+  - **Visualizar Nota:** extrai os bytes do banco e abre no visualizador padrão do Windows (habilitado somente quando há anexo)
+  - Coluna **Nota NF** na grid indica se a lista possui nota anexada
 
 ### Relatórios
 - Vendas por período (PDF e Excel)
+- **Relatório de Vendas Externas** — auditoria item a item das vendas de rua (filtro por período)
+- **Análise de Giro e Desempenho de Produtos** — três visões com exportação PDF/Excel:
+  - **Mais Vendidos** — ranking por volume (balcão + vendas externas)
+  - **Menos Vendidos** — itens com saída no período, ordenados do menor para o maior
+  - **Nunca Vendidos (Encalhados)** — produtos com estoque e zero vendas no intervalo
 - Estoque completo (PDF e Excel)
 - Produtos com estoque baixo
 - Produtos sem estoque
@@ -707,8 +720,8 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 - Repositórios e serviços registrados como **Singleton**; ViewModels permanecem Transient por escopo de página (apenas estado de UI)
 - Erros de banco exibem a mensagem detalhada do PostgreSQL (`DbUpdateException` + inner exception)
 - Busca de produtos com debounce (300 ms) e cancelamento de buscas anteriores
-- Paginação (50 itens/página), `AsNoTracking` e soft delete com Global Query Filter
-- **Exclusão de produtos/fornecedores:** soft delete (`ativo = false`) quando há histórico vinculado (movimentações, vendas)
+- Paginação (50 itens/página), `AsNoTracking` e Global Query Filter (`ativo = true`) nas consultas
+- **Exclusão permanente (hard delete):** Produtos, Clientes e Fornecedores são removidos fisicamente do PostgreSQL quando não há histórico comercial vinculado
 - Detalhes em `docs/RELATORIO_HOMOLOGACAO_DBCONTEXT.md`, `docs/RELATORIO_ESTOQUE_PERFORMANCE.md` e `docs/RELATORIO_ERRO_SALVAMENTO_PRODUTO.md`
 
 ### Formatação visual (pt-BR)
@@ -740,7 +753,7 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 8. Preencha os demais campos e clique em **Salvar Produto**
 9. A listagem carrega **50 produtos por página** — use **◀ Anterior / Próxima ▶** para navegar
 
-> **Exclusão:** Produtos e Fornecedores usam soft delete (`ativo = false`). O registro permanece no banco para integridade com movimentações/vendas, mas some das telas.
+> **Exclusão:** Produtos, Clientes e Fornecedores usam **hard delete** (`DELETE` no banco). A exclusão é bloqueada apenas quando há vendas, listas ou outros vínculos comerciais registrados. Movimentações de estoque isoladas não impedem a exclusão de produtos.
 
 ### Registrar Troca de Produto
 1. Acesse **Histórico de Vendas** no menu lateral
@@ -778,9 +791,12 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 
 ### Relatórios
 1. Acesse **Relatórios** no menu
-2. Defina o período de datas
-3. Clique no botão do relatório desejado (PDF ou Excel)
-4. Escolha onde salvar o arquivo
+2. Selecione o relatório na lista lateral (agrupado por categoria: Vendas, Estoque, Preços, Análise)
+3. Ajuste **Data Início** e **Data Fim** quando o relatório exigir período (dia final inclusivo)
+4. Escolha **PDF** ou **Excel** e clique em **Gerar relatório**
+5. Escolha onde salvar o arquivo
+
+> **Nota:** o ranking de giro considera apenas itens vinculados a um produto cadastrado (`ProdutoId`). Itens manuais de venda externa entram no relatório de Vendas Externas, mas não no ranking por produto.
 
 ### Fornecedores
 1. Acesse **Mercadorias** no menu

@@ -9,6 +9,9 @@ namespace ImperialColors.Application.Services;
 
 public class FornecedorService : IFornecedorService
 {
+    public const string MensagemExclusaoBloqueadaPorHistorico =
+        "Este fornecedor não pode ser excluído permanentemente porque possui produtos ou listas de compra vinculados.";
+
     private readonly IFornecedorRepository _fornecedorRepository;
     private readonly ILogger<FornecedorService> _logger;
 
@@ -40,6 +43,7 @@ public class FornecedorService : IFornecedorService
 
     public async Task<FornecedorDto> CriarAsync(FornecedorDto dto)
     {
+        dto.TipoPessoa = Domain.Enums.TipoPessoa.Juridica;
         var fornecedor = MapParaEntidade(dto);
         var criado = await _fornecedorRepository.AdicionarAsync(fornecedor);
         return MapParaDto(criado);
@@ -50,8 +54,10 @@ public class FornecedorService : IFornecedorService
         var fornecedor = await _fornecedorRepository.ObterPorIdAsync(id)
             ?? throw new DomainException($"Fornecedor com Id {id} não encontrado.");
 
+        fornecedor.TipoPessoa = Domain.Enums.TipoPessoa.Juridica;
         fornecedor.Nome = dto.Nome;
         fornecedor.Cnpj = dto.Cnpj;
+        fornecedor.InscricaoEstadual = dto.InscricaoEstadual;
         fornecedor.Telefone = dto.Telefone;
         fornecedor.WhatsApp = dto.WhatsApp;
         fornecedor.Email = dto.Email;
@@ -70,9 +76,16 @@ public class FornecedorService : IFornecedorService
 
     public async Task RemoverAsync(int id)
     {
-        if (!await _fornecedorRepository.ExisteAsync(id))
-            throw new DomainException($"Fornecedor com Id {id} não encontrado.");
-        await _fornecedorRepository.RemoverAsync(id);
+        _ = await _fornecedorRepository.ObterPorIdAsync(id)
+            ?? throw new DomainException($"Fornecedor com Id {id} não encontrado.");
+
+        if (await _fornecedorRepository.PossuiVinculosAsync(id))
+            throw new DomainException(MensagemExclusaoBloqueadaPorHistorico);
+
+        await _fornecedorRepository.RemoverFisicamenteAsync(id);
+
+        if (await _fornecedorRepository.ExisteFisicamenteAsync(id))
+            throw new DomainException("Não foi possível excluir o fornecedor. Tente novamente.");
     }
 
     public async Task<PaginacaoResultadoDto<FornecedorDto>> ObterPaginadoAsync(
@@ -92,7 +105,8 @@ public class FornecedorService : IFornecedorService
 
     private static FornecedorDto MapParaDto(Fornecedor f) => new()
     {
-        Id = f.Id, Nome = f.Nome, Cnpj = f.Cnpj, Telefone = f.Telefone, WhatsApp = f.WhatsApp,
+        Id = f.Id, TipoPessoa = f.TipoPessoa, Nome = f.Nome, Cnpj = f.Cnpj,
+        InscricaoEstadual = f.InscricaoEstadual, Telefone = f.Telefone, WhatsApp = f.WhatsApp,
         Email = f.Email, Cep = f.Cep, Logradouro = f.Logradouro, Numero = f.Numero,
         Complemento = f.Complemento, Bairro = f.Bairro, Cidade = f.Cidade,
         Estado = f.Estado, Observacoes = f.Observacoes
@@ -100,7 +114,9 @@ public class FornecedorService : IFornecedorService
 
     private static Fornecedor MapParaEntidade(FornecedorDto dto) => new()
     {
-        Nome = dto.Nome, Cnpj = dto.Cnpj, Telefone = dto.Telefone, WhatsApp = dto.WhatsApp,
+        TipoPessoa = Domain.Enums.TipoPessoa.Juridica,
+        Nome = dto.Nome, Cnpj = dto.Cnpj, InscricaoEstadual = dto.InscricaoEstadual,
+        Telefone = dto.Telefone, WhatsApp = dto.WhatsApp,
         Email = dto.Email, Cep = dto.Cep, Logradouro = dto.Logradouro, Numero = dto.Numero,
         Complemento = dto.Complemento, Bairro = dto.Bairro, Cidade = dto.Cidade,
         Estado = dto.Estado, Observacoes = dto.Observacoes

@@ -11,7 +11,8 @@ public class TrocaMapping : IEntityTypeConfiguration<Troca>
         builder.ToTable("trocas");
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Id).HasColumnName("id").UseIdentityAlwaysColumn();
-        builder.Property(t => t.VendaOrigemId).HasColumnName("venda_origem_id").IsRequired();
+        builder.Property(t => t.VendaOrigemId).HasColumnName("venda_origem_id");
+        builder.Property(t => t.VendaExternaOrigemId).HasColumnName("venda_externa_origem_id");
         builder.Property(t => t.ProdutoDevolvidoId).HasColumnName("produto_devolvido_id").IsRequired();
         builder.Property(t => t.QuantidadeDevolvida).HasColumnName("quantidade_devolvida").HasPrecision(10, 3);
         builder.Property(t => t.ValorUnitarioDevolucao).HasColumnName("valor_unitario_devolucao").HasPrecision(10, 2);
@@ -30,6 +31,11 @@ public class TrocaMapping : IEntityTypeConfiguration<Troca>
         builder.HasOne(t => t.VendaOrigem)
             .WithMany()
             .HasForeignKey(t => t.VendaOrigemId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(t => t.VendaExternaOrigem)
+            .WithMany()
+            .HasForeignKey(t => t.VendaExternaOrigemId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(t => t.ProdutoDevolvido)
