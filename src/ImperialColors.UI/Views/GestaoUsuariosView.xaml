@@ -75,7 +75,9 @@
                 <Button Content="Aprovar Selecionado" Style="{StaticResource BotaoSucesso}"
                         Command="{Binding AprovarCommand}" Margin="0,0,0,8"/>
                 <Button Content="Cancelar Selecionado" Style="{StaticResource BotaoPerigo}"
-                        Command="{Binding CancelarUsuarioCommand}"/>
+                        Command="{Binding CancelarUsuarioCommand}" Margin="0,0,0,8"/>
+                <Button Content="Excluir Usuário" Style="{StaticResource BotaoPerigo}"
+                        Command="{Binding ExcluirUsuarioCommand}"/>
             </StackPanel>
         </Border>
     </Grid>

@@ -1,6 +1,7 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
 using ImperialColors.Domain.Enums;
+using ImperialColors.UI.Services;
 using System.Collections.ObjectModel;
 
 namespace ImperialColors.UI.ViewModels;
@@ -8,6 +9,7 @@ namespace ImperialColors.UI.ViewModels;
 public class GestaoUsuariosViewModel : BaseViewModel
 {
     private readonly IUsuarioService _usuarioService;
+    private readonly ISessaoService _sessaoService;
 
     private ObservableCollection<UsuarioDto> _usuarios = new();
     public ObservableCollection<UsuarioDto> Usuarios { get => _usuarios; set => SetProperty(ref _usuarios, value); }
@@ -65,15 +67,18 @@ public class GestaoUsuariosViewModel : BaseViewModel
     public RelayCommand NovoCommand { get; }
     public AsyncRelayCommand AprovarCommand { get; }
     public AsyncRelayCommand CancelarUsuarioCommand { get; }
+    public AsyncRelayCommand ExcluirUsuarioCommand { get; }
 
-    public GestaoUsuariosViewModel(IUsuarioService usuarioService)
+    public GestaoUsuariosViewModel(IUsuarioService usuarioService, ISessaoService sessaoService)
     {
         _usuarioService = usuarioService;
+        _sessaoService = sessaoService;
         CarregarCommand = new AsyncRelayCommand(CarregarAsync);
         SalvarCommand = new AsyncRelayCommand(SalvarAsync);
         NovoCommand = new RelayCommand(NovoUsuario);
         AprovarCommand = new AsyncRelayCommand(AprovarAsync, () => TemSelecao);
         CancelarUsuarioCommand = new AsyncRelayCommand(CancelarUsuarioAsync, () => TemSelecao);
+        ExcluirUsuarioCommand = new AsyncRelayCommand(ExcluirUsuarioAsync, () => TemSelecao);
     }
 
     public async Task CarregarAsync()
@@ -186,6 +191,30 @@ public class GestaoUsuariosViewModel : BaseViewModel
         {
             await _usuarioService.CancelarAsync(UsuarioSelecionado.Id);
             MostrarSucesso("Usuário cancelado.");
+            await CarregarAsync();
+        }
+        catch (Exception ex)
+        {
+            MostrarErro(ex.Message);
+        }
+    }
+
+    private async Task ExcluirUsuarioAsync()
+    {
+        if (UsuarioSelecionado is null) return;
+
+        var mensagem = $"Excluir permanentemente o usuário '{UsuarioSelecionado.Username}'?\n\n" +
+                       "Esta ação não pode ser desfeita. O registro será removido do banco de dados.";
+        if (!ConfirmarAcao(mensagem)) return;
+
+        try
+        {
+            var usuarioLogadoId = _sessaoService.UsuarioAtual?.Id
+                ?? throw new InvalidOperationException("Sessão inválida. Faça login novamente.");
+
+            await _usuarioService.ExcluirFisicamenteAsync(UsuarioSelecionado.Id, usuarioLogadoId);
+            MostrarSucesso("Usuário excluído permanentemente.");
+            NovoUsuario();
             await CarregarAsync();
         }
         catch (Exception ex)

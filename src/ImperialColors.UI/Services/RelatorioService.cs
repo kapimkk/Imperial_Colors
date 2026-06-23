@@ -557,6 +557,105 @@ public class RelatorioService : IRelatorioService
         });
     }
 
+    public Task GerarRelatorioVendasConsolidadasPdfAsync(
+        IEnumerable<LinhaRelatorioVendaConsolidadaDto> linhas, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var writer = new PdfWriter(caminhoArquivo);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf, iText.Kernel.Geom.PageSize.A4);
+            document.SetMargins(30, 30, 30, 30);
+
+            AdicionarCabecalhoRelatorio(document, "Relatorio Consolidado de Vendas (Geral)",
+                $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy} — Balcao + Vendas Externas");
+
+            var tabela = new ITextTable(new float[] { 1.6f, 1.2f, 1.5f, 2.5f, 0.8f, 1.2f, 1f, 1.2f, 1.5f }).UseAllAvailableWidth();
+            AdicionarCabecalhoTabela(tabela, "Data", "Origem", "Cod. Venda", "Cliente/Resumo", "Itens", "Subtotal", "Desconto", "Total", "Pagamento");
+
+            var cultura = new System.Globalization.CultureInfo("pt-BR");
+            var lista = linhas.ToList();
+            foreach (var linha in lista)
+            {
+                tabela.AddCell(CelulaTabela(linha.DataVenda.ToString("dd/MM/yyyy HH:mm")));
+                tabela.AddCell(CelulaTabela(linha.Origem));
+                tabela.AddCell(CelulaTabela(linha.NumeroVenda));
+                tabela.AddCell(CelulaTabela(linha.ClienteOuResumo));
+                tabela.AddCell(CelulaTabela(linha.TotalItens.ToString(), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(linha.Subtotal.ToString("C2", cultura), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(linha.Desconto.ToString("C2", cultura), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(linha.Total.ToString("C2", cultura), TextAlignment.RIGHT));
+                tabela.AddCell(CelulaTabela(linha.FormaPagamento ?? "—"));
+            }
+
+            document.Add(tabela);
+            var totalGeral = lista.Sum(l => l.Total);
+            var totalBalcao = lista.Where(l => l.Origem == "Balcão").Sum(l => l.Total);
+            var totalExterna = lista.Where(l => l.Origem == "Externa").Sum(l => l.Total);
+            document.Add(new ITextParagraph(
+                    $"\nTotal Geral: {totalGeral.ToString("C2", cultura)} | Balcao: {totalBalcao.ToString("C2", cultura)} | Externa: {totalExterna.ToString("C2", cultura)} | {lista.Count} venda(s)")
+                .SetFont(ObterFonte(true)).SetFontSize(12).SetTextAlignment(TextAlignment.RIGHT));
+        });
+    }
+
+    public Task GerarRelatorioVendasConsolidadasExcelAsync(
+        IEnumerable<LinhaRelatorioVendaConsolidadaDto> linhas, DateTime inicio, DateTime fim, string caminhoArquivo)
+    {
+        return Task.Run(() =>
+        {
+            using var workbook = new XLWorkbook();
+            var ws = workbook.AddWorksheet("Vendas Consolidadas");
+
+            ws.Cell(1, 1).Value = $"{_config.EmpresaNome} - Relatorio Consolidado de Vendas (Geral)";
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+            ws.Range(1, 1, 1, 9).Merge();
+
+            ws.Cell(2, 1).Value = $"Periodo: {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy} — Balcao + Vendas Externas";
+            ws.Range(2, 1, 2, 9).Merge();
+
+            var headers = new[] { "Data", "Origem", "Cod. Venda", "Cliente/Resumo", "Itens", "Subtotal", "Desconto", "Total", "Pagamento" };
+            for (var i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(4, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Fill.BackgroundColor = XLColor.FromArgb(245, 194, 0);
+                cell.Style.Font.Bold = true;
+            }
+
+            var row = 5;
+            var lista = linhas.ToList();
+            foreach (var linha in lista)
+            {
+                ws.Cell(row, 1).Value = linha.DataVenda.ToString("dd/MM/yyyy HH:mm");
+                ws.Cell(row, 2).Value = linha.Origem;
+                ws.Cell(row, 3).Value = linha.NumeroVenda;
+                ws.Cell(row, 4).Value = linha.ClienteOuResumo;
+                ws.Cell(row, 5).Value = linha.TotalItens;
+                ws.Cell(row, 6).Value = linha.Subtotal;
+                ws.Cell(row, 6).Style.NumberFormat.Format = "R$ #,##0.00";
+                ws.Cell(row, 7).Value = linha.Desconto;
+                ws.Cell(row, 7).Style.NumberFormat.Format = "R$ #,##0.00";
+                ws.Cell(row, 8).Value = linha.Total;
+                ws.Cell(row, 8).Style.NumberFormat.Format = "R$ #,##0.00";
+                ws.Cell(row, 9).Value = linha.FormaPagamento ?? "—";
+                if (row % 2 == 0)
+                    ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromArgb(248, 249, 250);
+                row++;
+            }
+
+            var totalRow = row + 1;
+            ws.Cell(totalRow, 7).Value = "Total Geral:";
+            ws.Cell(totalRow, 7).Style.Font.Bold = true;
+            ws.Cell(totalRow, 8).Value = lista.Sum(l => l.Total);
+            ws.Cell(totalRow, 8).Style.NumberFormat.Format = "R$ #,##0.00";
+            ws.Cell(totalRow, 8).Style.Font.Bold = true;
+
+            ws.Columns().AdjustToContents();
+            workbook.SaveAs(caminhoArquivo);
+        });
+    }
+
     public Task GerarRelatorioVendasExternasPdfAsync(
         IEnumerable<LinhaRelatorioVendaExternaDto> linhas, DateTime inicio, DateTime fim, string caminhoArquivo)
     {

@@ -45,6 +45,10 @@
                                     Style="{StaticResource RelatorioNavItem}" Click="BtnNavRelatorio_Click">
                                 <TextBlock Style="{StaticResource RelatorioNavTitulo}" Text="Vendas Externas"/>
                             </Button>
+                            <Button x:Name="BtnNavVendasConsolidadas" Tag="VendasConsolidadas"
+                                    Style="{StaticResource RelatorioNavItem}" Click="BtnNavRelatorio_Click">
+                                <TextBlock Style="{StaticResource RelatorioNavTitulo}" Text="Consolidado de Vendas (Geral)"/>
+                            </Button>
 
                             <TextBlock Style="{StaticResource RelatorioCategoriaHeader}" Text="ESTOQUE"/>
                             <Button x:Name="BtnNavEstoque" Tag="EstoqueCompleto"

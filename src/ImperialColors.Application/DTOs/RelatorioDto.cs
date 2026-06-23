@@ -33,3 +33,16 @@ public enum TipoAnaliseGiroProduto
     MenosVendidos,
     NuncaVendidos
 }
+
+public class LinhaRelatorioVendaConsolidadaDto
+{
+    public DateTime DataVenda { get; set; }
+    public string Origem { get; set; } = string.Empty;
+    public string NumeroVenda { get; set; } = string.Empty;
+    public string ClienteOuResumo { get; set; } = string.Empty;
+    public int TotalItens { get; set; }
+    public decimal Subtotal { get; set; }
+    public decimal Desconto { get; set; }
+    public decimal Total { get; set; }
+    public string? FormaPagamento { get; set; }
+}

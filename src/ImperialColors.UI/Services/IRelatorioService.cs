@@ -20,4 +20,7 @@ public interface IRelatorioService
 
     Task GerarRelatorioProdutosEncalhadosPdfAsync(IEnumerable<ProdutoEncalhadoDto> produtos, DateTime inicio, DateTime fim, string caminhoArquivo);
     Task GerarRelatorioProdutosEncalhadosExcelAsync(IEnumerable<ProdutoEncalhadoDto> produtos, DateTime inicio, DateTime fim, string caminhoArquivo);
+
+    Task GerarRelatorioVendasConsolidadasPdfAsync(IEnumerable<LinhaRelatorioVendaConsolidadaDto> linhas, DateTime inicio, DateTime fim, string caminhoArquivo);
+    Task GerarRelatorioVendasConsolidadasExcelAsync(IEnumerable<LinhaRelatorioVendaConsolidadaDto> linhas, DateTime inicio, DateTime fim, string caminhoArquivo);
 }

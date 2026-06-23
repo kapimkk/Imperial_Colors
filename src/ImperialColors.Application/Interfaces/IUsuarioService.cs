@@ -10,4 +10,5 @@ public interface IUsuarioService
     Task<UsuarioDto> AtualizarPorAdminAsync(AtualizarUsuarioAdminDto dto);
     Task CancelarAsync(Guid id);
     Task AprovarAsync(Guid id);
+    Task ExcluirFisicamenteAsync(Guid id, Guid usuarioLogadoId);
 }

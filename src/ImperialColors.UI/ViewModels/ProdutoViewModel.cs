@@ -68,7 +68,6 @@ public class ProdutoViewModel : BaseViewModel
     private string _termoBusca = string.Empty;
 
     public string TermoBusca
-
     {
 
         get => _termoBusca;
@@ -89,6 +88,21 @@ public class ProdutoViewModel : BaseViewModel
 
         }
 
+    }
+
+    private bool _apenasEmPromocao;
+
+    public bool ApenasEmPromocao
+    {
+        get => _apenasEmPromocao;
+        set
+        {
+            if (!SetPropertyIfChanged(ref _apenasEmPromocao, value))
+                return;
+
+            PaginaAtual = 1;
+            _ = BuscarAsync();
+        }
     }
 
 
@@ -245,7 +259,7 @@ public class ProdutoViewModel : BaseViewModel
                 PaginaAtual,
                 ItensPorPaginaPadrao,
                 string.IsNullOrWhiteSpace(TermoBusca) ? null : TermoBusca.Trim(),
-                false,
+                ApenasEmPromocao,
                 token).ConfigureAwait(false);
 
             if (token.IsCancellationRequested)

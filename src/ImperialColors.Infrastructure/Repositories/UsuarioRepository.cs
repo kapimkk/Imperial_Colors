@@ -73,4 +73,24 @@ public class UsuarioRepository : IUsuarioRepository
         await context.SaveChangesAsync();
         return usuario;
     }
+
+    public async Task<int> ContarAdminsAprovadosAsync(Guid? excluirId = null)
+    {
+        await using var context = _contextFactory.CreateDbContext();
+        return await context.Usuarios.CountAsync(u =>
+            u.Permissao == Domain.Enums.PermissaoUsuario.Admin &&
+            u.Status == Domain.Enums.StatusUsuario.Aprovado &&
+            (!excluirId.HasValue || u.Id != excluirId));
+    }
+
+    public async Task RemoverFisicamenteAsync(Guid id)
+    {
+        await using var context = _contextFactory.CreateDbContext();
+        var usuario = await context.Usuarios.FirstOrDefaultAsync(u => u.Id == id);
+        if (usuario is null)
+            return;
+
+        context.Usuarios.Remove(usuario);
+        await context.SaveChangesAsync();
+    }
 }

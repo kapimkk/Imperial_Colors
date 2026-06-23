@@ -1,4 +1,5 @@
 using ImperialColors.Application.DTOs;
+using ImperialColors.Application.Interfaces;
 using ImperialColors.Application.Services;
 using ImperialColors.Domain.Interfaces;
 using ImperialColors.Domain.ReadModels;
@@ -20,7 +21,9 @@ public class RelatorioAnalyticsServiceTests
                 new() { CodigoInterno = "B002", NomeProduto = "Rolo B", QuantidadeTotal = 3, FaturamentoGerado = 90 }
             });
 
-        var service = new RelatorioAnalyticsService(repo.Object);
+        var vendaService = new Mock<IVendaService>();
+        var vendaExternaService = new Mock<IVendaExternaService>();
+        var service = new RelatorioAnalyticsService(repo.Object, vendaService.Object, vendaExternaService.Object);
         var resultado = await service.ObterRankingProdutosAsync(
             DateTime.Today.AddDays(-7), DateTime.Today, TipoAnaliseGiroProduto.MaisVendidos);
 
@@ -49,7 +52,9 @@ public class RelatorioAnalyticsServiceTests
                 }
             });
 
-        var service = new RelatorioAnalyticsService(repo.Object);
+        var vendaService = new Mock<IVendaService>();
+        var vendaExternaService = new Mock<IVendaExternaService>();
+        var service = new RelatorioAnalyticsService(repo.Object, vendaService.Object, vendaExternaService.Object);
         var linhas = await service.ObterLinhasVendasExternasAsync(DateTime.Today.AddDays(-1), DateTime.Today);
 
         Assert.Single(linhas);

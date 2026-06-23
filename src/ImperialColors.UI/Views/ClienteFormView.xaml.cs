@@ -1,5 +1,6 @@
 using ImperialColors.Application.DTOs;
 using ImperialColors.Application.Interfaces;
+using ImperialColors.Application.Security;
 using ImperialColors.Domain.Enums;
 using ImperialColors.UI.Helpers;
 using System.Windows;
@@ -139,6 +140,21 @@ public partial class ClienteFormView : Window
 
     private void TxtWhatsApp_TextChanged(object sender, TextChangedEventArgs e)
         => AplicarMascaraCelular(TxtWhatsApp, ref _suprimirMascaraWhatsApp);
+
+    private void TxtEmail_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        var email = TxtEmail.Text.Trim();
+        if (string.IsNullOrEmpty(email))
+        {
+            if (TxtStatus.Text.StartsWith("E-mail", StringComparison.OrdinalIgnoreCase))
+                TxtStatus.Text = string.Empty;
+            return;
+        }
+
+        TxtStatus.Text = InputSanitizer.EmailValido(email)
+            ? string.Empty
+            : "E-mail inválido. Informe um endereço válido (ex.: cliente@email.com) ou deixe em branco.";
+    }
 
     private static void AplicarMascaraCelular(TextBox textBox, ref bool suprimirFlag)
     {
@@ -305,6 +321,18 @@ public partial class ClienteFormView : Window
             return;
         }
 
+        var email = TxtEmail.Text.Trim();
+        if (!string.IsNullOrEmpty(email) && !InputSanitizer.EmailValido(email))
+        {
+            MessageBox.Show(
+                "Informe um e-mail válido ou deixe o campo em branco.\nExemplo: cliente@email.com",
+                "Validação",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            TxtEmail.Focus();
+            return;
+        }
+
         try
         {
             var isPj = RbPj.IsChecked == true;
@@ -317,7 +345,7 @@ public partial class ClienteFormView : Window
                 InscricaoEstadual = isPj ? TxtInscricaoEstadual.Text.Trim() : null,
                 Telefone = TxtTelefone.Text.Trim(),
                 WhatsApp = TxtWhatsApp.Text.Trim(),
-                Email = TxtEmail.Text.Trim(),
+                Email = email,
                 Cep = TxtCep.Text.Trim(),
                 Logradouro = TxtLogradouro.Text.Trim(),
                 Numero = TxtNumero.Text.Trim(),

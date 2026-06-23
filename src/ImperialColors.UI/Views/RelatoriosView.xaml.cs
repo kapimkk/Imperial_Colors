@@ -28,6 +28,11 @@ public partial class RelatoriosView : UserControl
             "Auditoria detalhada por item das vendas de rua registradas no período.",
             "Data da venda, código, produto/item, quantidade, valor unitário e valor total.",
             true, false),
+        ["VendasConsolidadas"] = (
+            "Relatório Consolidado de Vendas (Geral)",
+            "Unifica vendas de balcão (PDV) e vendas externas em uma única listagem filtrada por período.",
+            "Data, origem (Balcão ou Externa), código da venda, cliente/resumo, itens, subtotal, desconto, total e forma de pagamento.",
+            true, false),
         ["EstoqueCompleto"] = (
             "Estoque Completo",
             "Inventário de todos os produtos ativos com saldo, categoria e preço de venda.",
@@ -163,6 +168,7 @@ public partial class RelatoriosView : UserControl
             {
                 case "VendasPeriodo": await GerarVendasPeriodoAsync(); break;
                 case "VendasExternas": await GerarVendasExternasAsync(); break;
+                case "VendasConsolidadas": await GerarVendasConsolidadasAsync(); break;
                 case "EstoqueCompleto": await GerarEstoqueAsync(p => p.ObterTodosAsync()); break;
                 case "EstoqueBaixo": await GerarEstoqueAsync(p => p.ObterComEstoqueBaixoAsync()); break;
                 case "SemEstoque": await GerarEstoqueAsync(p => p.ObterSemEstoqueAsync()); break;
@@ -250,6 +256,25 @@ public partial class RelatoriosView : UserControl
             await relatorio.GerarRelatorioVendasExternasExcelAsync(linhas, inicio, fim, caminho);
         else
             await relatorio.GerarRelatorioVendasExternasPdfAsync(linhas, inicio, fim, caminho);
+
+        NotificarSucesso(caminho);
+    }
+
+    private async Task GerarVendasConsolidadasAsync()
+    {
+        var (inicio, fim) = ObterPeriodo();
+        var excel = ExportarExcel;
+        if (!TentarObterCaminhoSalvar($"VendasConsolidadas_{inicio:yyyyMMdd}_{fim:yyyyMMdd}", excel, out var caminho))
+            return;
+
+        var analytics = _serviceProvider.GetRequiredService<IRelatorioAnalyticsService>();
+        var linhas = await analytics.ObterVendasConsolidadasAsync(inicio, fim);
+        var relatorio = _serviceProvider.GetRequiredService<IRelatorioService>();
+
+        if (excel)
+            await relatorio.GerarRelatorioVendasConsolidadasExcelAsync(linhas, inicio, fim, caminho);
+        else
+            await relatorio.GerarRelatorioVendasConsolidadasPdfAsync(linhas, inicio, fim, caminho);
 
         NotificarSucesso(caminho);
     }

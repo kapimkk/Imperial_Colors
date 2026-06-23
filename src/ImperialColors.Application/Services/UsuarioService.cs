@@ -120,6 +120,26 @@ public class UsuarioService : IUsuarioService
         _logger.LogInformation("Usuário aprovado: {Username}", usuario.Username);
     }
 
+    public async Task ExcluirFisicamenteAsync(Guid id, Guid usuarioLogadoId)
+    {
+        if (id == usuarioLogadoId)
+            throw new DomainException("Você não pode excluir o usuário da sessão ativa.");
+
+        var usuario = await _usuarioRepository.ObterPorIdAsync(id)
+            ?? throw new DomainException("Usuário não encontrado.");
+
+        if (usuario.Permissao == PermissaoUsuario.Admin &&
+            usuario.Status == StatusUsuario.Aprovado &&
+            await _usuarioRepository.ContarAdminsAprovadosAsync() <= 1)
+        {
+            throw new DomainException(
+                "Não é possível excluir o único administrador aprovado do sistema. Cadastre outro administrador antes.");
+        }
+
+        await _usuarioRepository.RemoverFisicamenteAsync(id);
+        _logger.LogInformation("Usuário excluído permanentemente: {Username}", usuario.Username);
+    }
+
     private static void ValidarDadosBasicos(string nome, string username, string email, string senha)
     {
         if (string.IsNullOrWhiteSpace(nome))

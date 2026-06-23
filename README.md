@@ -601,6 +601,7 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 
 ### Estoque
 - Cadastro completo de produtos (código interno, código de barras, categoria, marca, etc.)
+- **Filtro "Apenas em Promoção"** — checkbox na listagem que exibe somente produtos com preço promocional ativo e menor que o preço de venda
 - Controle de movimentações (entrada, saída, ajuste)
 - Alertas de estoque baixo
 - Busca por nome, código interno ou código de barras
@@ -654,6 +655,7 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 
 ### Clientes
 - Cadastro completo (nome, CPF, contatos, endereço com ViaCEP)
+- Campo **E-mail** com validação em tempo real (`InputSanitizer.EmailValido`) — opcional, mas deve ser válido se preenchido
 - Busca rápida e paginação
 - Acesso pelo menu **Clientes** (`Views/ClientesView.xaml`)
 - Vinculação opcional com vendas no PDV
@@ -674,6 +676,7 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 
 ### Relatórios
 - Vendas por período (PDF e Excel)
+- **Relatório Consolidado de Vendas (Geral)** — unifica vendas de balcão (PDV) e vendas externas com coluna **Origem** (`Balcão` / `Externa`); exportação PDF e Excel
 - **Relatório de Vendas Externas** — auditoria item a item das vendas de rua (filtro por período)
 - **Análise de Giro e Desempenho de Produtos** — três visões com exportação PDF/Excel:
   - **Mais Vendidos** — ranking por volume (balcão + vendas externas)
@@ -697,9 +700,10 @@ Se o IP do servidor mudar, atualiza-se **só o `hosts` do servidor** (ou a reser
 
 ### Configurações
 - Teste de conexão com o banco
+- Dados da empresa (incluindo **Inscrição Estadual**) exibidos somente leitura — configure via `.env` (`EMPRESA_IE`) ou `appsettings.json`
 - **Navegação por cards** para submódulos (Geral, Periféricos, Gestão de Usuários)
 - **Periféricos:** seleção de impressora para cupom + teste de leitor de código de barras
-- Gestão de usuários (Admin)
+- **Gestão de usuários (Admin):** aprovar, cancelar e **excluir permanentemente** operadores (hard delete no PostgreSQL), com proteção contra autoexclusão e remoção do último administrador aprovado
 - Informações do sistema
 
 ---
@@ -721,7 +725,7 @@ O sistema utiliza tema centralizado em `Resources/AppTheme.xaml`:
 - Erros de banco exibem a mensagem detalhada do PostgreSQL (`DbUpdateException` + inner exception)
 - Busca de produtos com debounce (300 ms) e cancelamento de buscas anteriores
 - Paginação (50 itens/página), `AsNoTracking` e Global Query Filter (`ativo = true`) nas consultas
-- **Exclusão permanente (hard delete):** Produtos, Clientes e Fornecedores são removidos fisicamente do PostgreSQL quando não há histórico comercial vinculado
+- **Exclusão permanente (hard delete):** Produtos, Clientes, Fornecedores e **Usuários** são removidos fisicamente do PostgreSQL quando permitido (usuários: bloqueio de autoexclusão e do último admin aprovado)
 - Detalhes em `docs/RELATORIO_HOMOLOGACAO_DBCONTEXT.md`, `docs/RELATORIO_ESTOQUE_PERFORMANCE.md` e `docs/RELATORIO_ERRO_SALVAMENTO_PRODUTO.md`
 
 ### Formatação visual (pt-BR)

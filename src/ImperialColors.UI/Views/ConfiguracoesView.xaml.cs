@@ -148,6 +148,8 @@ public partial class ConfiguracoesView : UserControl
 
         TxtEmpresaCnpj.Text = FormatarCnpj(_config.EmpresaCnpj);
 
+        TxtEmpresaIe.Text = _config.Empresa.InscricaoEstadual;
+
         TxtEmpresaTelefone.Text = _config.EmpresaTelefone;
 
         TxtEmpresaEmail.Text = _config.EmpresaEmail;

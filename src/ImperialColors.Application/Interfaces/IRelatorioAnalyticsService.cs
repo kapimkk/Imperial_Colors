@@ -12,4 +12,7 @@ public interface IRelatorioAnalyticsService
 
     Task<IReadOnlyList<ProdutoEncalhadoDto>> ObterProdutosEncalhadosAsync(
         DateTime inicio, DateTime fim, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LinhaRelatorioVendaConsolidadaDto>> ObterVendasConsolidadasAsync(
+        DateTime inicio, DateTime fim, CancellationToken cancellationToken = default);
 }
