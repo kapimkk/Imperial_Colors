@@ -33,6 +33,7 @@ public class VendaMapping : IEntityTypeConfiguration<Venda>
 
         builder.HasIndex(v => v.NumeroVenda).IsUnique();
         builder.HasIndex(v => v.DataVenda);
+        builder.HasIndex(v => v.Status).HasDatabaseName("IX_vendas_status");
         builder.HasOne(v => v.Cliente).WithMany(c => c.Vendas).HasForeignKey(v => v.ClienteId).OnDelete(DeleteBehavior.SetNull);
     }
 }

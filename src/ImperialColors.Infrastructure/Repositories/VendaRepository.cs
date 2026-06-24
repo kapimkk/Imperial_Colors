@@ -2,7 +2,6 @@ using ImperialColors.Domain.Entities;
 using ImperialColors.Domain.Enums;
 using ImperialColors.Domain.Exceptions;
 using ImperialColors.Domain.Interfaces;
-using ImperialColors.Domain.ReadModels;
 using ImperialColors.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,17 +30,6 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
             .Include(v => v.Cliente)
             .Include(v => v.Itens).ThenInclude(i => i.Produto)
             .Where(v => v.DataVenda >= inicio && v.DataVenda <= fim && v.Status == StatusVenda.Finalizada)
-            .OrderByDescending(v => v.DataVenda)
-            .ToListAsync();
-    }
-
-    public async Task<IEnumerable<Venda>> ObterPorClienteAsync(int clienteId)
-    {
-        await using var context = ContextFactory.CreateDbContext();
-        return await context.Set<Venda>()
-            .AsNoTracking()
-            .Include(v => v.Itens).ThenInclude(i => i.Produto)
-            .Where(v => v.ClienteId == clienteId && v.Status == StatusVenda.Finalizada)
             .OrderByDescending(v => v.DataVenda)
             .ToListAsync();
     }
@@ -84,52 +72,6 @@ public class VendaRepository : RepositoryBase<Venda>, IVendaRepository
         }
 
         return $"{prefixo}-{sequencial:D4}";
-    }
-
-    public async Task<IEnumerable<object>> ObterProdutosMaisVendidosAsync(DateTime inicio, DateTime fim, int top = 10)
-    {
-        await using var context = ContextFactory.CreateDbContext();
-        var resultado = await context.ItensVenda
-            .AsNoTracking()
-            .Include(i => i.Produto)
-            .Include(i => i.Venda)
-            .Where(i => i.Venda.Status == StatusVenda.Finalizada &&
-                        i.Venda.DataVenda >= inicio && i.Venda.DataVenda <= fim)
-            .GroupBy(i => new { i.ProdutoId, i.Produto.Nome })
-            .Select(g => new
-            {
-                ProdutoId = g.Key.ProdutoId,
-                NomeProduto = g.Key.Nome,
-                QuantidadeTotal = g.Sum(i => i.Quantidade),
-                TotalVendido = g.Sum(i => i.Subtotal)
-            })
-            .OrderByDescending(r => r.QuantidadeTotal)
-            .Take(top)
-            .ToListAsync();
-
-        return resultado.Cast<object>();
-    }
-
-    public async Task<IReadOnlyList<ProdutoMaisVendidoResumo>> ObterTopProdutosVendidosAsync(
-        DateTime inicio, DateTime fim, int top = 3)
-    {
-        await using var context = ContextFactory.CreateDbContext();
-        return await context.ItensVenda
-            .AsNoTracking()
-            .Include(i => i.Produto)
-            .Include(i => i.Venda)
-            .Where(i => i.Venda.Status == StatusVenda.Finalizada &&
-                        i.Venda.DataVenda >= inicio && i.Venda.DataVenda <= fim)
-            .GroupBy(i => new { i.ProdutoId, i.Produto.Nome })
-            .Select(g => new ProdutoMaisVendidoResumo
-            {
-                NomeProduto = g.Key.Nome,
-                QuantidadeTotal = g.Sum(i => i.Quantidade),
-                TotalVendido = g.Sum(i => i.Subtotal)
-            })
-            .OrderByDescending(r => r.QuantidadeTotal)
-            .Take(top)
-            .ToListAsync();
     }
 
     public async Task<(IReadOnlyList<Venda> Itens, int Total)> ObterPaginadoPorPeriodoAsync(

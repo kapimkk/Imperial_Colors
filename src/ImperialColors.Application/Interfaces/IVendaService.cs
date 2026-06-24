@@ -11,12 +11,10 @@ public interface IVendaService
     Task<PaginacaoResultadoDto<VendaDto>> ObterPaginadoPorPeriodoAsync(
         DateTime inicio, DateTime fim, int pagina, int itensPorPagina, string? termoBusca = null,
         CancellationToken cancellationToken = default);
-    Task<IEnumerable<VendaDto>> ObterPorClienteAsync(int clienteId);
     Task<VendaDto> CriarAsync(CriarVendaDto dto);
     Task<VendaDto> FinalizarAsync(int id);
     Task CancelarAsync(int id);
     Task ExcluirFisicamenteAsync(int id);
     Task<decimal> ObterTotalVendasDiaAsync();
     Task<decimal> ObterTotalVendasMesAsync();
-    Task<IEnumerable<object>> ObterProdutosMaisVendidosAsync(DateTime inicio, DateTime fim, int top = 10);
 }

@@ -194,6 +194,7 @@ public partial class PDVView : Window, INotifyPropertyChanged
 
         if (etapa == EtapaPdv.Pagamento)
         {
+            OcultarAvisoPagamento();
             AtualizarTotais();
             TxtPagamentoTotal.Text = FormattingHelper.FormatarMoeda(Total);
             AtualizarResumoPagamentos();
@@ -852,7 +853,121 @@ public partial class PDVView : Window, INotifyPropertyChanged
         }
 
         if (_etapaAtual == EtapaPdv.Pagamento)
-            AtualizarResumoPagamentos();
+        {
+            // Pagamentos lançados que excedem o novo total precisam ser reconciliados
+            if (_pagamentos.Count > 0 && _pagamentos.Sum(p => p.Valor) > Total)
+                ReconciliarPagamentosComNovoTotal();
+            else
+            {
+                OcultarAvisoPagamento();
+                AtualizarResumoPagamentos();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Chamado quando o Total muda (desconto alterado) enquanto há pagamentos já lançados.
+    /// Regras: não-dinheiro com valor > saldo disponível → remove;
+    ///         dinheiro → ajusta o Valor ao saldo restante se ValorRecebido cobrir.
+    /// </summary>
+    private void ReconciliarPagamentosComNovoTotal()
+    {
+        var novoTotal = Total;
+        var saldoRestante = novoTotal;
+        var reconciliados = new List<PagamentoLinhaUi>();
+        var removidos = 0;
+        var ajustados = 0;
+
+        foreach (var pag in _pagamentos)
+        {
+            if (saldoRestante <= 0)
+            {
+                removidos++;
+                continue;
+            }
+
+            if (PagamentoHelper.UsaTroco(pag.Forma))
+            {
+                // Dinheiro: mantém se o valor recebido em espécie cobre o saldo restante
+                var valorRecebido = pag.ValorRecebido ?? pag.Valor;
+                if (valorRecebido >= saldoRestante)
+                {
+                    var novoValor = Math.Min(pag.Valor, saldoRestante);
+                    if (novoValor != pag.Valor)
+                    {
+                        // Recalcula o Valor do item de dinheiro; troco será maior
+                        reconciliados.Add(new PagamentoLinhaUi
+                        {
+                            Forma = pag.Forma,
+                            Valor = novoValor,
+                            ValorRecebido = valorRecebido,
+                            Parcelas = pag.Parcelas
+                        });
+                        ajustados++;
+                    }
+                    else
+                    {
+                        reconciliados.Add(pag);
+                    }
+
+                    saldoRestante -= novoValor;
+                }
+                else
+                {
+                    // Valor recebido insuficiente até para o saldo restante → remove
+                    removidos++;
+                }
+            }
+            else
+            {
+                // Cartão, PIX, Boleto: não permitem troco
+                // Remove se excede o saldo disponível; mantém caso contrário
+                if (pag.Valor <= saldoRestante)
+                {
+                    reconciliados.Add(pag);
+                    saldoRestante -= pag.Valor;
+                }
+                else
+                {
+                    removidos++;
+                }
+            }
+        }
+
+        // Reconstrói a coleção observável
+        _pagamentos.Clear();
+        foreach (var pag in reconciliados)
+            _pagamentos.Add(pag);
+
+        // Exibe aviso contextual ao operador
+        if (removidos > 0 || ajustados > 0)
+        {
+            var aviso = removidos > 0
+                ? $"O desconto alterou o total da venda. {removidos} pagamento(s) removido(s) — relance com o novo total."
+                : "O desconto alterou o total. O troco em dinheiro foi recalculado automaticamente.";
+            ExibirAvisoPagamento(aviso);
+        }
+        else
+        {
+            OcultarAvisoPagamento();
+        }
+
+        AtualizarResumoPagamentos();
+        PreencherValorPagamentoSugerido();
+        AtualizarResumoEtapa();
+    }
+
+    private void ExibirAvisoPagamento(string mensagem)
+    {
+        if (TxtAvisoPagamento is null || PainelAvisoPagamento is null) return;
+        TxtAvisoPagamento.Text = mensagem;
+        PainelAvisoPagamento.Visibility = Visibility.Visible;
+    }
+
+    private void OcultarAvisoPagamento()
+    {
+        if (PainelAvisoPagamento is null) return;
+        PainelAvisoPagamento.Visibility = Visibility.Collapsed;
     }
 
     private decimal ObterValorDescontoInformado()

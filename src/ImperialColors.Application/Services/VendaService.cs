@@ -71,12 +71,6 @@ public class VendaService : IVendaService
         };
     }
 
-    public async Task<IEnumerable<VendaDto>> ObterPorClienteAsync(int clienteId)
-    {
-        var vendas = await _vendaRepository.ObterPorClienteAsync(clienteId);
-        return vendas.Select(MapParaDto);
-    }
-
     public async Task<VendaDto> CriarAsync(CriarVendaDto dto)
     {
         if (!dto.Itens.Any())
@@ -229,9 +223,6 @@ public class VendaService : IVendaService
 
     public async Task<decimal> ObterTotalVendasMesAsync()
         => await _vendaRepository.ObterTotalVendasMesAsync(DateTime.Now.Year, DateTime.Now.Month);
-
-    public async Task<IEnumerable<object>> ObterProdutosMaisVendidosAsync(DateTime inicio, DateTime fim, int top = 10)
-        => await _vendaRepository.ObterProdutosMaisVendidosAsync(inicio, fim, top);
 
     private static VendaDto MapParaDto(Venda v) => new()
     {
