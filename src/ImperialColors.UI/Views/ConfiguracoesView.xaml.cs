@@ -299,6 +299,40 @@ public partial class ConfiguracoesView : UserControl
 
     }
 
+    private async void BtnGerarManual_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            FileName = $"Manual_Imperial_Colors_{DateTime.Now:yyyyMMdd}",
+            DefaultExt = ".pdf",
+            Filter = "PDF|*.pdf"
+        };
+
+        if (dialog.ShowDialog() != true)
+            return;
+
+        try
+        {
+            var svc = _serviceProvider.GetRequiredService<DocumentosPdfService>();
+            await svc.GerarManualPdfAsync(dialog.FileName);
+
+            MessageBox.Show($"Manual gerado com sucesso:\n{dialog.FileName}",
+                "Documento gerado", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // O arquivo foi 100% gravado e liberado antes deste ponto
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = dialog.FileName,
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Erro ao gerar Manual: {ex.Message}",
+                "Erro", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
 }
 
 

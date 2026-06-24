@@ -332,6 +332,23 @@
 
                         </StackPanel>
 
+                        <!-- Documentos do sistema -->
+                        <Border Padding="0,0,0,12" Margin="0,20,0,0"
+                                BorderBrush="{StaticResource CinzaMedioBrush}" BorderThickness="0,1,0,0">
+
+                            <StackPanel>
+
+                                <TextBlock Text="Documentos" FontSize="14" FontWeight="SemiBold" Margin="0,14,0,10"/>
+
+                                <Button Style="{StaticResource BotaoSecundario}"
+                                        Content="📄 Manual de Uso (PDF)"
+                                        Click="BtnGerarManual_Click"
+                                        HorizontalAlignment="Left"/>
+
+                            </StackPanel>
+
+                        </Border>
+
                     </StackPanel>
 
 
@@ -343,6 +360,15 @@
                 </Grid>
 
             </Border>
+
+            <!-- Créditos do desenvolvedor -->
+            <TextBlock Margin="0,18,0,4"
+                       HorizontalAlignment="Center"
+                       FontSize="11"
+                       Foreground="{StaticResource CinzaTextoBrush}"
+                       Opacity="0.7"
+                       Text="Desenvolvido por: cappellifelipe@gmail.com"
+                       FontStyle="Italic"/>
 
         </Grid>
 

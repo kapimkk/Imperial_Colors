@@ -80,6 +80,7 @@ public partial class App : System.Windows.Application
                 services.AddSingleton<IAppConfigService, AppConfigService>();
                 services.AddSingleton<ISessaoService, SessaoService>();
                 services.AddSingleton<IRelatorioService, RelatorioService>();
+                services.AddSingleton<DocumentosPdfService>();
 
                 services.AddTransient<LoginViewModel>();
                 services.AddTransient<GestaoUsuariosViewModel>();

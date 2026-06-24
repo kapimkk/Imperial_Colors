@@ -897,6 +897,30 @@ dotnet ef database update --project src/ImperialColors.Infrastructure --startup-
 
 ---
 
+## Novidades — Versão 1.3.0
+
+### Integração Cosmos Bluesoft (Código de Barras EAN-13)
+- Ao sair do campo **Código de Barras** no cadastro de produtos, se o código tiver 13 dígitos e o produto não existir localmente, o sistema consulta automaticamente a [API Cosmos Bluesoft](https://cosmos.bluesoft.com.br/).
+- O **nome do produto** é preenchido automaticamente se encontrado.
+- Se a API retornar uma imagem (`thumbnail`), ela é exibida em um painel amarelo discreto logo abaixo do campo de código.
+- Token configurado via variável de ambiente `COSMOS_TOKEN` no `.env`.
+
+### Créditos do desenvolvedor
+- O rodapé da tela de **Configurações** exibe: `Desenvolvido por: cappellifelipe@gmail.com` de forma discreta e elegante.
+
+### Geração de PDF — Manual de Uso
+- Botão **"📄 Manual de Uso (PDF)"** disponível em Configurações → seção Documentos.
+- Gera o *Manual de Operação do Usuário — Imperial Colors* com 4 seções: Dashboard e BI, Estoque, PDV e Vendas Externas.
+
+### Geração de PDF — Contrato de Prestação de Serviços
+- Botão **"📑 Contrato de Serviços (PDF)"** disponível em Configurações → seção Documentos.
+- Gera o *Contrato Oficial de Prestação de Serviços de Desenvolvimento* com qualificação das partes, objeto detalhado, cláusula fiscal (módulo NF-e/NFC-e como escopo futuro opcional) e linhas de assinatura.
+- Numeração de páginas aplicada automaticamente via segunda passagem no PDF.
+
+---
+
 ## Licença
 
 Desenvolvido para uso exclusivo da **Imperial Colors - Tintas e Revestimentos**.
+
+> Desenvolvido por: cappellifelipe@gmail.com
